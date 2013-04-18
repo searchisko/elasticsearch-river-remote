@@ -1,0 +1,28 @@
+{
+    "index" : {
+        "field_river_name"  : "river_name",
+        "field_project_key" : "jira_project_key",
+        "fields" : {
+            "issue_key"      : {"jira_field" : "key"},
+            "link"           : {"jira_field" : "self"},
+            "assignee"       : {"jira_field" : "fields.assignee", "value_filter" : "user2"},
+            "fix_versions"   : {"jira_field" : "fields.fixVersions", "value_filter" : "name2"},
+            "components"     : {"jira_field" : "fields.components", "value_filter" : "name2"}
+        },
+        "value_filters" : {
+            "user2" : {
+                "name"         : "username2",
+                "displayName"  : "display_name2" 
+            },
+            "name2" : { "name" : "name" }
+        },
+        "comment_mode"   : "child",
+        "field_comments" : "all_comments", 
+        "comment_fields" : {
+            "comment_body"    : {"jira_field" : "body"},
+            "comment_author"  : {"value_filter" : "user2"},
+            "comment_updater" : {"jira_field" : "updateAuthor", "value_filter" : "user2"},
+            "comment_created" : {"jira_field" : "created"}
+        }
+    }
+}

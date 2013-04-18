@@ -1,0 +1,37 @@
+{
+    "type" : "jira",
+    "jira" : {
+        "urlBase"               : "https://issues.jboss.org",
+        "username"              : "jira_username",
+        "pwd"                   : "jira_user_password",
+        "jqlTimeZone"           : "America/New York",
+        "timeout"               : "5s",
+        "maxIssuesPerRequest"   : 50,
+        "projectKeysIndexed"    : "ORG,AS7",
+        "indexUpdatePeriod"     : "5m",
+        "indexFullUpdatePeriod" : "1h",
+        "maxIndexingThreads"    : 2
+    },
+    "index" : {
+        "index" : "my_jira_index",
+        "type"  : "jira_issue",
+        "preprocessors" : [
+            { 
+                "name"     : "Status Normalizer",
+                "class"    : "org.jboss.elasticsearch.river.remote.testtools.DataPreprocessorMock",
+                "settings" : {
+                    "some_setting_1_1" : "value1",
+                    "some_setting_1_2" : "value2"
+                } 
+            },
+            { 
+                "name"     : "Issue type Normalizer",
+                "class"    : "org.jboss.elasticsearch.river.remote.testtools.DataPreprocessorMock",
+                "settings" : {
+                    "some_setting_2_1" : "value1",
+                    "some_setting_2_2" : "value2"
+                } 
+            }
+        ]
+    }
+}

@@ -1,0 +1,9 @@
+{
+    "remote_document" : {
+        "_timestamp"  : { "enabled" : true },
+        "properties" : {
+            "space_key" : {"type" : "string", "analyzer" : "keyword"},
+            "source"      : {"type" : "string", "analyzer" : "keyword"}
+        }
+    }
+}

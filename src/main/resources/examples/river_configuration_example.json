@@ -1,0 +1,39 @@
+{
+    "type" : "remote",
+    "remote" : {
+        "urlListDocuments"               : "https://issues.jboss.org",
+        "username"              : "jira_username",
+        "pwd"                   : "jira_user_password",
+        "timeout"               : "5s",
+        "spacesIndexed"    : "ORG,AS7",
+        "indexUpdatePeriod"     : "5m",
+        "indexFullUpdatePeriod" : "1h",
+        "maxIndexingThreads"    : 2
+    },
+    "index" : {
+        "index" : "my_remote_system_index",
+        "type"  : "remote_document",
+        "preprocessors" : [
+            { 
+                "name"     : "Status Normalizer",
+                "class"    : "org.jboss.elasticsearch.river.remote.preproc.StatusNormalizer",
+                "settings" : {
+                    "some_setting_1" : "value1",
+                    "some_setting_2" : "value2"
+                } 
+            },
+            { 
+                "name"     : "Issue type Normalizer",
+                "class"    : "org.jboss.elasticsearch.river.remote.preproc.DocumentTypeNormalizer",
+                "settings" : {
+                    "some_setting_1" : "value1",
+                    "some_setting_2" : "value2"
+                } 
+            }
+        ]
+    },
+    "activity_log": {
+        "index" : "remote_river_activity",
+        "type"  : "remote_river_indexupdate"
+    }
+}

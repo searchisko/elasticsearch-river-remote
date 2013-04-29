@@ -12,7 +12,7 @@ import java.util.Map;
  * Info about changed documents returned from remote server. List of documents with pagination informations.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
- * @see GetJSONClient#getJIRAChangedIssues(String, java.util.Date, java.util.Date)
+ * @see IRemoteSystemClient#getChangedDocuments(String, int, java.util.Date)
  */
 public class ChangedDocumentsResults {
 
@@ -23,14 +23,10 @@ public class ChangedDocumentsResults {
 	private int startAt;
 
 	/**
-	 * maxResults constraint applied for search of these results
+	 * Total number of documents in the remote system matching performed search criteria. Optional (null means not
+	 * available from response).
 	 */
-	private int maxResults;
-
-	/**
-	 * Total number of documents in the remote system matching performed search criteria.
-	 */
-	private int total;
+	private Integer total;
 
 	/**
 	 * Documents returned from remote system - count may be limited due maxResults constraint, first document is from
@@ -45,23 +41,16 @@ public class ChangedDocumentsResults {
 	 *          is from {@link #startAt} position.
 	 * @param startAt Starting position of returned documents in complete list of documents matching search in the remote
 	 *          system. 0 based.
-	 * @param maxResults constraint applied for search of these results
-	 * @param total number of documents in the remote system matching performed search criteria.
+	 * @param total number of documents in the remote system matching performed search criteria. Optional (only if remote
+	 *          system is capable to return it).
 	 */
-	public ChangedDocumentsResults(List<Map<String, Object>> documents, Integer startAt, Integer maxResults, Integer total) {
+	public ChangedDocumentsResults(List<Map<String, Object>> documents, Integer startAt, Integer total) {
 		super();
 		if (startAt == null) {
 			throw new IllegalArgumentException("startAt cant be null");
 		}
-		if (maxResults == null) {
-			throw new IllegalArgumentException("maxResults cant be null");
-		}
-		if (total == null) {
-			throw new IllegalArgumentException("total cant be null");
-		}
 		this.documents = documents;
 		this.startAt = startAt;
-		this.maxResults = maxResults;
 		this.total = total;
 	}
 
@@ -73,16 +62,9 @@ public class ChangedDocumentsResults {
 	}
 
 	/**
-	 * @return the maxResults
-	 */
-	public int getMaxResults() {
-		return maxResults;
-	}
-
-	/**
 	 * @return the total
 	 */
-	public int getTotal() {
+	public Integer getTotal() {
 		return total;
 	}
 
@@ -107,8 +89,7 @@ public class ChangedDocumentsResults {
 
 	@Override
 	public String toString() {
-		return "ChangedDocumentsResults [startAt=" + startAt + ", maxResults=" + maxResults + ", total=" + total
-				+ ", documents=" + documents + "]";
+		return "ChangedDocumentsResults [startAt=" + startAt + ", total=" + total + ", documents=" + documents + "]";
 	}
 
 }

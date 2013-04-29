@@ -32,41 +32,41 @@ import org.jboss.elasticsearch.river.remote.RemoteRiver;
  */
 public abstract class ElasticSearchIntegrationTest {
 
-  public static void main(String[] args) throws MalformedURLException {
+	public static void main(String[] args) throws MalformedURLException {
 
-    Client client = new TransportClient().addTransportAddress(new InetSocketTransportAddress("localhost", 9300));
+		Client client = new TransportClient().addTransportAddress(new InetSocketTransportAddress("localhost", 9300));
 
-    try {
-      Map<String, Object> settings = new HashMap<String, Object>();
-      Map<String, Object> jiraSettings = new HashMap<String, Object>();
-      settings.put("jira", jiraSettings);
-      jiraSettings.put("urlBase", "http://issues-stg.jboss.org");
-      Settings gs = mock(Settings.class);
-      RiverSettings rs = new RiverSettings(gs, settings);
+		try {
+			Map<String, Object> settings = new HashMap<String, Object>();
+			Map<String, Object> jiraSettings = new HashMap<String, Object>();
+			settings.put("jira", jiraSettings);
+			jiraSettings.put("urlBase", "http://issues-stg.jboss.org");
+			Settings gs = mock(Settings.class);
+			RiverSettings rs = new RiverSettings(gs, settings);
 
-      RemoteRiver jr = new RemoteRiver(new RiverName("rt", "my_jira_river"), rs, client);
-      DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder("my_jira_river",
-          "my_jira_index", "jira_issue", "http://issues-stg.jboss.org", null);
+			RemoteRiver jr = new RemoteRiver(new RiverName("rt", "my_jira_river"), rs, client);
+			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
+					"my_jira_river", "my_jira_index", "jira_issue", null);
 
-      String project = "ORG";
-      // Date date = new Date();
-      Date date = DateTimeUtils.parseISODateTime("2012-08-30T16:25:51");
+			String project = "ORG";
+			// Date date = new Date();
+			Date date = DateTimeUtils.parseISODateTime("2012-08-30T16:25:51");
 
-      SearchRequestBuilder srb = jr.prepareESScrollSearchRequestBuilder(structureBuilder
-          .getIssuesSearchIndexName(project));
+			SearchRequestBuilder srb = jr.prepareESScrollSearchRequestBuilder(structureBuilder
+					.getIssuesSearchIndexName(project));
 
-      structureBuilder.buildSearchForIndexedDocumentsNotUpdatedAfter(srb, project, date);
+			structureBuilder.buildSearchForIndexedDocumentsNotUpdatedAfter(srb, project, date);
 
-      System.out.println(srb);
+			System.out.println(srb);
 
-      SearchResponse response = jr.executeESSearchRequest(srb);
-      response = jr.executeESScrollSearchNextRequest(response);
+			SearchResponse response = jr.executeESSearchRequest(srb);
+			response = jr.executeESScrollSearchNextRequest(response);
 
-      System.out.println(response);
+			System.out.println(response);
 
-    } finally {
-      client.close();
-    }
-  }
+		} finally {
+			client.close();
+		}
+	}
 
 }

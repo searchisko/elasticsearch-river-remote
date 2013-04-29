@@ -37,13 +37,6 @@ public interface IDocumentIndexStructureBuilder {
 	String getIssuesSearchIndexName(String spaceKey);
 
 	/**
-	 * Get fields required from remote system to build index document. Used to construct remote request.
-	 * 
-	 * @return comma separated list of fields
-	 */
-	String getRequiredRemoteCallFields();
-
-	/**
 	 * Get unique identifier for document from data obtained from remote system.
 	 * 
 	 * @param document data obtained from remote system to be indexed (JSON parsed into Map of Map structure)

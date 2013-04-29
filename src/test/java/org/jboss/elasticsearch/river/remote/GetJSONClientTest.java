@@ -5,18 +5,14 @@
  */
 package org.jboss.elasticsearch.river.remote;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.when;
-
-import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
-import java.util.TimeZone;
+import java.util.Map;
 
 import junit.framework.Assert;
 
-import org.apache.http.NameValuePair;
+import org.elasticsearch.common.jackson.core.JsonParseException;
 import org.elasticsearch.common.settings.SettingsException;
 import org.junit.Test;
 
@@ -27,199 +23,257 @@ import org.junit.Test;
  */
 public class GetJSONClientTest {
 
-	/**
-	 * URL used for Client constructor in unit tests.
-	 */
-	protected static final String TEST_URL = "https://issues.jboss.org";
-
-	/**
-	 * Date formatter used to prepare {@link Date} instances for tests
-	 */
-	protected SimpleDateFormat JQL_TEST_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-	protected TimeZone JQL_TEST_TIMEZONE = TimeZone.getTimeZone("GMT");
-	{
-		JQL_TEST_DATE_FORMAT.setTimeZone(JQL_TEST_TIMEZONE);
-	}
-
-	/**
-	 * Main method used to run integration tests with real JIRA call.
-	 * 
-	 * @param args not used
-	 * @throws Exception
-	 */
-	public static void main(String[] args) throws Exception {
-
-		IRemoteSystemClient tested = new GetJSONClient("https://issues.jboss.org", null, null, 5000);
-
-		// List<String> projects = tested.getAllJIRAProjects();
-		// System.out.println(projects);
-
-		ChangedDocumentsResults ret = tested.getChangedDocuments("ORG", 0,
-				DateTimeUtils.parseISODateTime("2013-02-04T01:00:00Z"));
-		System.out.println("total: " + ret.getTotal());
-		System.out.println(ret);
-	}
-
 	@Test
-	public void constructor() {
+	public void init() {
+
 		try {
-			new GetJSONClient(null, null, null, 5000);
-			Assert.fail("SettingsException not thrown");
-		} catch (SettingsException e) {
-			// OK
-		}
-		try {
-			new GetJSONClient("  ", null, null, 5000);
-			Assert.fail("SettingsException not thrown");
-		} catch (SettingsException e) {
-			// OK
-		}
-		try {
-			new GetJSONClient("nonsenseUrl", null, null, 5000);
+			Map<String, Object> config = new HashMap<String, Object>();
+			GetJSONClient tested = new GetJSONClient();
+			tested.init(config, false);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			// OK
 		}
 
-		GetJSONClient tested = new GetJSONClient("http://issues.jboss.org", null, null, 5000);
-		Assert.assertEquals(GetJSONClient.prepareAPIURLFromBaseURL("http://issues.jboss.org"), tested.jiraRestAPIUrlBase);
-		tested = new GetJSONClient(TEST_URL, null, null, 5000);
-		Assert.assertEquals(GetJSONClient.prepareAPIURLFromBaseURL(TEST_URL), tested.jiraRestAPIUrlBase);
-		Assert.assertFalse(tested.isAuthConfigured);
+		try {
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "bad url format");
+			GetJSONClient tested = new GetJSONClient();
+			tested.init(config, false);
+			Assert.fail("SettingsException not thrown");
+		} catch (SettingsException e) {
+			// OK
+		}
 
-		tested = new GetJSONClient(TEST_URL, "", "pwd", 5000);
-		Assert.assertFalse(tested.isAuthConfigured);
+		// case - basic config, no getSpaces required, no authentication
+		{
+			GetJSONClient tested = new GetJSONClient();
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
+			config.put(GetJSONClient.CFG_URL_GET_SPACES, "http://test.org/spaces");
+			config.put(GetJSONClient.CFG_GET_SPACES_RESPONSE_FIELD, "field");
+			tested.init(config, false);
+			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
+			Assert.assertNull(tested.urlGetSpaces);
+			Assert.assertNull(tested.getSpacesResField);
+			Assert.assertFalse(tested.isAuthConfigured);
+		}
 
-		tested = new GetJSONClient(TEST_URL, "uname", "pwd", 5000);
-		Assert.assertTrue(tested.isAuthConfigured);
+		// case - error - getSpaces is required but not configured!
+		try {
+			GetJSONClient tested = new GetJSONClient();
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
+			tested.init(config, true);
+			Assert.fail("SettingsException not thrown");
+		} catch (SettingsException e) {
+			// OK
+		}
+		try {
+			GetJSONClient tested = new GetJSONClient();
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
+			config.put(GetJSONClient.CFG_URL_GET_SPACES, "bad url format");
+			tested.init(config, true);
+			Assert.fail("SettingsException not thrown");
+		} catch (SettingsException e) {
+			// OK
+		}
+
+		// case - basic config, getSpaces required, authentication
+		{
+			GetJSONClient tested = new GetJSONClient();
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
+			config.put(GetJSONClient.CFG_URL_GET_SPACES, "http://test.org/spaces");
+			config.put(GetJSONClient.CFG_GET_SPACES_RESPONSE_FIELD, "");
+			config.put(GetJSONClient.CFG_USERNAME, "myuser");
+			config.put(GetJSONClient.CFG_PASSWORD, "paaswd");
+			tested.init(config, true);
+			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
+			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
+			Assert.assertNull(tested.getSpacesResField);
+			Assert.assertTrue(tested.isAuthConfigured);
+		}
+
 	}
 
 	@Test
-	public void getAllJIRAProjects() throws Exception {
+	public void getAllSpaces() throws Exception {
 
-		IRemoteSystemClient tested = new GetJSONClient(TEST_URL, null, null, 5000) {
+		// case - incorrect JSON response format
+		try {
+			IRemoteSystemClient tested = getAllSpaces_createTested("[ \"ORG\", \"PPP\"", null);
+			tested.getAllSpaces();
+			Assert.fail("JsonParseException expected");
+		} catch (JsonParseException e) {
+			// OK
+		}
+
+		// case - incorrect response content given to configured field
+		try {
+			IRemoteSystemClient tested = getAllSpaces_createTested("{ \"spaces\" : 10 }", "spaces");
+			tested.getAllSpaces();
+			Assert.fail("Exception expected");
+		} catch (Exception e) {
+			// OK
+		}
+		// case - error because field is required but response doesn't contains map
+		try {
+			IRemoteSystemClient tested = getAllSpaces_createTested("[ \"ORG\", \"PPP\", 10]", "spaces");
+			tested.getAllSpaces();
+			Assert.fail("Exception expected");
+		} catch (Exception e) {
+			// OK
+		}
+
+		// case - simple array in JSON response
+		{
+			IRemoteSystemClient tested = getAllSpaces_createTested("[ \"ORG\", \"PPP\", 10]", null);
+			List<String> ret = tested.getAllSpaces();
+			Assert.assertNotNull(ret);
+			Assert.assertEquals(3, ret.size());
+			Assert.assertTrue(ret.contains("ORG"));
+			Assert.assertTrue(ret.contains("PPP"));
+			Assert.assertTrue(ret.contains("10"));
+		}
+
+		// case - simple map in JSON response
+		{
+			IRemoteSystemClient tested = getAllSpaces_createTested("{ \"ORG\" : {}, \"PPP\" : {}}", null);
+			List<String> ret = tested.getAllSpaces();
+			Assert.assertNotNull(ret);
+			Assert.assertEquals(2, ret.size());
+			Assert.assertTrue(ret.contains("ORG"));
+			Assert.assertTrue(ret.contains("PPP"));
+		}
+
+		// case - array in field of JSON response
+		{
+			IRemoteSystemClient tested = getAllSpaces_createTested("{ \"spaces\" : [ \"ORG\", \"PPP\", 10]}", "spaces");
+			List<String> ret = tested.getAllSpaces();
+			Assert.assertNotNull(ret);
+			Assert.assertEquals(3, ret.size());
+			Assert.assertTrue(ret.contains("ORG"));
+			Assert.assertTrue(ret.contains("PPP"));
+			Assert.assertTrue(ret.contains("10"));
+		}
+
+		// case - map in field of JSON response
+		{
+			IRemoteSystemClient tested = getAllSpaces_createTested("{ \"spaces\" : { \"ORG\" : {}, \"PPP\" : {}}}", "spaces");
+			List<String> ret = tested.getAllSpaces();
+			Assert.assertNotNull(ret);
+			Assert.assertEquals(2, ret.size());
+			Assert.assertTrue(ret.contains("ORG"));
+			Assert.assertTrue(ret.contains("PPP"));
+		}
+
+		// case - evaluation of nested field of JSON response
+		{
+			IRemoteSystemClient tested = getAllSpaces_createTested(
+					"{ \"ret\" : { \"spaces\" : { \"ORG\" : {}, \"PPP\" : {}}}}", "ret.spaces");
+			List<String> ret = tested.getAllSpaces();
+			Assert.assertNotNull(ret);
+			Assert.assertEquals(2, ret.size());
+			Assert.assertTrue(ret.contains("ORG"));
+			Assert.assertTrue(ret.contains("PPP"));
+		}
+	}
+
+	private IRemoteSystemClient getAllSpaces_createTested(final String returnJson, String configSpacesResponseField) {
+		Map<String, Object> config = new HashMap<String, Object>();
+		config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
+		config.put(GetJSONClient.CFG_URL_GET_SPACES, "http://test.org/spaces");
+		config.put(GetJSONClient.CFG_GET_SPACES_RESPONSE_FIELD, configSpacesResponseField);
+		IRemoteSystemClient tested = new GetJSONClient() {
 			@Override
-			protected byte[] performJIRAGetRESTCall(String restOperation, List<NameValuePair> params) throws Exception {
-				Assert.assertEquals("project", restOperation);
-				Assert.assertNull(params);
-				return ("[{\"key\": \"ORG\", \"name\": \"ORG project\"},{\"key\": \"PPP\"}]").getBytes("UTF-8");
+			protected byte[] performGetRESTCall(String url) throws Exception {
+				Assert.assertEquals("http://test.org/spaces", url);
+				return returnJson.getBytes("UTF-8");
 			};
 
 		};
-
-		List<String> ret = tested.getAllSpaces();
-		Assert.assertNotNull(ret);
-		Assert.assertEquals(2, ret.size());
-		Assert.assertTrue(ret.contains("ORG"));
-		Assert.assertTrue(ret.contains("PPP"));
+		tested.init(config, true);
+		return tested;
 	}
 
 	@Test
-	public void getJIRAChangedIssues() throws Exception {
-		final Date ua = new Date();
+	public void getChangedDocuments() throws Exception {
 
-		IRemoteSystemClient tested = new GetJSONClient(TEST_URL, null, null, 5000) {
-			@Override
-			protected byte[] performJIRAChangedIssuesREST(String projectKey, int startAt, Date updatedAfter,
-					Date updatedBefore) throws Exception {
-				Assert.assertEquals("ORG", projectKey);
-				Assert.assertEquals(ua, updatedAfter);
-				Assert.assertEquals(10, startAt);
-				return "{\"startAt\": 5, \"maxResults\" : 10, \"total\" : 50, \"issues\" : [{\"key\" : \"ORG-45\"}]}"
-						.getBytes("UTF-8");
-			};
-		};
+		try {
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			IRemoteSystemClient tested = getChangedDocuments_createTested(config, "invalid json",
+					"http://test.org/documents?docSpace=myspace&docUpdatedAfter=&startAtIndex=0");
+			tested.getChangedDocuments("myspace", 0, null);
+			Assert.fail("JsonParseException expected");
+		} catch (JsonParseException e) {
+			// OK
+		}
 
-		ChangedDocumentsResults ret = tested.getChangedDocuments("ORG", 10, ua);
-		Assert.assertEquals(5, ret.getStartAt());
-		Assert.assertEquals(10, ret.getMaxResults());
-		Assert.assertEquals(50, ret.getTotal());
-		Assert.assertNotNull(ret.getDocuments());
-		Assert.assertEquals(1, ret.getDocumentsCount());
+		// case - simple response with direct list, no total
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			IRemoteSystemClient tested = getChangedDocuments_createTested(config, "[{\"key\" : \"a\"},{\"key\" : \"b\"}]",
+					"http://test.org/documents?docSpace=myspace&docUpdatedAfter=1256&startAtIndex=12");
+			ChangedDocumentsResults ret = tested.getChangedDocuments("myspace", 12, new Date(1256l));
+			Assert.assertEquals(2, ret.getDocumentsCount());
+			Assert.assertEquals(12, ret.getStartAt());
+			Assert.assertEquals(null, ret.getTotal());
+			Assert.assertEquals("a", ret.getDocuments().get(0).get("key"));
+			Assert.assertEquals("b", ret.getDocuments().get(1).get("key"));
+		}
+
+		// case - object response with documents and total in nested fields
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_DOCUMENTS, "response.items");
+			config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_TOTALCOUNT, "response.total");
+			IRemoteSystemClient tested = getChangedDocuments_createTested(config,
+					"{\"response\": { \"total\":20 ,\"items\":[{\"key\" : \"a\"},{\"key\" : \"b\"}]}}",
+					"http://test.org/documents?docSpace=myspace&docUpdatedAfter=1256&startAtIndex=12");
+			ChangedDocumentsResults ret = tested.getChangedDocuments("myspace", 12, new Date(1256l));
+			Assert.assertEquals(2, ret.getDocumentsCount());
+			Assert.assertEquals(12, ret.getStartAt());
+			Assert.assertEquals(new Integer(20), ret.getTotal());
+			Assert.assertEquals("a", ret.getDocuments().get(0).get("key"));
+			Assert.assertEquals("b", ret.getDocuments().get(1).get("key"));
+		}
+
 	}
 
-	@Test
-	public void performJIRAChangedIssuesREST() throws Exception {
-		final Date ua = new Date();
-		final Date ub = new Date();
-
-		GetJSONClient tested = new GetJSONClient(TEST_URL, null, null, 5000) {
+	private IRemoteSystemClient getChangedDocuments_createTested(Map<String, Object> config, final String returnJson,
+			final String expectadCallUrl) {
+		IRemoteSystemClient tested = new GetJSONClient() {
 			@Override
-			protected byte[] performJIRAGetRESTCall(String restOperation, List<NameValuePair> params) throws Exception {
-				Assert.assertEquals("search", restOperation);
-				Assert.assertNotNull(params);
-				String mr = "-1";
-				String fields = "";
-				String startAt = "";
-				for (NameValuePair param : params) {
-					if (param.getName().equals("maxResults")) {
-						mr = param.getValue();
-					} else if (param.getName().equals("jql")) {
-						Assert.assertEquals("JQL string", param.getValue());
-					} else if (param.getName().equals("fields")) {
-						fields = param.getValue();
-					} else if (param.getName().equals("startAt")) {
-						startAt = param.getValue();
-					}
-				}
-
-				if ("-1".equals(mr)) {
-					Assert.assertEquals(3, params.size());
-				} else if ("10".equals(mr)) {
-					Assert.assertEquals(4, params.size());
-				} else if ("20".equals(mr)) {
-					Assert.assertEquals(3, params.size());
-				}
-
-				return ("{\"maxResults\": " + mr + ", \"startAt\": " + startAt + ", \"fields\" : \"" + fields + "\" }")
-						.getBytes("UTF-8");
+			protected byte[] performGetRESTCall(String url) throws Exception {
+				Assert.assertEquals(expectadCallUrl, url);
+				return returnJson.getBytes("UTF-8");
 			};
 
-			@Override
-			protected String prepareJIRAChangedIssuesJQL(String projectKey, Date updatedAfter, Date updatedBefore) {
-				Assert.assertEquals("ORG", projectKey);
-				Assert.assertEquals(ua, updatedAfter);
-				Assert.assertEquals(ub, updatedBefore);
-				return "JQL string";
-			}
 		};
-		IDocumentIndexStructureBuilder jiraIssueIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
-		tested.setIndexStructureBuilder(jiraIssueIndexStructureBuilderMock);
-		when(jiraIssueIndexStructureBuilderMock.getRequiredRemoteCallFields()).thenReturn(
-				"key,status,issuetype,created,updated,reporter,assignee,summary,description");
-
-		// case - no maxResults parameter defined
-		byte[] ret = tested.performJIRAChangedIssuesREST("ORG", 10, ua, ub);
-		Assert
-				.assertEquals(
-						"{\"maxResults\": -1, \"startAt\": 10, \"fields\" : \"key,status,issuetype,created,updated,reporter,assignee,summary,description\" }",
-						new String(ret, "UTF-8"));
-
-		// case - maxResults parameter defined
-		tested.listJIRAIssuesMax = 10;
-		ret = tested.performJIRAChangedIssuesREST("ORG", 20, ua, ub);
-		Assert
-				.assertEquals(
-						"{\"maxResults\": 10, \"startAt\": 20, \"fields\" : \"key,status,issuetype,created,updated,reporter,assignee,summary,description\" }",
-						new String(ret, "UTF-8"));
-
-		// case - no fields defined
-		reset(jiraIssueIndexStructureBuilderMock);
-		tested.listJIRAIssuesMax = 20;
-		ret = tested.performJIRAChangedIssuesREST("ORG", 30, ua, ub);
-		Assert.assertEquals("{\"maxResults\": 20, \"startAt\": 30, \"fields\" : \"\" }", new String(ret, "UTF-8"));
-
+		tested.init(config, false);
+		return tested;
 	}
 
 	@Test
-	public void prepareAPIURLFromBaseURL() {
-		Assert.assertNull(GetJSONClient.prepareAPIURLFromBaseURL(null));
-		Assert.assertNull(GetJSONClient.prepareAPIURLFromBaseURL(""));
-		Assert.assertNull(GetJSONClient.prepareAPIURLFromBaseURL("  "));
-		Assert.assertEquals("http://issues.jboss.org/rest/api/2/",
-				GetJSONClient.prepareAPIURLFromBaseURL("http://issues.jboss.org"));
-		Assert.assertEquals("https://issues.jboss.org/rest/api/2/",
-				GetJSONClient.prepareAPIURLFromBaseURL("https://issues.jboss.org/"));
+	public void enhanceUrlGetDocuments() {
+		Assert.assertEquals("http://test.org?docSpace=myspace&docUpdatedAfter=123456&startAtIndex=0", GetJSONClient
+				.enhanceUrlGetDocuments(
+						"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}", "myspace",
+						new Date(123456l), 0));
+
+		Assert.assertEquals("http://test.org?docSpace=myspace&docUpdatedAfter=&startAtIndex=125", GetJSONClient
+				.enhanceUrlGetDocuments(
+						"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}", "myspace",
+						null, 125));
+
 	}
 
 }

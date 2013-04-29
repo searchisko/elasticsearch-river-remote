@@ -109,11 +109,6 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	protected String typeName;
 
 	/**
-	 * Config - Base URL of remote system instance to index by this river
-	 */
-	protected String jiraUrlBase = null;
-
-	/**
 	 * Config - name of ElasticSearch index used to store river activity records - null means no activity stored
 	 */
 	protected String activityLogIndexName;
@@ -200,36 +195,27 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 		if (!closed)
 			throw new IllegalStateException("Remote River must be stopped to configure it!");
 
-		String jiraUser = null;
-
-		if (settings.containsKey("jira")) {
-			Map<String, Object> jiraSettings = (Map<String, Object>) settings.get("jira");
-			jiraUrlBase = XContentMapValues.nodeStringValue(jiraSettings.get("urlBase"), null);
-			if (Utils.isEmpty(jiraUrlBase)) {
-				throw new SettingsException("jira/urlBase element of configuration structure not found or empty");
-			}
-			Integer timeout = new Long(Utils.parseTimeValue(jiraSettings, "timeout", 5, TimeUnit.SECONDS)).intValue();
-			jiraUser = XContentMapValues.nodeStringValue(jiraSettings.get("username"), "Anonymous access");
-			remoteSystemClient = new GetJSONClient(jiraUrlBase, XContentMapValues.nodeStringValue(
-					jiraSettings.get("username"), null), XContentMapValues.nodeStringValue(jiraSettings.get("pwd"), null),
-					timeout);
-			maxIndexingThreads = XContentMapValues.nodeIntegerValue(jiraSettings.get("maxIndexingThreads"), 1);
-			indexUpdatePeriod = Utils.parseTimeValue(jiraSettings, "indexUpdatePeriod", 5, TimeUnit.MINUTES);
-			indexFullUpdatePeriod = Utils.parseTimeValue(jiraSettings, "indexFullUpdatePeriod", 12, TimeUnit.HOURS);
-			if (jiraSettings.containsKey("projectKeysIndexed")) {
+		if (settings.containsKey("remote")) {
+			Map<String, Object> remoteSettings = (Map<String, Object>) settings.get("remote");
+			maxIndexingThreads = XContentMapValues.nodeIntegerValue(remoteSettings.get("maxIndexingThreads"), 1);
+			indexUpdatePeriod = Utils.parseTimeValue(remoteSettings, "indexUpdatePeriod", 5, TimeUnit.MINUTES);
+			indexFullUpdatePeriod = Utils.parseTimeValue(remoteSettings, "indexFullUpdatePeriod", 12, TimeUnit.HOURS);
+			if (remoteSettings.containsKey("spacesIndexed")) {
 				allIndexedSpacesKeys = Utils.parseCsvString(XContentMapValues.nodeStringValue(
-						jiraSettings.get("projectKeysIndexed"), null));
+						remoteSettings.get("spacesIndexed"), null));
 				if (allIndexedSpacesKeys != null) {
-					// stop loading from JIRA
+					// stop spaces loading from remote system
 					allIndexedSpacesKeysNextRefresh = Long.MAX_VALUE;
 				}
 			}
-			if (jiraSettings.containsKey("projectKeysExcluded")) {
+			if (remoteSettings.containsKey("spaceKeysExcluded")) {
 				spaceKeysExcluded = Utils.parseCsvString(XContentMapValues.nodeStringValue(
-						jiraSettings.get("projectKeysExcluded"), null));
+						remoteSettings.get("spaceKeysExcluded"), null));
 			}
+			remoteSystemClient = new GetJSONClient();
+			remoteSystemClient.init(remoteSettings, allIndexedSpacesKeysNextRefresh != Long.MAX_VALUE);
 		} else {
-			throw new SettingsException("'jira' element of river configuration structure not found");
+			throw new SettingsException("'remote' element of river configuration structure not found");
 		}
 
 		Map<String, Object> indexSettings = null;
@@ -255,16 +241,14 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 					INDEX_ACTIVITY_TYPE_NAME_DEFAULT));
 		}
 
-		documentIndexStructureBuilder = new DocumentWithCommentsIndexStructureBuilder(riverName.getName(), indexName, typeName,
-				jiraUrlBase, indexSettings);
+		documentIndexStructureBuilder = new DocumentWithCommentsIndexStructureBuilder(riverName.getName(), indexName,
+				typeName, indexSettings);
 		preparePreprocessors(indexSettings, documentIndexStructureBuilder);
 
 		remoteSystemClient.setIndexStructureBuilder(documentIndexStructureBuilder);
 
-		logger
-				.info(
-						"Configured Remote River '{}' for base URL [{}], remote user '{}'. Search index name '{}', document type for issues '{}'.",
-						riverName.getName(), jiraUrlBase, jiraUser, indexName, typeName);
+		logger.info("Configured Remote River '{}'. Search index name '{}', document type for issues '{}'.",
+				riverName.getName(), indexName, typeName);
 		if (activityLogIndexName != null) {
 			logger
 					.info(

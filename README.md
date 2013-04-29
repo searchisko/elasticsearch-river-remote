@@ -24,12 +24,19 @@ Creating the river can be done using:
 	{
 	    "type" : "remote",
 	    "remote" : {
-	        "urlListDocuments"      : "https://system.org?docSpace={space}&docUpdatedAfter={updatedAfter}",
+	        "urlGetDocuments"       : "https://system.org/rest/document?docSpace={space}&docUpdatedAfter={updatedAfter}",
+	        "username"              : "remote_username",
+          "pwd"                   : "remote_user_password",
 	        "timeout"               : "5s",
 	        "spacesIndexed"         : "ORG,AS7",
+	        "spaceKeysExcluded"     : "",
 	        "indexUpdatePeriod"     : "5m",
 	        "indexFullUpdatePeriod" : "1h",
-	        "maxIndexingThreads"    : 2
+	        "maxIndexingThreads"    : 2,
+	        "urlGetSpaces"          : "https://system.org/rest/space",
+	        "getSpacesResField"     : "spaces"
+	        "getDocsResFieldDocuments"  : "items"
+	        "getDocsResFieldTotalcount" : "total"
 	    },
 	    "index" : {
 	        "index" : "my_remote_index",

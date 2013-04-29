@@ -34,8 +34,8 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 /**
- * jUnit test for {@link SpaceByLastUpdateTimestampIndexer} which tests search index update processes against embedded inmemory elastic
- * search node.<br>
+ * jUnit test for {@link SpaceByLastUpdateTimestampIndexer} which tests search index update processes against embedded
+ * inmemory elastic search node.<br>
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
@@ -61,14 +61,15 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			jiraRiverMock.activityLogIndexName = CFG_INDEX_NAME_ACTIVITY;
 			jiraRiverMock.activityLogTypeName = CFG_TYPE_ACTIVITY;
 
-			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(CFG_RIVER_NAME,
-					CFG_INDEX_NAME, CFG_TYPE_ISSUE, "http://issues.jboss.org", null);
+			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
+					CFG_RIVER_NAME, CFG_INDEX_NAME, CFG_TYPE_ISSUE, null);
 			structureBuilder.commentIndexingMode = CommentIndexingMode.EMBEDDED;
 			initIndexStructures(client, structureBuilder.commentIndexingMode);
 
 			// run 1 to insert documents
 			Date dateStartRun1 = new Date();
-			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false, jClientMock, jiraRiverMock, structureBuilder);
+			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false, jClientMock,
+					jiraRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
 			tested.storeLastDocumentUpdatedDate(null, PROJECT_KEY, lastIssueUpdatedDate);
 			when(jClientMock.getChangedDocuments(PROJECT_KEY, 0, lastIssueUpdatedDate)).thenReturn(
@@ -127,14 +128,15 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			RemoteRiver jiraRiverMock = initRiverInstanceForTest(client);
 			IRemoteSystemClient jClientMock = jiraRiverMock.remoteSystemClient;
 
-			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(CFG_RIVER_NAME,
-					CFG_INDEX_NAME, CFG_TYPE_ISSUE, "http://issues.jboss.org", null);
+			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
+					CFG_RIVER_NAME, CFG_INDEX_NAME, CFG_TYPE_ISSUE, null);
 			structureBuilder.commentIndexingMode = CommentIndexingMode.CHILD;
 			initIndexStructures(client, structureBuilder.commentIndexingMode);
 
 			// run 1 to insert documents
 			Date dateStartRun1 = new Date();
-			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false, jClientMock, jiraRiverMock, structureBuilder);
+			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false, jClientMock,
+					jiraRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
 			tested.storeLastDocumentUpdatedDate(null, PROJECT_KEY, lastIssueUpdatedDate);
 			when(jClientMock.getChangedDocuments(PROJECT_KEY, 0, lastIssueUpdatedDate)).thenReturn(
@@ -201,15 +203,16 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			RemoteRiver jiraRiverMock = initRiverInstanceForTest(client);
 			IRemoteSystemClient jClientMock = jiraRiverMock.remoteSystemClient;
 
-			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(CFG_RIVER_NAME,
-					CFG_INDEX_NAME, CFG_TYPE_ISSUE, "http://issues.jboss.org", null);
+			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
+					CFG_RIVER_NAME, CFG_INDEX_NAME, CFG_TYPE_ISSUE, null);
 			structureBuilder.commentIndexingMode = CommentIndexingMode.EMBEDDED;
 			initIndexStructures(client, structureBuilder.commentIndexingMode);
 			initDocumentsForProjectAAA(jiraRiverMock, structureBuilder);
 
 			// run 1 to insert documents
 			Date dateStartRun1 = new Date();
-			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, jClientMock, jiraRiverMock, structureBuilder);
+			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, jClientMock,
+					jiraRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
 			tested.storeLastDocumentUpdatedDate(null, PROJECT_KEY, lastIssueUpdatedDate);
 			when(jClientMock.getChangedDocuments(PROJECT_KEY, 0, null)).thenReturn(
@@ -265,15 +268,16 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			RemoteRiver jiraRiverMock = initRiverInstanceForTest(client);
 			IRemoteSystemClient jClientMock = jiraRiverMock.remoteSystemClient;
 
-			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(CFG_RIVER_NAME,
-					CFG_INDEX_NAME, CFG_TYPE_ISSUE, "http://issues.jboss.org", null);
+			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
+					CFG_RIVER_NAME, CFG_INDEX_NAME, CFG_TYPE_ISSUE, null);
 			structureBuilder.commentIndexingMode = CommentIndexingMode.CHILD;
 			initIndexStructures(client, structureBuilder.commentIndexingMode);
 			initDocumentsForProjectAAA(jiraRiverMock, structureBuilder);
 
 			// run 1 to insert documents
 			Date dateStartRun1 = new Date();
-			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, jClientMock, jiraRiverMock, structureBuilder);
+			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, jClientMock,
+					jiraRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
 			tested.storeLastDocumentUpdatedDate(null, PROJECT_KEY, lastIssueUpdatedDate);
 			when(jClientMock.getChangedDocuments(PROJECT_KEY, 0, null)).thenReturn(
@@ -340,15 +344,16 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			RemoteRiver jiraRiverMock = initRiverInstanceForTest(client);
 			IRemoteSystemClient jClientMock = jiraRiverMock.remoteSystemClient;
 
-			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(CFG_RIVER_NAME,
-					CFG_INDEX_NAME, CFG_TYPE_ISSUE, "http://issues.jboss.org", null);
+			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
+					CFG_RIVER_NAME, CFG_INDEX_NAME, CFG_TYPE_ISSUE, null);
 			structureBuilder.commentIndexingMode = CommentIndexingMode.STANDALONE;
 			initIndexStructures(client, structureBuilder.commentIndexingMode);
 			initDocumentsForProjectAAA(jiraRiverMock, structureBuilder);
 
 			// run 1 to insert documents
 			Date dateStartRun1 = new Date();
-			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, jClientMock, jiraRiverMock, structureBuilder);
+			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, jClientMock,
+					jiraRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
 			tested.storeLastDocumentUpdatedDate(null, PROJECT_KEY, lastIssueUpdatedDate);
 			when(jClientMock.getChangedDocuments(PROJECT_KEY, 0, null)).thenReturn(
@@ -525,7 +530,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 				list.add(TestUtils.readJiraJsonIssueDataFromClasspathFile(key));
 			}
 		}
-		return new ChangedDocumentsResults(list, 0, 50, list.size());
+		return new ChangedDocumentsResults(list, 0, 50);
 	}
 
 	protected RemoteRiver initRiverInstanceForTest(Client client) throws Exception {
@@ -567,7 +572,8 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 	protected void initDocumentsForProjectAAA(RemoteRiver jiraRiverMock,
 			DocumentWithCommentsIndexStructureBuilder structureBuilder) throws Exception {
 		IRemoteSystemClient jiraClientMock = mock(IRemoteSystemClient.class);
-		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("AAA", true, jiraClientMock, jiraRiverMock, structureBuilder);
+		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("AAA", true, jiraClientMock,
+				jiraRiverMock, structureBuilder);
 		ChangedDocumentsResults changedIssues = prepareChangedIssuesJIRACallResults("AAA-1", "AAA-2");
 		when(jiraClientMock.getChangedDocuments("AAA", 0, null)).thenReturn(changedIssues);
 		tested.run();

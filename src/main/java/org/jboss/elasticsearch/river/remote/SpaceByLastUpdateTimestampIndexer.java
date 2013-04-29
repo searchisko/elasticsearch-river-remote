@@ -136,8 +136,8 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 				throw new InterruptedException("Interrupted because River is closed");
 
 			if (logger.isDebugEnabled())
-				logger.debug("Go to ask for updated documents for space {} with startAt {} updated {}", spaceKey, startAt,
-						(updatedAfter != null ? ("after " + updatedAfter) : "in whole history"));
+				logger.debug("Go to ask remote system for updated documents for space {} with startAt {} and updated {}",
+						spaceKey, startAt, (updatedAfter != null ? ("after " + updatedAfter) : "in whole history"));
 
 			ChangedDocumentsResults res = remoteSystemClient.getChangedDocuments(spaceKey, startAt, updatedAfter);
 
@@ -179,13 +179,25 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 					// time
 					// of update which is more safe for concurrent changes in the remote system
 					updatedAfter = lastDocumentUpdatedDate;
-					cont = res.getTotal() > (res.getStartAt() + res.getDocumentsCount());
+					if (res.getTotal() != null)
+						cont = res.getTotal() > (res.getStartAt() + res.getDocumentsCount());
+					else
+						cont = res.getDocumentsCount() > 0;
 					startAt = 0;
 				} else {
 					// more documents updated in same time, we must go over them using pagination only, which may sometimes lead
-					// to some document update lost due concurrent changes in the remote system
-					startAt = res.getStartAt() + res.getDocumentsCount();
-					cont = res.getTotal() > startAt;
+					// to some document update lost due concurrent changes in the remote system. But we can do it only if Total is
+					// available from response!
+					if (res.getTotal() != null) {
+						startAt = res.getStartAt() + res.getDocumentsCount();
+						cont = res.getTotal() > startAt;
+					} else {
+						logger
+								.warn("All documents loaded from remote system contain same update timestamp, but we have no total count from response, so we may miss some documents because we shift timestamp for new request by one second!");
+						startAt = 0;
+						updatedAfter = new Date(lastDocumentUpdatedDate.getTime() + 1000);
+						cont = res.getDocumentsCount() > 0;
+					}
 				}
 			}
 		}

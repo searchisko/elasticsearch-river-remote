@@ -16,7 +16,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 import junit.framework.Assert;
 
@@ -98,8 +97,6 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		Assert.assertEquals(5 * 60 * 60 * 1000, tested.indexFullUpdatePeriod);
 		Assert.assertEquals("my_index_name", tested.indexName);
 		Assert.assertEquals("type_test", tested.typeName);
-		Assert.assertEquals(TimeZone.getTimeZone("Europe/Prague"),
-				((GetJSONClient) tested.remoteSystemClient).jqlDateFormat.getTimeZone());
 		// assert index structure builder initialization
 		Assert.assertEquals(tested.documentIndexStructureBuilder, tested.remoteSystemClient.getIndexStructureBuilder());
 		Assert.assertEquals(tested.indexName,
@@ -293,8 +290,6 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 						.setSource(TestUtils.readStringFromClasspathFile("/river_reconfiguration_test.json")).execute().actionGet();
 
 				tested.reconfigure();
-				Assert.assertEquals("https://issues.jboss.org/rest/api/2/",
-						((GetJSONClient) tested.remoteSystemClient).jiraRestAPIUrlBase);
 				Assert.assertEquals("my_jira_index_test", tested.indexName);
 				Assert.assertEquals("jira_issue_test", tested.typeName);
 				Assert.assertEquals("jira_river_activity_test", tested.activityLogIndexName);

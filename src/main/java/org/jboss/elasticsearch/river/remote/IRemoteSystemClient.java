@@ -2,13 +2,36 @@ package org.jboss.elasticsearch.river.remote;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.common.settings.SettingsException;
 
 /**
- * Interface for Remote system calls Client implementation.
+ * Interface for Remote system calls Client implementation. Only one instance is created by river, so implementation
+ * must be thread safe.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
 public interface IRemoteSystemClient {
+
+	/**
+	 * Initialize client. Called from river in init time.
+	 * 
+	 * @param config configuration structure (taken from <code>remote</code> element in river configuration)
+	 * @param spaceListLoadingEnabled if <code>true</code> then {@link #getAllSpaces()} will be called by river to load
+	 *          list of spaces from remote system. So client must be initialized to be able to use this method.
+	 * @throws SettingsException
+	 */
+	public abstract void init(Map<String, Object> config, boolean spaceListLoadingEnabled) throws SettingsException;
+
+	/**
+	 * Set index structure builder so remote system client can use it (for example it can request from remote system only
+	 * fields necessary for indexing etc.). Called after <code>init</code method.
+	 * 
+	 * @param indexStructureBuilder
+	 * @see IDocumentIndexStructureBuilder#getRequiredRemoteCallFields()
+	 */
+	public void setIndexStructureBuilder(IDocumentIndexStructureBuilder indexStructureBuilder);
 
 	/**
 	 * Get keys of all Spaces in configured remote system.
@@ -31,15 +54,6 @@ public interface IRemoteSystemClient {
 	 */
 	public abstract ChangedDocumentsResults getChangedDocuments(String spaceKey, int startAt, Date updatedAfter)
 			throws Exception;
-
-	/**
-	 * Add index structure builder so remote system client can use it (for example it can request from remote system only
-	 * fields necessary for indexing etc.).
-	 * 
-	 * @param indexStructureBuilder
-	 * @see IDocumentIndexStructureBuilder#getRequiredRemoteCallFields()
-	 */
-	public void setIndexStructureBuilder(IDocumentIndexStructureBuilder indexStructureBuilder);
 
 	/**
 	 * Get actual index structure builder.

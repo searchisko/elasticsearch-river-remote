@@ -11,10 +11,8 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.index.IndexRequest;
@@ -31,8 +29,8 @@ import org.elasticsearch.search.SearchHit;
 import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessor;
 
 /**
- * Universal configurable implementation of component responsible to transform document data obtained from remote system
- * call to the document stored in ElasticSearch index. Supports comment tied to document too.
+ * TODO Universal configurable implementation of component responsible to transform document data obtained from remote
+ * system call to the document stored in ElasticSearch index. Supports comment tied to document too.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
@@ -129,11 +127,6 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	protected String indexFieldForDocumentURL = null;
 
 	/**
-	 * Set of fields requested from JIRA during call
-	 */
-	protected Set<String> jiraCallFieldSet = new LinkedHashSet<String>();
-
-	/**
 	 * Base URL used to generate JIRA GUI issue show URL.
 	 * 
 	 * @see #prepareJIRAGUIUrl(String, String)
@@ -187,13 +180,12 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	 */
 	@SuppressWarnings("unchecked")
 	public DocumentWithCommentsIndexStructureBuilder(String riverName, String indexName, String issueTypeName,
-			String jiraUrlBase, Map<String, Object> settings) throws SettingsException {
+			Map<String, Object> settings) throws SettingsException {
 		super();
 		this.riverName = riverName;
 		this.indexName = indexName;
 		this.issueTypeName = issueTypeName;
 
-		constructJIRAIssueShowUrlBase(jiraUrlBase);
 		if (settings != null) {
 			jiraFieldForIssueDocumentId = Utils.trimToNull(XContentMapValues.nodeStringValue(
 					settings.get(CONFIG_JIRAFIELD_ISSUEDOCUMENTID), null));
@@ -212,7 +204,6 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 		}
 		loadDefaultsIfNecessary();
 		validateConfiguration();
-		prepareJiraCallFieldSet();
 	}
 
 	private void loadDefaultsIfNecessary() {
@@ -255,22 +246,6 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 
 	}
 
-	protected void prepareJiraCallFieldSet() {
-		jiraCallFieldSet.clear();
-		// fields always necessary to get from jira
-		jiraCallFieldSet.add(getJiraCallFieldName(JF_UPDATED));
-		// other fields from configuration
-		for (Map<String, String> fc : fieldsConfig.values()) {
-			String jf = getJiraCallFieldName(fc.get(CONFIG_FIELDS_JIRAFIELD));
-			if (jf != null) {
-				jiraCallFieldSet.add(jf);
-			}
-		}
-		if (commentIndexingMode != null && commentIndexingMode != CommentIndexingMode.NONE) {
-			jiraCallFieldSet.add(getJiraCallFieldName(JF_COMMENT));
-		}
-	}
-
 	@Override
 	public void addDataPreprocessor(StructuredContentPreprocessor preprocessor) {
 		if (preprocessor == null)
@@ -286,11 +261,6 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	@Override
 	public String getIssuesSearchIndexName(String jiraProjectKey) {
 		return indexName;
-	}
-
-	@Override
-	public String getRequiredRemoteCallFields() {
-		return Utils.createCsvString(jiraCallFieldSet);
 	}
 
 	@Override
@@ -589,19 +559,6 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 		} else {
 			return null;
 		}
-	}
-
-	/**
-	 * Construct value for {@link #jiraIssueShowUrlBase}.
-	 * 
-	 * @param jiraUrlBase base URL of jira instance
-	 */
-	protected void constructJIRAIssueShowUrlBase(String jiraUrlBase) {
-		jiraIssueShowUrlBase = jiraUrlBase;
-		if (!jiraIssueShowUrlBase.endsWith("/")) {
-			jiraIssueShowUrlBase += "/";
-		}
-		jiraIssueShowUrlBase += "browse/";
 	}
 
 	@SuppressWarnings("unchecked")

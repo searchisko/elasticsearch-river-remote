@@ -1,23 +1,21 @@
 {
-    "type" : "jira",
-    "jira" : {
-        "urlBase"               : "https://issues.jboss.org",
+    "type" : "remote",
+    "remote" : {
+        "urlGetDocuments"       : "https://system.org/rest/document?docSpace={space}&docUpdatedAfter={updatedAfter}",
         "username"              : "jira_username",
         "pwd"                   : "jira_user_password",
-        "jqlTimeZone"           : "America/New York",
         "timeout"               : "5s",
-        "maxIssuesPerRequest"   : 50,
-        "projectKeysIndexed"    : "ORG,AS7",
+        "spacesIndexed"         : "ORG,AS7",
         "indexUpdatePeriod"     : "5m",
         "indexFullUpdatePeriod" : "1h",
         "maxIndexingThreads"    : 2
     },
     "index" : {
-        "index" : "my_jira_index_test",
-        "type"  : "jira_issue_test"
+        "index" : "my_remote_index_test",
+        "type"  : "remote_doc_test"
     },
     "activity_log": {
-        "index" : "jira_river_activity_test",
-        "type"  : "jira_river_indexupdate_test"
+        "index" : "remote_river_activity_test",
+        "type"  : "remote_river_indexupdate_test"
     }
 }

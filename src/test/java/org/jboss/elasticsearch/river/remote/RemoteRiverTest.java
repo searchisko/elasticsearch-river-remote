@@ -50,13 +50,13 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 
 		// case - exception if no remote URL base is defined
 		try {
-			prepareJiraRiverInstanceForTest(null, null, null, false);
+			prepareRiverInstanceForTest(null, null, null, false);
 			Assert.fail("No SettingsException thrown");
 		} catch (SettingsException e) {
 			// OK
 		}
 		try {
-			prepareJiraRiverInstanceForTest("   ", null, null, false);
+			prepareRiverInstanceForTest("   ", null, null, false);
 			Assert.fail("No SettingsException thrown");
 		} catch (SettingsException e) {
 			// OK
@@ -66,18 +66,18 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		Map<String, Object> toplevelSettingsAdd = new HashMap<String, Object>();
 
 		// case - test default settings
-		RemoteRiver tested = prepareJiraRiverInstanceForTest("https://issues.jboss.org", jiraSettings, toplevelSettingsAdd,
+		RemoteRiver tested = prepareRiverInstanceForTest("https://issues.jboss.org", jiraSettings, toplevelSettingsAdd,
 				false);
 		Assert.assertEquals(1, tested.maxIndexingThreads);
 		Assert.assertEquals(5 * 60 * 1000, tested.indexUpdatePeriod);
 		Assert.assertEquals(12 * 60 * 60 * 1000, tested.indexFullUpdatePeriod);
-		Assert.assertEquals("my_jira_river", tested.indexName);
+		Assert.assertEquals("my_remote_river", tested.indexName);
 		Assert.assertEquals(RemoteRiver.INDEX_DOCUMENT_TYPE_NAME_DEFAULT, tested.typeName);
 
 		Map<String, Object> indexSettings = new HashMap<String, Object>();
 		toplevelSettingsAdd.put("index", indexSettings);
-		tested = prepareJiraRiverInstanceForTest("https://issues.jboss.org", jiraSettings, toplevelSettingsAdd, false);
-		Assert.assertEquals("my_jira_river", tested.indexName);
+		tested = prepareRiverInstanceForTest("https://issues.jboss.org", jiraSettings, toplevelSettingsAdd, false);
+		Assert.assertEquals("my_remote_river", tested.indexName);
 		Assert.assertEquals(RemoteRiver.INDEX_DOCUMENT_TYPE_NAME_DEFAULT, tested.typeName);
 		Assert.assertEquals(tested.documentIndexStructureBuilder, tested.remoteSystemClient.getIndexStructureBuilder());
 
@@ -90,7 +90,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		jiraSettings.put("jqlTimeZone", "Europe/Prague");
 		indexSettings.put("index", "my_index_name");
 		indexSettings.put("type", "type_test");
-		tested = prepareJiraRiverInstanceForTest("https://issues.jboss.org", jiraSettings, toplevelSettingsAdd, false);
+		tested = prepareRiverInstanceForTest("https://issues.jboss.org", jiraSettings, toplevelSettingsAdd, false);
 
 		Assert.assertEquals(5, tested.maxIndexingThreads);
 		Assert.assertEquals(20 * 60 * 1000, tested.indexUpdatePeriod);
@@ -111,7 +111,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 	@Test
 	public void constructor_postprocessors() throws Exception {
 
-		RemoteRiver tested = prepareJiraRiverInstanceForTest("https://issues.jboss.org", null,
+		RemoteRiver tested = prepareRiverInstanceForTest("https://issues.jboss.org", null,
 				Utils.loadJSONFromJarPackagedFile("/river_configuration_test_preprocessors.json"), false);
 
 		List<StructuredContentPreprocessor> preprocs = ((DocumentWithCommentsIndexStructureBuilder) tested.documentIndexStructureBuilder).issueDataPreprocessors;
@@ -290,10 +290,10 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 						.setSource(TestUtils.readStringFromClasspathFile("/river_reconfiguration_test.json")).execute().actionGet();
 
 				tested.reconfigure();
-				Assert.assertEquals("my_jira_index_test", tested.indexName);
-				Assert.assertEquals("jira_issue_test", tested.typeName);
-				Assert.assertEquals("jira_river_activity_test", tested.activityLogIndexName);
-				Assert.assertEquals("jira_river_indexupdate_test", tested.activityLogTypeName);
+				Assert.assertEquals("my_remote_index_test", tested.indexName);
+				Assert.assertEquals("remote_doc_test", tested.typeName);
+				Assert.assertEquals("remote_river_activity_test", tested.activityLogIndexName);
+				Assert.assertEquals("remote_river_indexupdate_test", tested.activityLogTypeName);
 			} finally {
 				finalizeESClientForUnitTest();
 			}
@@ -308,7 +308,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 	@Test
 	public void getAllIndexedSpacesKeys_FromStaticConfig() throws Exception {
 		Map<String, Object> jiraSettings = new HashMap<String, Object>();
-		jiraSettings.put("projectKeysIndexed", "ORG, UUUU, PEM, SU07");
+		jiraSettings.put("spacesIndexed", "ORG, UUUU, PEM, SU07");
 
 		RemoteRiver tested = prepareRiverInstanceForTest(jiraSettings);
 		IRemoteSystemClient jiraClientMock = tested.remoteSystemClient;
@@ -326,7 +326,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 	@Test
 	public void getAllIndexedSpacesKeys_FromRemoteNoExcludes() throws Exception {
 		Map<String, Object> jiraSettings = new HashMap<String, Object>();
-		jiraSettings.put("projectKeysExcluded", "");
+		jiraSettings.put("spaceKeysExcluded", "");
 
 		RemoteRiver tested = prepareRiverInstanceForTest(jiraSettings);
 		IRemoteSystemClient jiraClientMock = tested.remoteSystemClient;
@@ -348,7 +348,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 	@Test
 	public void getAllIndexedSpacesKeys_FromRemoteWithExcludes() throws Exception {
 		Map<String, Object> jiraSettings = new HashMap<String, Object>();
-		jiraSettings.put("projectKeysExcluded", "PEM,UUUU");
+		jiraSettings.put("spaceKeysExcluded", "PEM,UUUU");
 
 		RemoteRiver tested = prepareRiverInstanceForTest(jiraSettings);
 		IRemoteSystemClient jiraClientMock = tested.remoteSystemClient;
@@ -665,41 +665,43 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 	 * @throws Exception from constructor
 	 */
 	protected RemoteRiver prepareRiverInstanceForTest(Map<String, Object> jiraSettingsAdd) throws Exception {
-		return prepareJiraRiverInstanceForTest("https://issues.jboss.org", jiraSettingsAdd, null, true);
+		return prepareRiverInstanceForTest("https://issues.jboss.org", jiraSettingsAdd, null, true);
 	}
 
 	/**
 	 * Prepare {@link RemoteRiver} instance for unit test, with Mockito moceked jiraClient and elasticSearchClient.
 	 * 
-	 * @param urlBase parameter for jira settings
-	 * @param jiraSettingsAdd additional/optional config properties to be added into <code>jira</code> configuration node
+	 * @param urlGetDocuments parameter for remote settings
+	 * @param remoteSettingsAdd additional/optional config properties to be added into <code>remote</code> configuration
+	 *          node
 	 * @param toplevelSettingsAdd additional/optional config properties to be added into toplevel node. Do not add
-	 *          <code>jira</code> here, will be ignored.
-	 * @param jiraClientMock if set to true then Mockito mock instance is createdand set into
+	 *          <code>remote</code> here, will be ignored.
+	 * @param initRemoteClientMock if set to true then Mockito mock instance is created and set into
 	 *          {@link RemoteRiver#remoteSystemClient}
 	 * @return instance for tests
 	 * @throws Exception from constructor
 	 */
-	public static RemoteRiver prepareJiraRiverInstanceForTest(String urlBase, Map<String, Object> jiraSettingsAdd,
-			Map<String, Object> toplevelSettingsAdd, boolean jiraClientMock) throws Exception {
+	public static RemoteRiver prepareRiverInstanceForTest(String urlGetDocuments, Map<String, Object> remoteSettingsAdd,
+			Map<String, Object> toplevelSettingsAdd, boolean initRemoteClientMock) throws Exception {
 		Map<String, Object> settings = new HashMap<String, Object>();
 		if (toplevelSettingsAdd != null)
 			settings.putAll(toplevelSettingsAdd);
-		if (urlBase != null || jiraSettingsAdd != null) {
-			Map<String, Object> jiraSettings = new HashMap<String, Object>();
-			settings.put("jira", jiraSettings);
-			if (jiraSettingsAdd != null)
-				jiraSettings.putAll(jiraSettingsAdd);
-			jiraSettings.put("urlBase", urlBase);
+		if (urlGetDocuments != null || remoteSettingsAdd != null) {
+			Map<String, Object> remoteSettings = new HashMap<String, Object>();
+			settings.put("remote", remoteSettings);
+			if (remoteSettingsAdd != null)
+				remoteSettings.putAll(remoteSettingsAdd);
+			remoteSettings.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, urlGetDocuments);
+			remoteSettings.put(GetJSONClient.CFG_URL_GET_SPACES, urlGetDocuments);
 		}
 
 		Settings gs = mock(Settings.class);
 		RiverSettings rs = new RiverSettings(gs, settings);
 		Client clientMock = mock(Client.class);
-		RemoteRiver tested = new RemoteRiver(new RiverName("jira", "my_jira_river"), rs, clientMock);
-		if (jiraClientMock) {
-			IRemoteSystemClient jClientMock = mock(IRemoteSystemClient.class);
-			tested.remoteSystemClient = jClientMock;
+		RemoteRiver tested = new RemoteRiver(new RiverName("remote", "my_remote_river"), rs, clientMock);
+		if (initRemoteClientMock) {
+			IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
+			tested.remoteSystemClient = remoteClientMock;
 		}
 		return tested;
 	}

@@ -32,13 +32,13 @@ public abstract class TestUtils {
 	}
 
 	/**
-	 * Read JIRA JSON issue data for tests. Loaded from folder <code>/src/test/resources/test_documents_json/</code>.
+	 * Read Document JSON data for tests. Loaded from folder <code>/src/test/resources/test_documents_json/</code>.
 	 * 
-	 * @param key of issue to load data for
+	 * @param key of document to load data for
 	 * @return Map of Maps structure with issue data
 	 * @throws IOException
 	 */
-	public static Map<String, Object> readJiraJsonIssueDataFromClasspathFile(String key) throws IOException {
+	public static Map<String, Object> readDocumentJsonDataFromClasspathFile(String key) throws IOException {
 		return Utils.loadJSONFromJarPackagedFile("/test_documents_json/" + key + ".json");
 	}
 

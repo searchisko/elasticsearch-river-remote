@@ -328,7 +328,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 			tested.commentIndexingMode = CommentIndexingMode.NONE;
 
 			String res = tested.prepareIssueIndexedDocument("ORG",
-					TestUtils.readJiraJsonIssueDataFromClasspathFile("ORG-1501")).string();
+					TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501")).string();
 			TestUtils.assertStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_NOCOMMENT.json", res);
 		}
 
@@ -337,7 +337,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 			tested.commentIndexingMode = CommentIndexingMode.CHILD;
 
 			String res = tested.prepareIssueIndexedDocument("ORG",
-					TestUtils.readJiraJsonIssueDataFromClasspathFile("ORG-1501")).string();
+					TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501")).string();
 			TestUtils.assertStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_NOCOMMENT.json", res);
 		}
 
@@ -346,7 +346,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 			tested.commentIndexingMode = CommentIndexingMode.STANDALONE;
 
 			String res = tested.prepareIssueIndexedDocument("ORG",
-					TestUtils.readJiraJsonIssueDataFromClasspathFile("ORG-1501")).string();
+					TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501")).string();
 			TestUtils.assertStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_NOCOMMENT.json", res);
 		}
 
@@ -355,7 +355,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 			tested.commentIndexingMode = CommentIndexingMode.EMBEDDED;
 
 			String res = tested.prepareIssueIndexedDocument("ORG",
-					TestUtils.readJiraJsonIssueDataFromClasspathFile("ORG-1501")).string();
+					TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501")).string();
 			TestUtils.assertStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_COMMENTS.json", res);
 		}
 
@@ -364,7 +364,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 			tested.commentIndexingMode = CommentIndexingMode.EMBEDDED;
 
 			String res = tested.prepareIssueIndexedDocument("ORG",
-					TestUtils.readJiraJsonIssueDataFromClasspathFile("ORG-1513")).string();
+					TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1513")).string();
 			System.out.println(res);
 			TestUtils.assertStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1513_NOCOMMENTS.json", res);
 		}
@@ -375,7 +375,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	public void prepareCommentIndexedDocument() throws Exception {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
 				"search_index", "issue_type", null);
-		Map<String, Object> issue = TestUtils.readJiraJsonIssueDataFromClasspathFile("ORG-1501");
+		Map<String, Object> issue = TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501");
 		List<Map<String, Object>> comments = tested.extractIssueComments(issue);
 
 		String res = tested.prepareCommentIndexedDocument("ORG", "ORG-1501", comments.get(0)).string();
@@ -419,7 +419,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		{
 			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
 			tested.commentIndexingMode = CommentIndexingMode.NONE;
-			tested.indexDocument(esBulk, "ORG-1501", TestUtils.readJiraJsonIssueDataFromClasspathFile("ORG-1501"));
+			tested.indexDocument(esBulk, "ORG-1501", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"));
 			Assert.assertEquals(1, esBulk.request().numberOfActions());
 		}
 
@@ -427,7 +427,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		{
 			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
 			tested.commentIndexingMode = CommentIndexingMode.EMBEDDED;
-			tested.indexDocument(esBulk, "ORG-1501", TestUtils.readJiraJsonIssueDataFromClasspathFile("ORG-1501"));
+			tested.indexDocument(esBulk, "ORG-1501", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"));
 			Assert.assertEquals(1, esBulk.request().numberOfActions());
 		}
 
@@ -435,7 +435,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		{
 			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
 			tested.commentIndexingMode = CommentIndexingMode.CHILD;
-			tested.indexDocument(esBulk, "ORG-1501", TestUtils.readJiraJsonIssueDataFromClasspathFile("ORG-1501"));
+			tested.indexDocument(esBulk, "ORG-1501", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"));
 			Assert.assertEquals(3, esBulk.request().numberOfActions());
 		}
 
@@ -443,7 +443,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		{
 			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
 			tested.commentIndexingMode = CommentIndexingMode.STANDALONE;
-			tested.indexDocument(esBulk, "ORG-1501", TestUtils.readJiraJsonIssueDataFromClasspathFile("ORG-1501"));
+			tested.indexDocument(esBulk, "ORG-1501", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"));
 			Assert.assertEquals(3, esBulk.request().numberOfActions());
 		}
 
@@ -451,7 +451,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		{
 			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
 			tested.commentIndexingMode = CommentIndexingMode.STANDALONE;
-			tested.indexDocument(esBulk, "ORG-15013", TestUtils.readJiraJsonIssueDataFromClasspathFile("ORG-15013"));
+			tested.indexDocument(esBulk, "ORG-15013", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-15013"));
 			Assert.assertEquals(1, esBulk.request().numberOfActions());
 		}
 
@@ -468,7 +468,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 			});
 			tested.addDataPreprocessor(idp1);
 
-			tested.indexDocument(esBulk, "ORG-15013", TestUtils.readJiraJsonIssueDataFromClasspathFile("ORG-15013"));
+			tested.indexDocument(esBulk, "ORG-15013", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-15013"));
 			Assert.assertEquals(1, esBulk.request().numberOfActions());
 			verify(idp1, times(1)).preprocessData(Mockito.anyMap());
 		}

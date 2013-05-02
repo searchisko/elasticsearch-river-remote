@@ -43,8 +43,8 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 	private static final String CFG_RIVER_NAME = "remote_river";
 	private static final String CFG_INDEX_NAME = CFG_RIVER_NAME;
-	private static final String CFG_TYPE_ISSUE = "jira_issue";
-	private static final String CFG_TYPE_ISSUE_COMMENT = "jira_issue_comment";
+	private static final String CFG_TYPE_DOCUMENT = "jira_issue";
+	private static final String CFG_TYPE_COMMENT = "jira_issue_comment";
 
 	private static final String CFG_TYPE_ACTIVITY = "jira_river_indexupdate";
 	private static final String CFG_INDEX_NAME_ACTIVITY = "activity_index";
@@ -61,9 +61,9 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			remoteRiverMock.activityLogIndexName = CFG_INDEX_NAME_ACTIVITY;
 			remoteRiverMock.activityLogTypeName = CFG_TYPE_ACTIVITY;
 
-			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
-					CFG_RIVER_NAME, CFG_INDEX_NAME, CFG_TYPE_ISSUE, null);
+			DocumentWithCommentsIndexStructureBuilder structureBuilder = prepareStructureBuilder();
 			structureBuilder.commentIndexingMode = CommentIndexingMode.EMBEDDED;
+
 			initIndexStructures(client, structureBuilder.commentIndexingMode);
 
 			// run 1 to insert documents
@@ -89,9 +89,9 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Date lastIssueUpdatedDate2 = DateTimeUtils.parseISODateTime("2012-09-06T03:27:25.000-0400");
 			Assert.assertEquals(lastIssueUpdatedDate2, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
 
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE, "ORG-1501", "ORG-1513", "ORG-1514");
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT);
-			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_ISSUE, dateStartRun1, "ORG-1501", "ORG-1513", "ORG-1514");
+			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "ORG-1514");
+			assertDocumentsInIndex(client, CFG_TYPE_COMMENT);
+			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_DOCUMENT, dateStartRun1, "ORG-1501", "ORG-1513", "ORG-1514");
 			assertNumDocumentsInIndex(client, CFG_INDEX_NAME_ACTIVITY, CFG_TYPE_ACTIVITY, 1);
 
 			// run 2 to update one document
@@ -117,16 +117,30 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Date lastIssueUpdatedDate3 = DateTimeUtils.parseISODateTime("2012-09-06T03:28:21.000-0400");
 			Assert.assertEquals(lastIssueUpdatedDate3, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
 
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE, "ORG-1501", "ORG-1513", "ORG-1514");
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT);
-			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_ISSUE, dateStartRun2, "ORG-1501");
-			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_ISSUE, dateStartRun2, "ORG-1513", "ORG-1514");
+			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "ORG-1514");
+			assertDocumentsInIndex(client, CFG_TYPE_COMMENT);
+			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_DOCUMENT, dateStartRun2, "ORG-1501");
+			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_DOCUMENT, dateStartRun2, "ORG-1513", "ORG-1514");
 
 			assertNumDocumentsInIndex(client, CFG_INDEX_NAME_ACTIVITY, CFG_TYPE_ACTIVITY, 2);
 
 		} finally {
 			finalizeESClientForUnitTest();
 		}
+	}
+
+	private DocumentWithCommentsIndexStructureBuilder prepareStructureBuilder() {
+		DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
+				CFG_RIVER_NAME, CFG_INDEX_NAME, CFG_TYPE_DOCUMENT,
+				DocumentWithCommentsIndexStructureBuilderTest.createSettingsWithMandatoryFilled());
+		structureBuilder.remoteDataFieldForDocumentId = "key";
+		structureBuilder.remoteDataFieldForUpdated = "fields.updated";
+		structureBuilder.remoteDataFieldForComments = "fields.comment.comments";
+		structureBuilder.remoteDataFieldForCommentId = "id";
+		structureBuilder.indexFieldForComments = "comments";
+		structureBuilder.commentTypeName = CFG_TYPE_COMMENT;
+		structureBuilder.commentFieldsConfig = new HashMap<String, Map<String, String>>();
+		return structureBuilder;
 	}
 
 	@Test
@@ -137,8 +151,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			RemoteRiver remoteRiverMock = initRiverInstanceForTest(client);
 			IRemoteSystemClient remoteClientMock = remoteRiverMock.remoteSystemClient;
 
-			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
-					CFG_RIVER_NAME, CFG_INDEX_NAME, CFG_TYPE_ISSUE, null);
+			DocumentWithCommentsIndexStructureBuilder structureBuilder = prepareStructureBuilder();
 			structureBuilder.commentIndexingMode = CommentIndexingMode.CHILD;
 			initIndexStructures(client, structureBuilder.commentIndexingMode);
 
@@ -165,12 +178,12 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Date lastIssueUpdatedDate2 = DateTimeUtils.parseISODateTime("2012-09-06T03:27:25.000-0400");
 			Assert.assertEquals(lastIssueUpdatedDate2, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
 
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE, "ORG-1501", "ORG-1513", "ORG-1514");
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "12714153", "12714252", "12716241");
-			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_ISSUE, dateStartRun1, "ORG-1501", "ORG-1513", "ORG-1514");
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1513");
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1514", "12716241");
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1501", "12714153", "12714252");
+			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "ORG-1514");
+			assertDocumentsInIndex(client, CFG_TYPE_COMMENT, "12714153", "12714252", "12716241");
+			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_DOCUMENT, dateStartRun1, "ORG-1501", "ORG-1513", "ORG-1514");
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1513");
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1514", "12716241");
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1501", "12714153", "12714252");
 
 			// run 2 to update one document
 			Thread.sleep(100);
@@ -195,17 +208,17 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Date lastIssueUpdatedDate3 = DateTimeUtils.parseISODateTime("2012-09-06T03:28:21.000-0400");
 			Assert.assertEquals(lastIssueUpdatedDate3, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
 
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE, "ORG-1501", "ORG-1513", "ORG-1514");
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "12714153", "12714252", "12716241", "12714253");
-			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_ISSUE, dateStartRun2, "ORG-1501");
+			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "ORG-1514");
+			assertDocumentsInIndex(client, CFG_TYPE_COMMENT, "12714153", "12714252", "12716241", "12714253");
+			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_DOCUMENT, dateStartRun2, "ORG-1501");
 			// note comment "12714252" was removed and "12714253" was added in "ORG-1501-updated", but incremental update do
 			// not remove comments from index
-			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_ISSUE_COMMENT, dateStartRun2, "12714153", "12714253");
-			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_ISSUE, dateStartRun2, "ORG-1513", "ORG-1514");
-			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_ISSUE_COMMENT, dateStartRun2, "12716241", "12714252");
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1513");
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1514", "12716241");
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1501", "12714153", "12714252", "12714253");
+			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_COMMENT, dateStartRun2, "12714153", "12714253");
+			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_DOCUMENT, dateStartRun2, "ORG-1513", "ORG-1514");
+			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_COMMENT, dateStartRun2, "12716241", "12714252");
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1513");
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1514", "12716241");
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1501", "12714153", "12714252", "12714253");
 
 		} finally {
 			finalizeESClientForUnitTest();
@@ -221,8 +234,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			RemoteRiver remoteRiverMock = initRiverInstanceForTest(client);
 			IRemoteSystemClient remoteClientMock = remoteRiverMock.remoteSystemClient;
 
-			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
-					CFG_RIVER_NAME, CFG_INDEX_NAME, CFG_TYPE_ISSUE, null);
+			DocumentWithCommentsIndexStructureBuilder structureBuilder = prepareStructureBuilder();
 			structureBuilder.commentIndexingMode = CommentIndexingMode.EMBEDDED;
 			initIndexStructures(client, structureBuilder.commentIndexingMode);
 			initDocumentsForProjectAAA(remoteRiverMock, structureBuilder);
@@ -248,9 +260,9 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Date lastIssueUpdatedDate2 = DateTimeUtils.parseISODateTime("2012-09-06T03:27:25.000-0400");
 			Assert.assertEquals(lastIssueUpdatedDate2, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
 
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE, "ORG-1501", "ORG-1513", "ORG-1514", "AAA-1", "AAA-2");
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT);
-			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_ISSUE, dateStartRun1, "ORG-1501", "ORG-1513", "ORG-1514");
+			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "ORG-1514", "AAA-1", "AAA-2");
+			assertDocumentsInIndex(client, CFG_TYPE_COMMENT);
+			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_DOCUMENT, dateStartRun1, "ORG-1501", "ORG-1513", "ORG-1514");
 
 			// run 2 to update one document
 			Thread.sleep(100);
@@ -272,10 +284,10 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Date lastIssueUpdatedDate3 = DateTimeUtils.parseISODateTime("2012-09-06T03:28:21.000-0400");
 			Assert.assertEquals(lastIssueUpdatedDate3, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
 
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE, "ORG-1501", "ORG-1513", "AAA-1", "AAA-2");
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT);
-			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_ISSUE, dateStartRun2, "ORG-1501", "ORG-1513");
-			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_ISSUE, dateStartRun2, "AAA-1", "AAA-2");
+			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "AAA-1", "AAA-2");
+			assertDocumentsInIndex(client, CFG_TYPE_COMMENT);
+			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_DOCUMENT, dateStartRun2, "ORG-1501", "ORG-1513");
+			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_DOCUMENT, dateStartRun2, "AAA-1", "AAA-2");
 
 		} finally {
 			finalizeESClientForUnitTest();
@@ -290,8 +302,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			RemoteRiver remoteRiverMock = initRiverInstanceForTest(client);
 			IRemoteSystemClient remoteClientMock = remoteRiverMock.remoteSystemClient;
 
-			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
-					CFG_RIVER_NAME, CFG_INDEX_NAME, CFG_TYPE_ISSUE, null);
+			DocumentWithCommentsIndexStructureBuilder structureBuilder = prepareStructureBuilder();
 			structureBuilder.commentIndexingMode = CommentIndexingMode.CHILD;
 			initIndexStructures(client, structureBuilder.commentIndexingMode);
 			initDocumentsForProjectAAA(remoteRiverMock, structureBuilder);
@@ -317,12 +328,12 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Date lastIssueUpdatedDate2 = DateTimeUtils.parseISODateTime("2012-09-06T03:27:25.000-0400");
 			Assert.assertEquals(lastIssueUpdatedDate2, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
 
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE, "ORG-1501", "ORG-1513", "ORG-1514", "AAA-1", "AAA-2");
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "12714153", "12714252", "12716241");
-			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_ISSUE, dateStartRun1, "ORG-1501", "ORG-1513", "ORG-1514");
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1513");
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1514", "12716241");
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1501", "12714153", "12714252");
+			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "ORG-1514", "AAA-1", "AAA-2");
+			assertDocumentsInIndex(client, CFG_TYPE_COMMENT, "12714153", "12714252", "12716241");
+			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_DOCUMENT, dateStartRun1, "ORG-1501", "ORG-1513", "ORG-1514");
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1513");
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1514", "12716241");
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1501", "12714153", "12714252");
 
 			// run 2 to update one document
 			Thread.sleep(100);
@@ -346,16 +357,16 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Date lastIssueUpdatedDate3 = DateTimeUtils.parseISODateTime("2012-09-06T03:28:21.000-0400");
 			Assert.assertEquals(lastIssueUpdatedDate3, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
 
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE, "ORG-1501", "ORG-1513", "AAA-1", "AAA-2");
+			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "AAA-1", "AAA-2");
 			// note comment "12714252" was removed and "12714253" was added in "ORG-1501-updated"
 			// comment 12716241 removed due "ORG-1514" remove
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "12714153", "12714253");
-			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_ISSUE, dateStartRun2, "ORG-1501", "ORG-1513");
-			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_ISSUE_COMMENT, dateStartRun2, "12714153", "12714253");
-			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_ISSUE, dateStartRun2, "AAA-1", "AAA-2");
-			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_ISSUE_COMMENT, dateStartRun2);
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1513");
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1501", "12714153", "12714253");
+			assertDocumentsInIndex(client, CFG_TYPE_COMMENT, "12714153", "12714253");
+			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_DOCUMENT, dateStartRun2, "ORG-1501", "ORG-1513");
+			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_COMMENT, dateStartRun2, "12714153", "12714253");
+			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_DOCUMENT, dateStartRun2, "AAA-1", "AAA-2");
+			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_COMMENT, dateStartRun2);
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1513");
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1501", "12714153", "12714253");
 
 		} finally {
 			finalizeESClientForUnitTest();
@@ -371,8 +382,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			RemoteRiver remoteRiverMock = initRiverInstanceForTest(client);
 			IRemoteSystemClient remoteClientMock = remoteRiverMock.remoteSystemClient;
 
-			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
-					CFG_RIVER_NAME, CFG_INDEX_NAME, CFG_TYPE_ISSUE, null);
+			DocumentWithCommentsIndexStructureBuilder structureBuilder = prepareStructureBuilder();
 			structureBuilder.commentIndexingMode = CommentIndexingMode.STANDALONE;
 			initIndexStructures(client, structureBuilder.commentIndexingMode);
 			initDocumentsForProjectAAA(remoteRiverMock, structureBuilder);
@@ -398,12 +408,12 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Date lastIssueUpdatedDate2 = DateTimeUtils.parseISODateTime("2012-09-06T03:27:25.000-0400");
 			Assert.assertEquals(lastIssueUpdatedDate2, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
 
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE, "ORG-1501", "ORG-1513", "ORG-1514", "AAA-1", "AAA-2");
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "12714153", "12714252", "12716241");
-			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_ISSUE, dateStartRun1, "ORG-1501", "ORG-1513", "ORG-1514");
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1513");
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1514");
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1501");
+			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "ORG-1514", "AAA-1", "AAA-2");
+			assertDocumentsInIndex(client, CFG_TYPE_COMMENT, "12714153", "12714252", "12716241");
+			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_DOCUMENT, dateStartRun1, "ORG-1501", "ORG-1513", "ORG-1514");
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1513");
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1514");
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1501");
 
 			// run 2 to update one document
 			Thread.sleep(100);
@@ -427,16 +437,16 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Date lastIssueUpdatedDate3 = DateTimeUtils.parseISODateTime("2012-09-06T03:28:21.000-0400");
 			Assert.assertEquals(lastIssueUpdatedDate3, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
 
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE, "ORG-1501", "ORG-1513", "AAA-1", "AAA-2");
+			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "AAA-1", "AAA-2");
 			// note comment "12714252" was removed and "12714253" was added in "ORG-1501-updated"
 			// comment 12716241 removed due "ORG-1514" remove
-			assertDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "12714153", "12714253");
-			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_ISSUE, dateStartRun2, "ORG-1501", "ORG-1513");
-			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_ISSUE_COMMENT, dateStartRun2, "12714153", "12714253");
-			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_ISSUE, dateStartRun2, "AAA-1", "AAA-2");
-			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_ISSUE_COMMENT, dateStartRun2);
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1513");
-			assertChildDocumentsInIndex(client, CFG_TYPE_ISSUE_COMMENT, "ORG-1501");
+			assertDocumentsInIndex(client, CFG_TYPE_COMMENT, "12714153", "12714253");
+			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_DOCUMENT, dateStartRun2, "ORG-1501", "ORG-1513");
+			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_COMMENT, dateStartRun2, "12714153", "12714253");
+			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_DOCUMENT, dateStartRun2, "AAA-1", "AAA-2");
+			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_COMMENT, dateStartRun2);
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1513");
+			assertChildDocumentsInIndex(client, CFG_TYPE_COMMENT, "ORG-1501");
 
 		} finally {
 			finalizeESClientForUnitTest();
@@ -581,14 +591,14 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 	protected void initIndexStructures(Client client, CommentIndexingMode commentMode) throws Exception {
 		indexCreate(CFG_INDEX_NAME);
 		indexCreate(CFG_INDEX_NAME_ACTIVITY);
-		client.admin().indices().preparePutMapping(CFG_INDEX_NAME).setType(CFG_TYPE_ISSUE)
+		client.admin().indices().preparePutMapping(CFG_INDEX_NAME).setType(CFG_TYPE_DOCUMENT)
 				.setSource(TestUtils.readStringFromClasspathFile("/mappings/jira_issue.json")).execute().actionGet();
 		if (commentMode.isExtraDocumentIndexed()) {
 			String commentMappingFilePath = "/mappings/jira_issue_comment.json";
 			if (commentMode == CommentIndexingMode.CHILD)
 				commentMappingFilePath = "/mappings/jira_issue_comment-child.json";
 
-			client.admin().indices().preparePutMapping(CFG_INDEX_NAME).setType(CFG_TYPE_ISSUE_COMMENT)
+			client.admin().indices().preparePutMapping(CFG_INDEX_NAME).setType(CFG_TYPE_COMMENT)
 					.setSource(TestUtils.readStringFromClasspathFile(commentMappingFilePath)).execute().actionGet();
 		}
 	}

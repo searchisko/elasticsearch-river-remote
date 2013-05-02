@@ -12,7 +12,12 @@
     },
     "index" : {
         "index" : "my_remote_index_test",
-        "type"  : "remote_doc_test"
+        "type"  : "remote_doc_test",
+        "remote_field_document_id" : "id",
+        "remote_field_updated" : "updated",
+        "fields" : {
+            "created" : {"remote_field" : "fields.created"}
+        }
     },
     "activity_log": {
         "index" : "remote_river_activity_test",

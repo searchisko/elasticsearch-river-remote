@@ -1,32 +1,34 @@
 {
     "index" : {
-    	"jira_field_issue_document_id" : "document_id",
-        "field_river_name"  : "river_name",
-        "field_project_key" : "jira_project_key",
-        "field_issue_key"   : "jira_issue_key",
-        "field_jira_url"    : "link",
-        "fields" : {
-            "created"        : {"jira_field" : "fields.created"},
-            "reporter"       : {"jira_field" : "fields.reporter", "value_filter" : "user2"},
-            "assignee"       : {"jira_field" : "fields.assignee", "value_filter" : "user2"},
-            "fix_versions"   : {"jira_field" : "fields.fixVersions", "value_filter" : "name2"},
-            "components"     : {"jira_field" : "fields.components", "value_filter" : "name2"}
+    	"remote_field_document_id":"document_id",
+      "remote_field_updated" : "updated",
+      "remote_field_comments" : "comments",
+      "remote_field_comment_id" : "id",
+      "field_river_name"  : "river_name",
+      "field_space_key"   : "space_key_field",
+      "field_document_id" : "document_id_field",
+      "fields" : {
+            "created" : {"remote_field" : "fields.created"},
+            "reporter" : {"remote_field" : "fields.reporter", "value_filter" : "user2"},
+            "assignee" : {"remote_field" : "fields.assignee", "value_filter" : "user2"},
+            "fix_versions" : {"remote_field" : "fields.fixVersions", "value_filter" : "name2"},
+            "components" : {"remote_field" : "fields.components", "value_filter" : "name2"}
         },
         "value_filters" : {
             "user2" : {
-                "name"         : "username2",
-                "displayName"  : "display_name2" 
+                "name" : "username2",
+                "displayName" : "display_name2"
             },
             "name2" : { "name" : "name" }
         },
-        "comment_mode"   : "child",
+        "comment_mode" : "child",
         "field_comments" : "all_comments",
-        "comment_type"   : "jira_issue_comment_type", 
+        "comment_type" : "jira_issue_comment_type",
         "comment_fields" : {
-            "comment_body"    : {"jira_field" : "body"},
-            "comment_author2" : {"jira_field" : "author", "value_filter" : "user2"},
-            "comment_updater" : {"jira_field" : "updateAuthor", "value_filter" : "user2"},
-            "comment_created" : {"jira_field" : "created"}
+            "comment_body" : {"remote_field" : "body"},
+            "comment_author2" : {"remote_field" : "author", "value_filter" : "user2"},
+            "comment_updater" : {"remote_field" : "updateAuthor", "value_filter" : "user2"},
+            "comment_created" : {"remote_field" : "created"}
         }
     }
 }

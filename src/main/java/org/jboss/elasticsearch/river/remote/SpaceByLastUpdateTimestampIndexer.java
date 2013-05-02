@@ -17,7 +17,8 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.search.SearchHit;
 
 /**
- * Class used to run one index update process for one Space.
+ * Class used to run one index update process for one Space. Incremental indexing process is based on date of last
+ * document update.
  * <p>
  * Uses search of data from remote system over timestamp of last update. Documents returned from remote system client
  * MUST BE ascending ordered by timestamp of last update also!
@@ -158,7 +159,7 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 					lastDocumentUpdatedDate = documentIndexStructureBuilder.extractDocumentUpdated(document);
 					logger.debug("Go to update index for document {} with updated {}", documentId, lastDocumentUpdatedDate);
 					if (lastDocumentUpdatedDate == null) {
-						throw new IllegalArgumentException("'updated' timestamp not found in data for document " + documentId);
+						throw new IllegalArgumentException("Last update timestamp not found in data for document " + documentId);
 					}
 					if (firstDocumentUpdatedDate == null) {
 						firstDocumentUpdatedDate = lastDocumentUpdatedDate;

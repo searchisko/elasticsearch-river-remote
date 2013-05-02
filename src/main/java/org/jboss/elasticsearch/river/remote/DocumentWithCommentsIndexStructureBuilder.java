@@ -11,6 +11,7 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,35 +30,14 @@ import org.elasticsearch.search.SearchHit;
 import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessor;
 
 /**
- * TODO Universal configurable implementation of component responsible to transform document data obtained from remote
- * system call to the document stored in ElasticSearch index. Supports comment tied to document too.
+ * Universal configurable implementation of component responsible to transform document data obtained from remote system
+ * call to the document stored in ElasticSearch index. Supports comment tied to document too.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
 public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndexStructureBuilder {
 
 	private static final ESLogger logger = Loggers.getLogger(DocumentWithCommentsIndexStructureBuilder.class);
-
-	/**
-	 * JIRA REST response field constant - issue key
-	 */
-	public static final String JF_KEY = "key";
-	/**
-	 * JIRA REST response field constant - issue or comment id
-	 */
-	public static final String JF_ID = "id";
-	/**
-	 * JIRA REST response field constant - updated date field
-	 */
-	public static final String JF_UPDATED = "fields.updated";
-	/**
-	 * JIRA REST response field constant - field where structure of comments is stored
-	 */
-	public static final String JF_COMMENT = "fields.comment";
-	/**
-	 * JIRA REST response field constant - field where list of comments is stored
-	 */
-	public static final String JF_COMMENTS = JF_COMMENT + ".comments";
 
 	/**
 	 * Name of River to be stored in document to mark indexing source
@@ -75,24 +55,41 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	protected String issueTypeName;
 
 	protected static final String CONFIG_FIELDS = "fields";
-	protected static final String CONFIG_FIELDS_JIRAFIELD = "jira_field";
+	protected static final String CONFIG_FIELDS_REMOTEFIELD = "remote_field";
 	protected static final String CONFIG_FIELDS_VALUEFILTER = "value_filter";
 	protected static final String CONFIG_FILTERS = "value_filters";
-	protected static final String CONFIG_JIRAFIELD_ISSUEDOCUMENTID = "jira_field_issue_document_id";
+	protected static final String CONFIG_REMOTEFIELD_DOCUMENTID = "remote_field_document_id";
+	protected static final String CONFIG_REMOTEFIELD_UPDATED = "remote_field_updated";
+	protected static final String CONFIG_REMOTEFIELD_COMMENTS = "remote_field_comments";
+	protected static final String CONFIG_REMOTEFIELD_COMMENTID = "remote_field_comment_id";
 	protected static final String CONFIG_FIELDRIVERNAME = "field_river_name";
-	protected static final String CONFIG_FIELDPROJECTKEY = "field_project_key";
-	protected static final String CONFIG_FIELDISSUEKEY = "field_issue_key";
-	protected static final String CONFIG_FIELDJIRAURL = "field_jira_url";
+	protected static final String CONFIG_FIELDSPACEKEY = "field_space_key";
+	protected static final String CONFIG_FIELDDOCUMENTID = "field_document_id";
 	protected static final String CONFIG_COMMENTMODE = "comment_mode";
 	protected static final String CONFIG_FIELDCOMMENTS = "field_comments";
 	protected static final String CONFIG_COMMENTTYPE = "comment_type";
 	protected static final String CONFIG_COMMENTFILEDS = "comment_fields";
 
 	/**
-	 * Field in jira data to get indexed document id from for issue. If empty or do not provide value then issue key is
-	 * used as document id.
+	 * Field in remote document data to get indexed document id from.
 	 */
-	protected String jiraFieldForIssueDocumentId = null;
+	protected String remoteDataFieldForDocumentId = null;
+
+	/**
+	 * Field in remote document data to get indexed document last update timestamp from.
+	 */
+	protected String remoteDataFieldForUpdated = null;
+
+	/**
+	 * Field in remote document data to get array of comments from.
+	 */
+	protected String remoteDataFieldForComments = null;
+
+	/**
+	 * Field in remote document's comment structure to get comment id from. Is necessary if comment is indexed as
+	 * standalone document.
+	 */
+	protected String remoteDataFieldForCommentId = null;
 
 	/**
 	 * Fields configuration structure. Key is name of field in search index. Value is map of configurations for given
@@ -120,18 +117,6 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	 * Name of field in search index where remote document unique identifier is stored.
 	 */
 	protected String indexFieldForRemoteDocumentId = null;
-
-	/**
-	 * Name of field in search index where GUI URL (to document or comment) is stored.
-	 */
-	protected String indexFieldForDocumentURL = null;
-
-	/**
-	 * Base URL used to generate JIRA GUI issue show URL.
-	 * 
-	 * @see #prepareJIRAGUIUrl(String, String)
-	 */
-	protected String jiraIssueShowUrlBase;
 
 	/**
 	 * Issue comment indexing mode.
@@ -187,12 +172,18 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 		this.issueTypeName = issueTypeName;
 
 		if (settings != null) {
-			jiraFieldForIssueDocumentId = Utils.trimToNull(XContentMapValues.nodeStringValue(
-					settings.get(CONFIG_JIRAFIELD_ISSUEDOCUMENTID), null));
+			remoteDataFieldForDocumentId = Utils.trimToNull(XContentMapValues.nodeStringValue(
+					settings.get(CONFIG_REMOTEFIELD_DOCUMENTID), null));
+			remoteDataFieldForUpdated = Utils.trimToNull(XContentMapValues.nodeStringValue(
+					settings.get(CONFIG_REMOTEFIELD_UPDATED), null));
+			remoteDataFieldForComments = Utils.trimToNull(XContentMapValues.nodeStringValue(
+					settings.get(CONFIG_REMOTEFIELD_COMMENTS), null));
+			remoteDataFieldForCommentId = Utils.trimToNull(XContentMapValues.nodeStringValue(
+					settings.get(CONFIG_REMOTEFIELD_COMMENTID), null));
+
 			indexFieldForRiverName = XContentMapValues.nodeStringValue(settings.get(CONFIG_FIELDRIVERNAME), null);
-			indexFieldForSpaceKey = XContentMapValues.nodeStringValue(settings.get(CONFIG_FIELDPROJECTKEY), null);
-			indexFieldForRemoteDocumentId = XContentMapValues.nodeStringValue(settings.get(CONFIG_FIELDISSUEKEY), null);
-			indexFieldForDocumentURL = XContentMapValues.nodeStringValue(settings.get(CONFIG_FIELDJIRAURL), null);
+			indexFieldForSpaceKey = XContentMapValues.nodeStringValue(settings.get(CONFIG_FIELDSPACEKEY), null);
+			indexFieldForRemoteDocumentId = XContentMapValues.nodeStringValue(settings.get(CONFIG_FIELDDOCUMENTID), null);
 			filtersConfig = (Map<String, Map<String, String>>) settings.get(CONFIG_FILTERS);
 			fieldsConfig = (Map<String, Map<String, String>>) settings.get(CONFIG_FIELDS);
 
@@ -209,40 +200,44 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	private void loadDefaultsIfNecessary() {
 		Map<String, Object> settingsDefault = loadDefaultSettingsMapFromFile();
 
-		filtersConfig = loadDefaultMapIfNecessary(filtersConfig, CONFIG_FILTERS, settingsDefault);
-		fieldsConfig = loadDefaultMapIfNecessary(fieldsConfig, CONFIG_FIELDS, settingsDefault);
 		indexFieldForRiverName = loadDefaultStringIfNecessary(indexFieldForRiverName, CONFIG_FIELDRIVERNAME,
 				settingsDefault);
-		indexFieldForSpaceKey = loadDefaultStringIfNecessary(indexFieldForSpaceKey, CONFIG_FIELDPROJECTKEY, settingsDefault);
-		indexFieldForRemoteDocumentId = loadDefaultStringIfNecessary(indexFieldForRemoteDocumentId, CONFIG_FIELDISSUEKEY,
+		indexFieldForSpaceKey = loadDefaultStringIfNecessary(indexFieldForSpaceKey, CONFIG_FIELDSPACEKEY, settingsDefault);
+		indexFieldForRemoteDocumentId = loadDefaultStringIfNecessary(indexFieldForRemoteDocumentId, CONFIG_FIELDDOCUMENTID,
 				settingsDefault);
-		indexFieldForDocumentURL = loadDefaultStringIfNecessary(indexFieldForDocumentURL, CONFIG_FIELDJIRAURL,
-				settingsDefault);
+
+		if (filtersConfig == null)
+			filtersConfig = new HashMap<String, Map<String, String>>();
 
 		if (commentIndexingMode == null) {
 			commentIndexingMode = CommentIndexingMode.parseConfiguration(XContentMapValues.nodeStringValue(
 					settingsDefault.get(CONFIG_COMMENTMODE), null));
 		}
-		indexFieldForComments = loadDefaultStringIfNecessary(indexFieldForComments, CONFIG_FIELDCOMMENTS, settingsDefault);
-		commentTypeName = loadDefaultStringIfNecessary(commentTypeName, CONFIG_COMMENTTYPE, settingsDefault);
-		commentFieldsConfig = loadDefaultMapIfNecessary(commentFieldsConfig, CONFIG_COMMENTFILEDS, settingsDefault);
 	}
 
 	private void validateConfiguration() {
+
+		validateConfigurationString(remoteDataFieldForDocumentId, "index/" + CONFIG_REMOTEFIELD_DOCUMENTID);
+		validateConfigurationString(remoteDataFieldForUpdated, "index/" + CONFIG_REMOTEFIELD_UPDATED);
 
 		validateConfigurationObject(filtersConfig, "index/value_filters");
 		validateConfigurationObject(fieldsConfig, "index/fields");
 		validateConfigurationString(indexFieldForRiverName, "index/field_river_name");
 		validateConfigurationString(indexFieldForSpaceKey, "index/field_project_key");
 		validateConfigurationString(indexFieldForRemoteDocumentId, "index/field_issue_key");
-		validateConfigurationString(indexFieldForDocumentURL, "index/field_jira_url");
 		validateConfigurationObject(commentIndexingMode, "index/comment_mode");
-		validateConfigurationObject(commentFieldsConfig, "index/comment_fields");
-		validateConfigurationString(commentTypeName, "index/comment_type");
-		validateConfigurationString(indexFieldForComments, "index/field_comments");
+		if (commentIndexingMode != CommentIndexingMode.NONE) {
+			validateConfigurationString(remoteDataFieldForComments, "index/" + CONFIG_REMOTEFIELD_COMMENTS);
+			validateConfigurationString(indexFieldForComments, "index/field_comments");
+			validateConfigurationObject(commentFieldsConfig, "index/comment_fields");
+			validateConfigurationFieldsStructure(commentFieldsConfig, "index/comment_fields");
+			validateConfigurationString(commentTypeName, "index/comment_type");
+			if (commentIndexingMode != CommentIndexingMode.EMBEDDED) {
+				validateConfigurationString(remoteDataFieldForCommentId, "index/" + CONFIG_REMOTEFIELD_COMMENTID);
+			}
+		}
 
 		validateConfigurationFieldsStructure(fieldsConfig, "index/fields");
-		validateConfigurationFieldsStructure(commentFieldsConfig, "index/comment_fields");
 
 	}
 
@@ -250,35 +245,31 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	public void addDataPreprocessor(StructuredContentPreprocessor preprocessor) {
 		if (preprocessor == null)
 			return;
-
 		if (issueDataPreprocessors == null)
 			issueDataPreprocessors = new ArrayList<StructuredContentPreprocessor>();
-
 		issueDataPreprocessors.add(preprocessor);
-
 	}
 
 	@Override
-	public String getIssuesSearchIndexName(String jiraProjectKey) {
+	public String getIssuesSearchIndexName(String spaceKey) {
 		return indexName;
 	}
 
 	@Override
-	public void indexDocument(BulkRequestBuilder esBulk, String jiraProjectKey, Map<String, Object> issue)
-			throws Exception {
+	public void indexDocument(BulkRequestBuilder esBulk, String spaceKey, Map<String, Object> document) throws Exception {
 
-		issue = preprocessIssueData(jiraProjectKey, issue);
-		esBulk.add(indexRequest(indexName).type(issueTypeName).id(prepareIssueDocumentId(issue))
-				.source(prepareIssueIndexedDocument(jiraProjectKey, issue)));
+		document = preprocessDocumentData(spaceKey, document);
+		esBulk.add(indexRequest(indexName).type(issueTypeName).id(extractDocumentId(document))
+				.source(prepareIndexedDocument(spaceKey, document)));
 
 		if (commentIndexingMode.isExtraDocumentIndexed()) {
-			List<Map<String, Object>> comments = extractIssueComments(issue);
+			List<Map<String, Object>> comments = extractComments(document);
 			if (comments != null && !comments.isEmpty()) {
-				String issueKey = extractDocumentId(issue);
+				String issueKey = extractDocumentId(document);
 				for (Map<String, Object> comment : comments) {
 					String commentId = extractCommentId(comment);
 					IndexRequest irq = indexRequest(indexName).type(commentTypeName).id(commentId)
-							.source(prepareCommentIndexedDocument(jiraProjectKey, issueKey, comment));
+							.source(prepareCommentIndexedDocument(spaceKey, issueKey, comment));
 					if (commentIndexingMode == CommentIndexingMode.CHILD) {
 						irq.parent(issueKey);
 					}
@@ -289,52 +280,82 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 
 	}
 
-	protected String prepareIssueDocumentId(Map<String, Object> issue) {
-		String documentId = null;
-		if (jiraFieldForIssueDocumentId != null) {
-			documentId = Utils.trimToNull(XContentMapValues.nodeStringValue(
-					XContentMapValues.extractValue(jiraFieldForIssueDocumentId, issue), null));
+	@Override
+	public String extractDocumentId(Map<String, Object> document) {
+		return extractIdValueFromDocumentField(document, remoteDataFieldForDocumentId, CONFIG_REMOTEFIELD_DOCUMENTID);
+	}
+
+	private String extractIdValueFromDocumentField(Map<String, Object> document, String idFieldName,
+			String idFieldConfigPropertyName) {
+		Object id = XContentMapValues.extractValue(idFieldName, document);
+		if (id == null)
+			return null;
+		if (!isSimpleValue(id))
+			throw new SettingsException("Remote data field '" + idFieldName + "' defined in 'index/"
+					+ idFieldConfigPropertyName + "' config param must provide simple value, but value is " + id);
+
+		return id.toString();
+	}
+
+	private boolean isSimpleValue(Object value) {
+		return (value instanceof String || value instanceof Integer || value instanceof Long || value instanceof Date);
+	}
+
+	@Override
+	public Date extractDocumentUpdated(Map<String, Object> document) {
+		Object val = XContentMapValues.extractValue(remoteDataFieldForUpdated, document);
+		if (val == null)
+			return null;
+		if (!isSimpleValue(val))
+			throw new SettingsException("Remote data field '" + remoteDataFieldForUpdated
+					+ "' must provide simple value, but value is " + val);
+
+		if (val instanceof Date)
+			return (Date) val;
+
+		try {
+			// try simple timestamp
+			return new Date(Long.parseLong(val.toString()));
+		} catch (NumberFormatException e) {
+			// try ISO format
+			try {
+				return DateTimeUtils.parseISODateTime(val.toString());
+			} catch (IllegalArgumentException e1) {
+				throw new SettingsException("Remote data field '" + remoteDataFieldForUpdated
+						+ "' is not reecognized as timestamp value (ISO format or number with millis from 1.1.1970): " + val);
+			}
 		}
-		if (documentId == null)
-			documentId = extractDocumentId(issue);
-		return documentId;
 	}
 
-	@Override
-	public String extractDocumentId(Map<String, Object> issue) {
-		return XContentMapValues.nodeStringValue(issue.get(JF_KEY), null);
-	}
-
-	@Override
-	public Date extractDocumentUpdated(Map<String, Object> issue) {
-		return DateTimeUtils.parseISODateTime(XContentMapValues.nodeStringValue(
-				XContentMapValues.extractValue(JF_UPDATED, issue), null));
-	}
-
-	public String extractCommentId(Map<String, Object> comment) {
-		return XContentMapValues.nodeStringValue(comment.get(JF_ID), null);
+	protected String extractCommentId(Map<String, Object> comment) {
+		String commentId = extractIdValueFromDocumentField(comment, remoteDataFieldForCommentId,
+				CONFIG_REMOTEFIELD_COMMENTID);
+		if (commentId == null) {
+			throw new IllegalArgumentException("Comment ID not found in remote system response within data: " + comment);
+		}
+		return commentId;
 	}
 
 	/**
-	 * Preprocess issue data over all configured preprocessors.
+	 * Preprocess document data over all configured preprocessors.
 	 * 
-	 * @param jiraProjectKey issue is for
-	 * @param issue data to preprocess
-	 * @return preprocessed issue data
+	 * @param spaceKey document is for
+	 * @param document data to preprocess
+	 * @return preprocessed data
 	 */
-	protected Map<String, Object> preprocessIssueData(String jiraProjectKey, Map<String, Object> issue) {
+	protected Map<String, Object> preprocessDocumentData(String spaceKey, Map<String, Object> document) {
 		if (issueDataPreprocessors != null) {
 			for (StructuredContentPreprocessor prepr : issueDataPreprocessors) {
-				issue = prepr.preprocessData(issue);
+				document = prepr.preprocessData(document);
 			}
 		}
-		return issue;
+		return document;
 	}
 
 	@Override
-	public void buildSearchForIndexedDocumentsNotUpdatedAfter(SearchRequestBuilder srb, String jiraProjectKey, Date date) {
+	public void buildSearchForIndexedDocumentsNotUpdatedAfter(SearchRequestBuilder srb, String spaceKey, Date date) {
 		FilterBuilder filterTime = FilterBuilders.rangeFilter("_timestamp").lt(date);
-		FilterBuilder filterProject = FilterBuilders.termFilter(indexFieldForSpaceKey, jiraProjectKey);
+		FilterBuilder filterProject = FilterBuilders.termFilter(indexFieldForSpaceKey, spaceKey);
 		FilterBuilder filterSource = FilterBuilders.termFilter(indexFieldForRiverName, riverName);
 		FilterBuilder filter = FilterBuilders.boolFilter().must(filterTime).must(filterProject).must(filterSource);
 		srb.setQuery(QueryBuilders.matchAllQuery()).addField("_id").setFilter(filter);
@@ -351,36 +372,35 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	}
 
 	/**
-	 * Convert JIRA returned issue REST data into JSON document to be stored in search index.
+	 * Convert remote system returned document data into JSON document to be stored in search index.
 	 * 
-	 * @param jiraProjectKey key of jira project document is for.
-	 * @param issue issue data from JIRA REST call
-	 * @return JSON builder with issue document for index
+	 * @param spaceKey key of space document is for.
+	 * @param documentRemote data from remote system REST call
+	 * @return JSON builder with document for index
 	 * @throws Exception
 	 */
-	protected XContentBuilder prepareIssueIndexedDocument(String jiraProjectKey, Map<String, Object> issue)
+	protected XContentBuilder prepareIndexedDocument(String spaceKey, Map<String, Object> documentRemote)
 			throws Exception {
-		String issueKey = extractDocumentId(issue);
+		String documentId = extractDocumentId(documentRemote);
 
 		XContentBuilder out = jsonBuilder().startObject();
 		addValueToTheIndexField(out, indexFieldForRiverName, riverName);
-		addValueToTheIndexField(out, indexFieldForSpaceKey, jiraProjectKey);
-		addValueToTheIndexField(out, indexFieldForRemoteDocumentId, issueKey);
-		addValueToTheIndexField(out, indexFieldForDocumentURL, prepareJIRAGUIUrl(issueKey, null));
+		addValueToTheIndexField(out, indexFieldForSpaceKey, spaceKey);
+		addValueToTheIndexField(out, indexFieldForRemoteDocumentId, documentId);
 
 		for (String indexFieldName : fieldsConfig.keySet()) {
 			Map<String, String> fieldConfig = fieldsConfig.get(indexFieldName);
-			addValueToTheIndex(out, indexFieldName, fieldConfig.get(CONFIG_FIELDS_JIRAFIELD), issue,
+			addValueToTheIndex(out, indexFieldName, fieldConfig.get(CONFIG_FIELDS_REMOTEFIELD), documentRemote,
 					fieldConfig.get(CONFIG_FIELDS_VALUEFILTER));
 		}
 
 		if (commentIndexingMode == CommentIndexingMode.EMBEDDED) {
-			List<Map<String, Object>> comments = extractIssueComments(issue);
+			List<Map<String, Object>> comments = extractComments(documentRemote);
 			if (comments != null && !comments.isEmpty()) {
 				out.startArray(indexFieldForComments);
 				for (Map<String, Object> comment : comments) {
 					out.startObject();
-					addCommonFieldsToCommentIndexedDocument(out, issueKey, comment);
+					addCommonFieldsToCommentIndexedDocument(out, documentId, comment);
 					out.endObject();
 				}
 				out.endArray();
@@ -390,61 +410,45 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	}
 
 	/**
-	 * Convert JIRA returned REST data into JSON document to be stored in search index for comments in child and
+	 * Convert remote system's returned data into JSON document to be stored in search index for comments in child and
 	 * standalone mode.
 	 * 
-	 * @param projectKey key of jira project document is for.
-	 * @param issueKey this comment is for
-	 * @param comment data from JIRA REST call
+	 * @param spaceKey key of space document is for.
+	 * @param documentId this comment is for
+	 * @param comment data from remote system document
 	 * @return JSON builder with comment document for index
 	 * @throws Exception
 	 */
-	protected XContentBuilder prepareCommentIndexedDocument(String projectKey, String issueKey,
+	protected XContentBuilder prepareCommentIndexedDocument(String spaceKey, String documentId,
 			Map<String, Object> comment) throws Exception {
 		XContentBuilder out = jsonBuilder().startObject();
 		addValueToTheIndexField(out, indexFieldForRiverName, riverName);
-		addValueToTheIndexField(out, indexFieldForSpaceKey, projectKey);
-		addValueToTheIndexField(out, indexFieldForRemoteDocumentId, issueKey);
-		addCommonFieldsToCommentIndexedDocument(out, issueKey, comment);
+		addValueToTheIndexField(out, indexFieldForSpaceKey, spaceKey);
+		addValueToTheIndexField(out, indexFieldForRemoteDocumentId, documentId);
+		addCommonFieldsToCommentIndexedDocument(out, documentId, comment);
 		return out.endObject();
 	}
 
-	private void addCommonFieldsToCommentIndexedDocument(XContentBuilder out, String issueKey, Map<String, Object> comment)
-			throws Exception {
-		addValueToTheIndexField(out, indexFieldForDocumentURL, prepareJIRAGUIUrl(issueKey, extractCommentId(comment)));
+	private void addCommonFieldsToCommentIndexedDocument(XContentBuilder out, String documentId,
+			Map<String, Object> comment) throws Exception {
 		for (String indexFieldName : commentFieldsConfig.keySet()) {
 			Map<String, String> commentFieldConfig = commentFieldsConfig.get(indexFieldName);
-			addValueToTheIndex(out, indexFieldName, commentFieldConfig.get(CONFIG_FIELDS_JIRAFIELD), comment,
+			addValueToTheIndex(out, indexFieldName, commentFieldConfig.get(CONFIG_FIELDS_REMOTEFIELD), comment,
 					commentFieldConfig.get(CONFIG_FIELDS_VALUEFILTER));
 		}
 	}
 
 	/**
-	 * Get comments for issue from JIRA JSON data.
+	 * Get all comments for document from remote system JSON data.
 	 * 
-	 * @param issue Map of Maps issue data structure loaded from JIRA.
-	 * @return list of comments if available in issu data
+	 * @param document Map of Maps document data structure loaded from remote system.
+	 * @return list of comments if available in data
 	 */
 	@SuppressWarnings("unchecked")
-	protected List<Map<String, Object>> extractIssueComments(Map<String, Object> issue) {
-		List<Map<String, Object>> comments = (List<Map<String, Object>>) XContentMapValues.extractValue(JF_COMMENTS, issue);
+	protected List<Map<String, Object>> extractComments(Map<String, Object> document) {
+		List<Map<String, Object>> comments = (List<Map<String, Object>>) XContentMapValues.extractValue(
+				remoteDataFieldForComments, document);
 		return comments;
-	}
-
-	/**
-	 * Prepare URL of issue or comment in JIRA GUI.
-	 * 
-	 * @param issueKey mandatory key of JIRA issue.
-	 * @param commentId id of comment, may be null
-	 * @return URL to show issue or comment in JIRA GUI
-	 */
-	public String prepareJIRAGUIUrl(String issueKey, String commentId) {
-		if (commentId == null) {
-			return jiraIssueShowUrlBase + issueKey;
-		} else {
-			return jiraIssueShowUrlBase + issueKey + "?focusedCommentId=" + commentId
-					+ "&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-" + commentId;
-		}
 	}
 
 	/**
@@ -530,37 +534,6 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 			out.field(indexField, value);
 	}
 
-	/**
-	 * Get name of JIRA field used in REST call from full jira field name.
-	 * 
-	 * @param fullJiraFieldName
-	 * @return call field name or null
-	 * @see #getRequiredRemoteCallFields()
-	 */
-	protected static String getJiraCallFieldName(String fullJiraFieldName) {
-		if (Utils.isEmpty(fullJiraFieldName)) {
-			return null;
-		}
-		fullJiraFieldName = fullJiraFieldName.trim();
-		if (fullJiraFieldName.startsWith("fields.")) {
-			String jcrf = fullJiraFieldName.substring("fields.".length());
-			if (Utils.isEmpty(jcrf)) {
-				logger.warn("Bad format of jira field name '{}', nothing will be in search index", fullJiraFieldName);
-				return null;
-			}
-			if (jcrf.contains(".")) {
-				jcrf = jcrf.substring(0, jcrf.indexOf("."));
-			}
-			if (Utils.isEmpty(jcrf)) {
-				logger.warn("Bad format of jira field name '{}', nothing will be in search index", fullJiraFieldName);
-				return null;
-			}
-			return jcrf.trim();
-		} else {
-			return null;
-		}
-	}
-
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> loadDefaultSettingsMapFromFile() throws SettingsException {
 		Map<String, Object> json = Utils.loadJSONFromJarPackagedFile("/templates/river_configuration_default.json");
@@ -576,22 +549,13 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	private Map<String, Map<String, String>> loadDefaultMapIfNecessary(Map<String, Map<String, String>> valueToCheck,
-			String valueConfigKey, Map<String, Object> settingsDefault) {
-		if (valueToCheck == null || valueToCheck.isEmpty()) {
-			valueToCheck = (Map<String, Map<String, String>>) settingsDefault.get(valueConfigKey);
-		}
-		return valueToCheck;
-	}
-
 	private void validateConfigurationFieldsStructure(Map<String, Map<String, String>> value, String configFieldName) {
 		for (String idxFieldName : value.keySet()) {
 			if (Utils.isEmpty(idxFieldName)) {
 				throw new SettingsException("Empty key found in '" + configFieldName + "' map.");
 			}
 			Map<String, String> fc = value.get(idxFieldName);
-			if (Utils.isEmpty(fc.get(CONFIG_FIELDS_JIRAFIELD))) {
+			if (Utils.isEmpty(fc.get(CONFIG_FIELDS_REMOTEFIELD))) {
 				throw new SettingsException("'jira_field' is not defined in '" + configFieldName + "/" + idxFieldName + "'");
 			}
 			String fil = fc.get(CONFIG_FIELDS_VALUEFILTER);
@@ -604,13 +568,13 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 
 	private void validateConfigurationString(String value, String configFieldName) throws SettingsException {
 		if (Utils.isEmpty(value)) {
-			throw new SettingsException("No default '" + configFieldName + "' configuration found!");
+			throw new SettingsException("String value must be provided for '" + configFieldName + "' configuration!");
 		}
 	}
 
 	private void validateConfigurationObject(Object value, String configFieldName) throws SettingsException {
 		if (value == null) {
-			throw new SettingsException("No default '" + configFieldName + "' configuration found!");
+			throw new SettingsException("Value must be provided for '" + configFieldName + "' configuration!");
 		}
 	}
 

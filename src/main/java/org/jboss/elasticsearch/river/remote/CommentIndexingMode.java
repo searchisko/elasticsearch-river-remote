@@ -71,7 +71,7 @@ public enum CommentIndexingMode {
 	 */
 	public static CommentIndexingMode parseConfiguration(String value) throws SettingsException {
 		if (Utils.isEmpty(value)) {
-			return EMBEDDED;
+			return NONE;
 		}
 
 		if (NONE.getConfigValue().equalsIgnoreCase(value)) {

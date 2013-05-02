@@ -16,12 +16,12 @@
       },
       "must" : {
         "term" : {
-          "project_key" : "ORG"
+          "space_key_field" : "ORG"
         }
       },
       "must" : {
         "term" : {
-          "source" : "river_jira"
+          "river_name" : "river_jira"
         }
       }
     }

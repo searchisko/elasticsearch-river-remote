@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,12 +48,11 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		Assert.assertEquals("river_name", tested.riverName);
 		Assert.assertEquals("index_name", tested.indexName);
 		Assert.assertEquals("type_name", tested.issueTypeName);
-		Assert.assertEquals("document_id", tested.jiraFieldForIssueDocumentId);
+		Assert.assertEquals("document_id", tested.remoteDataFieldForDocumentId);
+		Assert.assertEquals("updated", tested.remoteDataFieldForUpdated);
 		Assert.assertEquals("river_name", tested.indexFieldForRiverName);
-		Assert.assertEquals("link", tested.indexFieldForDocumentURL);
-		Assert.assertEquals("http://issues-stg.jboss.org/browse/", tested.jiraIssueShowUrlBase);
-		Assert.assertEquals("jira_project_key", tested.indexFieldForSpaceKey);
-		Assert.assertEquals("jira_issue_key", tested.indexFieldForRemoteDocumentId);
+		Assert.assertEquals("space_key_field", tested.indexFieldForSpaceKey);
+		Assert.assertEquals("document_id_field", tested.indexFieldForRemoteDocumentId);
 		Assert.assertEquals(CommentIndexingMode.CHILD, tested.commentIndexingMode);
 		Assert.assertEquals("all_comments", tested.indexFieldForComments);
 		Assert.assertEquals("jira_issue_comment_type", tested.commentTypeName);
@@ -90,62 +90,49 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	public void configuration_read_validation() {
 
 		try {
-			new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name", "type_name",
-					loadTestSettings("/index_structure_configuration_test_err_nojirafield.json"));
+			Map<String, Object> config = loadTestSettings("/index_structure_configuration_test_ok.json");
+			config.remove(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_DOCUMENTID);
+			new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name", "type_name", config);
 			Assert.fail("SettingsException must be thrown");
 		} catch (SettingsException e) {
 			System.out.println(e.getMessage());
-			Assert.assertEquals("'jira_field' is not defined in 'index/fields/reporter'", e.getMessage());
-		}
-
-		try {
-			new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name", "type_name",
-					loadTestSettings("/index_structure_configuration_test_err_emptyjirafield.json"));
-			Assert.fail("SettingsException must be thrown");
-		} catch (SettingsException e) {
-			System.out.println(e.getMessage());
-			Assert.assertEquals("'jira_field' is not defined in 'index/fields/link'", e.getMessage());
-		}
-
-		try {
-			new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name", "type_name",
-					loadTestSettings("/index_structure_configuration_test_err_unknownvaluefilter.json"));
-			Assert.fail("SettingsException must be thrown");
-		} catch (SettingsException e) {
-			System.out.println(e.getMessage());
-			Assert.assertEquals(
-					"Filter definition not found for filter name 'name3' defined in 'index/fields/fix_versions/value_filter'",
+			Assert.assertEquals("String value must be provided for 'index/remote_field_document_id' configuration!",
 					e.getMessage());
 		}
 
 		try {
-			new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name", "type_name",
-					loadTestSettings("/index_structure_configuration_test_err_nojirafieldcomment.json"));
+			Map<String, Object> config = loadTestSettings("/index_structure_configuration_test_ok.json");
+			config.put(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_DOCUMENTID, " ");
+			new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name", "type_name", config);
 			Assert.fail("SettingsException must be thrown");
 		} catch (SettingsException e) {
 			System.out.println(e.getMessage());
-			Assert.assertEquals("'jira_field' is not defined in 'index/comment_fields/comment_author'", e.getMessage());
+			Assert.assertEquals("String value must be provided for 'index/remote_field_document_id' configuration!",
+					e.getMessage());
 		}
+
+		// TODO other validation tests
+
+	}
+
+	@Test
+	public void configuration_defaultLoading() {
+		Map<String, Object> settings = createSettingsWithMandatoryFilled();
+		assertDefaultConfigurationLoaded(new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name",
+				"type_name", settings));
 
 	}
 
 	@SuppressWarnings("rawtypes")
-	@Test
-	public void configuration_defaultLoading() {
-
-		assertDefaultConfigurationLoaded(new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name",
-				"type_name", null));
-
+	public static Map<String, Object> createSettingsWithMandatoryFilled() {
 		Map<String, Object> settings = new HashMap<String, Object>();
-		assertDefaultConfigurationLoaded(new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name",
-				"type_name", settings));
 
+		// fill some mandatory fields not loaded from default
 		settings.put(DocumentWithCommentsIndexStructureBuilder.CONFIG_FIELDS, new HashMap());
 		settings.put(DocumentWithCommentsIndexStructureBuilder.CONFIG_FILTERS, new HashMap());
-		settings.put(DocumentWithCommentsIndexStructureBuilder.CONFIG_FIELDRIVERNAME, " ");
-		assertDefaultConfigurationLoaded(new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name",
-				"type_name", settings));
-
+		settings.put(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_DOCUMENTID, "docid");
+		settings.put(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_UPDATED, "up");
+		return settings;
 	}
 
 	private void assertDefaultConfigurationLoaded(DocumentWithCommentsIndexStructureBuilder tested) {
@@ -153,49 +140,26 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		Assert.assertEquals("index_name", tested.indexName);
 		Assert.assertEquals("type_name", tested.issueTypeName);
 		Assert.assertEquals("source", tested.indexFieldForRiverName);
-		Assert.assertEquals("project_key", tested.indexFieldForSpaceKey);
-		Assert.assertEquals("issue_key", tested.indexFieldForRemoteDocumentId);
-		Assert.assertEquals("document_url", tested.indexFieldForDocumentURL);
-		Assert.assertEquals("http://issues-stg.jboss.org/browse/", tested.jiraIssueShowUrlBase);
-		Assert.assertEquals(CommentIndexingMode.EMBEDDED, tested.commentIndexingMode);
-		Assert.assertEquals("comments", tested.indexFieldForComments);
-		Assert.assertEquals("jira_issue_comment", tested.commentTypeName);
+		Assert.assertEquals("space_key", tested.indexFieldForSpaceKey);
+		Assert.assertEquals("document_id", tested.indexFieldForRemoteDocumentId);
+		Assert.assertEquals(CommentIndexingMode.NONE, tested.commentIndexingMode);
 
-		Assert.assertEquals(13, tested.fieldsConfig.size());
-		assertFieldConfiguration(tested.fieldsConfig, "project_name", "fields.project.name", null);
-		assertFieldConfiguration(tested.fieldsConfig, "assignee", "fields.assignee", "user");
-		assertFieldConfiguration(tested.fieldsConfig, "fix_versions", "fields.fixVersions", "name");
-
-		Assert.assertEquals(2, tested.filtersConfig.size());
-		Assert.assertTrue(tested.filtersConfig.containsKey("user"));
-		Assert.assertTrue(tested.filtersConfig.containsKey("name"));
-
-		Map<String, String> userFilter = tested.filtersConfig.get("user");
-		Assert.assertEquals(3, userFilter.size());
-		Assert.assertEquals("username", userFilter.get("name"));
-		Assert.assertEquals("email_address", userFilter.get("emailAddress"));
-		Assert.assertEquals("display_name", userFilter.get("displayName"));
-
-		Assert.assertEquals(6, tested.commentFieldsConfig.size());
-		assertFieldConfiguration(tested.commentFieldsConfig, "comment_id", "id", null);
-		assertFieldConfiguration(tested.commentFieldsConfig, "comment_body", "body", null);
-		assertFieldConfiguration(tested.commentFieldsConfig, "comment_author", "author", "user");
-		assertFieldConfiguration(tested.commentFieldsConfig, "comment_updater", "updateAuthor", "user");
-		assertFieldConfiguration(tested.commentFieldsConfig, "comment_updated", "updated", null);
+		Assert.assertEquals(0, tested.fieldsConfig.size());
+		Assert.assertEquals(0, tested.filtersConfig.size());
 	}
 
 	private void assertFieldConfiguration(Map<String, Map<String, String>> fieldsConfig, String indexFieldName,
 			String jiraFieldName, String filter) {
 		Assert.assertTrue(fieldsConfig.containsKey(indexFieldName));
 		Map<String, String> field = fieldsConfig.get(indexFieldName);
-		Assert.assertEquals(jiraFieldName, field.get(DocumentWithCommentsIndexStructureBuilder.CONFIG_FIELDS_JIRAFIELD));
+		Assert.assertEquals(jiraFieldName, field.get(DocumentWithCommentsIndexStructureBuilder.CONFIG_FIELDS_REMOTEFIELD));
 		Assert.assertEquals(filter, field.get(DocumentWithCommentsIndexStructureBuilder.CONFIG_FIELDS_VALUEFILTER));
 	}
 
 	@Test
 	public void addIssueDataPreprocessor() {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(null, null, null,
-				null);
+				createSettingsWithMandatoryFilled());
 
 		// case - not NPE
 		tested.addDataPreprocessor(null);
@@ -214,21 +178,21 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void preprocessIssueData() {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(null, null, null,
-				null);
+				createSettingsWithMandatoryFilled());
 
 		Map<String, Object> issue = null;
 		// case - no NPE and change when no preprocessors defined and issue data are null
-		Assert.assertNull(tested.preprocessIssueData("ORG", issue));
+		Assert.assertNull(tested.preprocessDocumentData("ORG", issue));
 
 		// case - no NPE and change when no preprocessors defined and issue data are notnull
 		{
 			issue = new HashMap<String, Object>();
-			issue.put(DocumentWithCommentsIndexStructureBuilder.JF_KEY, "ORG-1545");
+			issue.put("key", "ORG-1545");
 
-			Map<String, Object> ret = tested.preprocessIssueData("ORG", issue);
+			Map<String, Object> ret = tested.preprocessDocumentData("ORG", issue);
 			Assert.assertEquals(issue, ret);
 			Assert.assertEquals(1, ret.size());
-			Assert.assertEquals("ORG-1545", ret.get(DocumentWithCommentsIndexStructureBuilder.JF_KEY));
+			Assert.assertEquals("ORG-1545", ret.get("key"));
 		}
 
 		// case - all preprocessors called
@@ -256,20 +220,23 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 			tested.addDataPreprocessor(idp1);
 			tested.addDataPreprocessor(idp2);
-			Map<String, Object> ret = tested.preprocessIssueData("ORG", issue);
+			Map<String, Object> ret = tested.preprocessDocumentData("ORG", issue);
 			Assert.assertEquals(issue, ret);
 			Assert.assertEquals(3, ret.size());
-			Assert.assertEquals("ORG-1545", ret.get(DocumentWithCommentsIndexStructureBuilder.JF_KEY));
+			Assert.assertEquals("ORG-1545", ret.get("key"));
 			Assert.assertEquals("called", ret.get("idp1"));
 			Assert.assertEquals("called", ret.get("idp2"));
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Test
 	public void buildSearchForIndexedDocumentsNotUpdatedAfter() throws IOException {
 
+		Map<String, Object> settings = (Map<String, Object>) Utils.loadJSONFromJarPackagedFile(
+				"/index_structure_configuration_test_ok.json").get("index");
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
-				"search_index", "issue_type", null);
+				"search_index", "issue_type", settings);
 		tested.commentTypeName = "comment_type";
 
 		// case - comments NONE
@@ -321,23 +288,24 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void prepareIssueIndexedDocument() throws Exception {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
-				"search_index", "issue_type", null);
+				"search_index", "issue_type", loadTestSettings("/index_structure_configuration_test_ok.json"));
 
 		// case - no comments
 		{
 			tested.commentIndexingMode = CommentIndexingMode.NONE;
 
-			String res = tested.prepareIssueIndexedDocument("ORG",
-					TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501")).string();
+			String res = tested.prepareIndexedDocument("ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"))
+					.string();
 			TestUtils.assertStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_NOCOMMENT.json", res);
 		}
 
+		tested.remoteDataFieldForComments = "fields.comment.comments";
 		// case - comments as CHILD so not in this document
 		{
 			tested.commentIndexingMode = CommentIndexingMode.CHILD;
 
-			String res = tested.prepareIssueIndexedDocument("ORG",
-					TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501")).string();
+			String res = tested.prepareIndexedDocument("ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"))
+					.string();
 			TestUtils.assertStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_NOCOMMENT.json", res);
 		}
 
@@ -345,8 +313,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		{
 			tested.commentIndexingMode = CommentIndexingMode.STANDALONE;
 
-			String res = tested.prepareIssueIndexedDocument("ORG",
-					TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501")).string();
+			String res = tested.prepareIndexedDocument("ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"))
+					.string();
 			TestUtils.assertStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_NOCOMMENT.json", res);
 		}
 
@@ -354,8 +322,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		{
 			tested.commentIndexingMode = CommentIndexingMode.EMBEDDED;
 
-			String res = tested.prepareIssueIndexedDocument("ORG",
-					TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501")).string();
+			String res = tested.prepareIndexedDocument("ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"))
+					.string();
 			TestUtils.assertStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_COMMENTS.json", res);
 		}
 
@@ -363,8 +331,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		{
 			tested.commentIndexingMode = CommentIndexingMode.EMBEDDED;
 
-			String res = tested.prepareIssueIndexedDocument("ORG",
-					TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1513")).string();
+			String res = tested.prepareIndexedDocument("ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1513"))
+					.string();
 			System.out.println(res);
 			TestUtils.assertStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1513_NOCOMMENTS.json", res);
 		}
@@ -374,46 +342,112 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void prepareCommentIndexedDocument() throws Exception {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
-				"search_index", "issue_type", null);
+				"search_index", "issue_type", loadTestSettings("/index_structure_configuration_test_ok.json"));
+		tested.remoteDataFieldForComments = "fields.comment.comments";
 		Map<String, Object> issue = TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501");
-		List<Map<String, Object>> comments = tested.extractIssueComments(issue);
+		List<Map<String, Object>> comments = tested.extractComments(issue);
 
 		String res = tested.prepareCommentIndexedDocument("ORG", "ORG-1501", comments.get(0)).string();
 		TestUtils.assertStringFromClasspathFile("/asserts/prepareCommentIndexedDocument_ORG-1501_1.json", res);
 	}
 
 	@Test
-	public void prepareIssueDocumentId() {
-		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
-				"search_index", "issue_type", null);
-		tested.jiraFieldForIssueDocumentId = null;
+	public void extractDocumentId() {
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_remote",
+				"search_index", "doc_type", createSettingsWithMandatoryFilled());
+		tested.remoteDataFieldForDocumentId = null;
 
-		Map<String, Object> issue = new HashMap<String, Object>();
-		issue.put("key", "ORG-15");
-		issue.put("key2", "ORG-16");
-		Utils.putValueIntoMapOfMaps(issue, "key3.value", "ORG-17");
+		Map<String, Object> document = new HashMap<String, Object>();
+		document.put("key", "ORG-15");
+		document.put("key2", new Integer(10));
+		Utils.putValueIntoMapOfMaps(document, "key3.value", "ORG-17");
 
-		// case - default key used if jiraFieldForIssueDocumentId is not configured
-		Assert.assertEquals("ORG-15", tested.prepareIssueDocumentId(issue));
+		// case - normal key extraction from String
+		tested.remoteDataFieldForDocumentId = "key";
+		Assert.assertEquals("ORG-15", tested.extractDocumentId(document));
 
-		// case - default key used if jiraFieldForIssueDocumentId is configured but value is not provided
-		tested.jiraFieldForIssueDocumentId = "key_unknown";
-		Assert.assertEquals("ORG-15", tested.prepareIssueDocumentId(issue));
+		// case - normal key extraction from Integer
+		tested.remoteDataFieldForDocumentId = "key2";
+		Assert.assertEquals("10", tested.extractDocumentId(document));
 
-		// case - simple notation on jiraFieldForIssueDocumentId
-		tested.jiraFieldForIssueDocumentId = "key2";
-		Assert.assertEquals("ORG-16", tested.prepareIssueDocumentId(issue));
+		// case - dot notation
+		tested.remoteDataFieldForDocumentId = "key3.value";
+		Assert.assertEquals("ORG-17", tested.extractDocumentId(document));
 
-		// case - dot notation on jiraFieldForIssueDocumentId
-		tested.jiraFieldForIssueDocumentId = "key3.value";
-		Assert.assertEquals("ORG-17", tested.prepareIssueDocumentId(issue));
+		// case - id not found so null is returned
+		tested.remoteDataFieldForDocumentId = "key_unknown";
+		Assert.assertEquals(null, tested.extractDocumentId(document));
+
+		// case - bad type for id
+		try {
+			tested.remoteDataFieldForDocumentId = "key3";
+			tested.extractDocumentId(document);
+			Assert.fail("SettingsException expected");
+		} catch (SettingsException e) {
+			// OK
+		}
+	}
+
+	@Test
+	public void extractDocumentUpdated() {
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_remote",
+				"search_index", "doc_type", createSettingsWithMandatoryFilled());
+		tested.remoteDataFieldForUpdated = null;
+
+		Map<String, Object> document = new HashMap<String, Object>();
+		document.put("key", "12564");
+		document.put("key2", new Integer(10));
+		document.put("key3", new Long(11));
+		Utils.putValueIntoMapOfMaps(document, "key4.value", "2012-09-06T02:26:53.000-0400");
+		document.put("badformat", "adafsf");
+
+		// case - date extraction from String with number
+		tested.remoteDataFieldForUpdated = "key";
+		Assert.assertEquals(new Date(12564l), tested.extractDocumentUpdated(document));
+
+		// case - date extraction from Integer
+		tested.remoteDataFieldForUpdated = "key2";
+		Assert.assertEquals(new Date(10l), tested.extractDocumentUpdated(document));
+
+		// case - date extraction from Integer
+		tested.remoteDataFieldForUpdated = "key3";
+		Assert.assertEquals(new Date(11l), tested.extractDocumentUpdated(document));
+
+		// case - dot notation and extraction from ISO format
+		tested.remoteDataFieldForUpdated = "key4.value";
+		Assert.assertEquals(DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400"),
+				tested.extractDocumentUpdated(document));
+
+		// case - value not found so null is returned
+		tested.remoteDataFieldForUpdated = "key_unknown";
+		Assert.assertEquals(null, tested.extractDocumentUpdated(document));
+
+		// case - bad format not parseable to ISO date nor number
+		try {
+			tested.remoteDataFieldForUpdated = "badformat";
+			tested.extractDocumentUpdated(document);
+			Assert.fail("SettingsException expected");
+		} catch (SettingsException e) {
+			// OK
+		}
+
+		// case - bad type ov value in map
+		try {
+			tested.remoteDataFieldForUpdated = "key4";
+			tested.extractDocumentUpdated(document);
+			Assert.fail("SettingsException expected");
+		} catch (SettingsException e) {
+			// OK
+		}
+
 	}
 
 	@SuppressWarnings("unchecked")
 	@Test
-	public void indexIssue() throws Exception {
+	public void indexDocument() throws Exception {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
-				"search_index", "issue_type", null);
+				"search_index", "issue_type", loadTestSettings("/index_structure_configuration_test_ok.json"));
+		tested.remoteDataFieldForComments = "fields.comment.comments";
 
 		// case - comments NONE
 		{
@@ -478,7 +512,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void addValueToTheIndex() throws Exception {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(null, null, null,
-				null);
+				createSettingsWithMandatoryFilled());
 
 		XContentGenerator xContentGeneratorMock = mock(XContentGenerator.class);
 		XContentBuilder out = XContentBuilder.builder(preparexContentMock(xContentGeneratorMock));
@@ -592,7 +626,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void addValueToTheIndexField() throws Exception {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(null, null, null,
-				null);
+				createSettingsWithMandatoryFilled());
 
 		XContentGenerator xContentGeneratorMock = mock(XContentGenerator.class);
 		XContentBuilder out = XContentBuilder.builder(preparexContentMock(xContentGeneratorMock));
@@ -612,29 +646,6 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		reset(xContentGeneratorMock);
 		tested.addValueToTheIndexField(out, "testnull", null);
 		Mockito.verifyZeroInteractions(xContentGeneratorMock);
-	}
-
-	@Test
-	public void getJiraCallFieldName() {
-		Assert.assertNull(DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName(null));
-		Assert.assertNull(DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName("  "));
-		Assert.assertNull(DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName("self"));
-		Assert.assertNull(DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName("key"));
-		Assert.assertNull(DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName("fields"));
-		Assert.assertNull(DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName("fields."));
-		Assert.assertNull(DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName("fields.  "));
-		Assert.assertNull(DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName("fields.."));
-		Assert.assertNull(DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName("fields..."));
-		Assert.assertNull(DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName("fields..something"));
-
-		Assert.assertEquals("summary", DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName("fields.summary"));
-		Assert.assertEquals("summary", DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName("fields.summary."));
-		Assert.assertEquals("summary",
-				DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName("fields.summary.name"));
-		Assert.assertEquals("summary", DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName(" fields.summary "));
-		Assert.assertEquals("summary", DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName(" fields.summary. "));
-		Assert.assertEquals("summary",
-				DocumentWithCommentsIndexStructureBuilder.getJiraCallFieldName(" fields.summary.name "));
 	}
 
 	/**

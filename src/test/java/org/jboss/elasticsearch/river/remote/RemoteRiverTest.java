@@ -45,6 +45,7 @@ import org.mockito.Mockito;
  */
 public class RemoteRiverTest extends ESRealClientTestBase {
 
+	@SuppressWarnings("unchecked")
 	@Test
 	public void constructor_config() throws Exception {
 
@@ -62,35 +63,31 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 			// OK
 		}
 
-		Map<String, Object> jiraSettings = new HashMap<String, Object>();
+		Map<String, Object> remoteSettingsAdd = new HashMap<String, Object>();
 		Map<String, Object> toplevelSettingsAdd = new HashMap<String, Object>();
+		extendToplevelSettingsByMandatoryIndexSettings(toplevelSettingsAdd);
 
 		// case - test default settings
-		RemoteRiver tested = prepareRiverInstanceForTest("https://issues.jboss.org", jiraSettings, toplevelSettingsAdd,
-				false);
+		RemoteRiver tested = prepareRiverInstanceForTest("https://issues.jboss.org", remoteSettingsAdd,
+				toplevelSettingsAdd, false);
 		Assert.assertEquals(1, tested.maxIndexingThreads);
 		Assert.assertEquals(5 * 60 * 1000, tested.indexUpdatePeriod);
 		Assert.assertEquals(12 * 60 * 60 * 1000, tested.indexFullUpdatePeriod);
 		Assert.assertEquals("my_remote_river", tested.indexName);
 		Assert.assertEquals(RemoteRiver.INDEX_DOCUMENT_TYPE_NAME_DEFAULT, tested.typeName);
-
-		Map<String, Object> indexSettings = new HashMap<String, Object>();
-		toplevelSettingsAdd.put("index", indexSettings);
-		tested = prepareRiverInstanceForTest("https://issues.jboss.org", jiraSettings, toplevelSettingsAdd, false);
-		Assert.assertEquals("my_remote_river", tested.indexName);
-		Assert.assertEquals(RemoteRiver.INDEX_DOCUMENT_TYPE_NAME_DEFAULT, tested.typeName);
 		Assert.assertEquals(tested.documentIndexStructureBuilder, tested.remoteSystemClient.getIndexStructureBuilder());
 
 		// case - test river configuration reading
-		jiraSettings.put("maxIndexingThreads", "5");
-		jiraSettings.put("indexUpdatePeriod", "20m");
-		jiraSettings.put("indexFullUpdatePeriod", "5h");
-		jiraSettings.put("maxIssuesPerRequest", 20);
-		jiraSettings.put("timeout", "5s");
-		jiraSettings.put("jqlTimeZone", "Europe/Prague");
+		remoteSettingsAdd.put("maxIndexingThreads", "5");
+		remoteSettingsAdd.put("indexUpdatePeriod", "20m");
+		remoteSettingsAdd.put("indexFullUpdatePeriod", "5h");
+		remoteSettingsAdd.put("maxIssuesPerRequest", 20);
+		remoteSettingsAdd.put("timeout", "5s");
+		remoteSettingsAdd.put("jqlTimeZone", "Europe/Prague");
+		Map<String, Object> indexSettings = (Map<String, Object>) toplevelSettingsAdd.get("index");
 		indexSettings.put("index", "my_index_name");
 		indexSettings.put("type", "type_test");
-		tested = prepareRiverInstanceForTest("https://issues.jboss.org", jiraSettings, toplevelSettingsAdd, false);
+		tested = prepareRiverInstanceForTest("https://issues.jboss.org", remoteSettingsAdd, toplevelSettingsAdd, false);
 
 		Assert.assertEquals(5, tested.maxIndexingThreads);
 		Assert.assertEquals(20 * 60 * 1000, tested.indexUpdatePeriod);
@@ -660,12 +657,30 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 	/**
 	 * Prepare {@link RemoteRiver} instance for unit test, with Mockito moceked jiraClient and elasticSearchClient.
 	 * 
-	 * @param jiraSettingsAdd additional/optional config properties to be added into <code>jira</code> configuration node
+	 * @param remoteSettingsAdd additional/optional config properties to be added into <code>jira</code> configuration
+	 *          node
 	 * @return instance for tests
 	 * @throws Exception from constructor
 	 */
-	protected RemoteRiver prepareRiverInstanceForTest(Map<String, Object> jiraSettingsAdd) throws Exception {
-		return prepareRiverInstanceForTest("https://issues.jboss.org", jiraSettingsAdd, null, true);
+	protected RemoteRiver prepareRiverInstanceForTest(Map<String, Object> remoteSettingsAdd) throws Exception {
+		Map<String, Object> topLevelSettings = new HashMap<String, Object>();
+		extendToplevelSettingsByMandatoryIndexSettings(topLevelSettings);
+
+		return prepareRiverInstanceForTest("https://issues.jboss.org", remoteSettingsAdd, topLevelSettings, true);
+	}
+
+	@SuppressWarnings("unchecked")
+	private void extendToplevelSettingsByMandatoryIndexSettings(Map<String, Object> topLevelSettings) {
+		// fill some mandatory fields for index part not loaded from default
+		Map<String, Object> settings = (Map<String, Object>) topLevelSettings.get("index");
+		if (settings == null) {
+			settings = new HashMap<String, Object>();
+			topLevelSettings.put("index", settings);
+		}
+		settings.put(DocumentWithCommentsIndexStructureBuilder.CONFIG_FIELDS, new HashMap<String, Object>());
+		settings.put(DocumentWithCommentsIndexStructureBuilder.CONFIG_FILTERS, new HashMap<String, Object>());
+		settings.put(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_DOCUMENTID, "docid");
+		settings.put(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_UPDATED, "up");
 	}
 
 	/**

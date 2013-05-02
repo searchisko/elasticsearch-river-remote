@@ -1,13 +1,11 @@
 {
-    "type" : "jira",
-    "jira" : {
-        "urlBase"               : "https://issues.jboss.org",
+    "type" : "remote",
+    "remote" : {
+        "urlGetDocuments"       : "https://system.org/rest/document?docSpace={space}&docUpdatedAfter={updatedAfter}",
         "username"              : "jira_username",
         "pwd"                   : "jira_user_password",
-        "jqlTimeZone"           : "America/New York",
         "timeout"               : "5s",
-        "maxIssuesPerRequest"   : 50,
-        "projectKeysIndexed"    : "ORG,AS7",
+        "spacesIndexed"         : "ORG,AS7",
         "indexUpdatePeriod"     : "5m",
         "indexFullUpdatePeriod" : "1h",
         "maxIndexingThreads"    : 2
@@ -15,6 +13,11 @@
     "index" : {
         "index" : "my_jira_index",
         "type"  : "jira_issue",
+        "remote_field_document_id" : "id",
+        "remote_field_updated" : "updated",
+        "fields" : {
+            "created" : {"remote_field" : "fields.created"}
+        },
         "preprocessors" : [
             { 
                 "name"     : "Status Normalizer",

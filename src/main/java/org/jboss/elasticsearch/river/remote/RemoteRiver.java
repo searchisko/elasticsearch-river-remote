@@ -212,7 +212,18 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 				spaceKeysExcluded = Utils.parseCsvString(XContentMapValues.nodeStringValue(
 						remoteSettings.get("spaceKeysExcluded"), null));
 			}
-			remoteSystemClient = new GetJSONClient();
+			String remoteClientClass = Utils.trimToNull(XContentMapValues.nodeStringValue(
+					remoteSettings.get("remoteClientClass"), null));
+			if (remoteClientClass != null) {
+				try {
+					remoteSystemClient = (IRemoteSystemClient) Class.forName(remoteClientClass).newInstance();
+				} catch (Exception e) {
+					throw new SettingsException("Unable to instantiate class defined by 'remote/remoteClientClass': "
+							+ e.getMessage());
+				}
+			} else {
+				remoteSystemClient = new GetJSONClient();
+			}
 			remoteSystemClient.init(remoteSettings, allIndexedSpacesKeysNextRefresh != Long.MAX_VALUE);
 		} else {
 			throw new SettingsException("'remote' element of river configuration structure not found");

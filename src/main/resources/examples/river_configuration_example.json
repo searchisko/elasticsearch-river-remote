@@ -1,18 +1,20 @@
 {
     "type" : "remote",
     "remote" : {
-        "urlListDocuments"               : "https://issues.jboss.org",
-        "username"              : "jira_username",
-        "pwd"                   : "jira_user_password",
+        "urlGetDocuments"       : "https://system.org/rest/document?docSpace={space}&docUpdatedAfter={updatedAfter}",
+        "username"              : "remote_username",
+        "pwd"                   : "remote_user_password",
         "timeout"               : "5s",
-        "spacesIndexed"    : "ORG,AS7",
+        "spacesIndexed"         : "ORG,AS7",
         "indexUpdatePeriod"     : "5m",
         "indexFullUpdatePeriod" : "1h",
         "maxIndexingThreads"    : 2
     },
     "index" : {
-        "index" : "my_remote_system_index",
+        "index" : "my_remote_index",
         "type"  : "remote_document",
+        "remote_field_document_id" : "id",
+	      "remote_field_updated"     : "fields.updated",
         "preprocessors" : [
             { 
                 "name"     : "Status Normalizer",
@@ -23,14 +25,36 @@
                 } 
             },
             { 
-                "name"     : "Issue type Normalizer",
+                "name"     : "Document type Normalizer",
                 "class"    : "org.jboss.elasticsearch.river.remote.preproc.DocumentTypeNormalizer",
                 "settings" : {
                     "some_setting_1" : "value1",
                     "some_setting_2" : "value2"
                 } 
             }
-        ]
+        ],
+        "fields" : {
+          "created" : {"remote_field" : "fields.created"},
+          "updated" : {"remote_field" : "fields.updated"},
+          "author"  : {"remote_field" : "fields.author", "value_filter" : "user"},
+          "content" : {"remote_field" : "fields.body"}
+		    },
+		    "value_filters" : {
+	        "user" : {
+	            "name" : "username",
+	            "displayName" : "display_name"
+	        }
+		    },
+		    "comment_mode" : "child",
+		    "remote_field_comments" : "comments",
+		    "remote_field_comment_id" : "id",
+		    "comment_type" : "remote_document_comment",
+		    "field_comments" : "comments",
+		    "comment_fields" : {
+		        "comment_body"    : {"remote_field" : "body"},
+		        "comment_author"  : {"remote_field" : "author", "value_filter" : "user"},
+		        "comment_created" : {"remote_field" : "created"}
+		    }
     },
     "activity_log": {
         "index" : "remote_river_activity",

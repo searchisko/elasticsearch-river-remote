@@ -251,13 +251,14 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	}
 
 	@Override
-	public String getIssuesSearchIndexName(String spaceKey) {
+	public String getDocumentSearchIndexName(String spaceKey) {
 		return indexName;
 	}
 
 	@Override
 	public void indexDocument(BulkRequestBuilder esBulk, String spaceKey, Map<String, Object> document) throws Exception {
 
+		document.put("spaceKey", spaceKey);
 		document = preprocessDocumentData(spaceKey, document);
 		esBulk.add(indexRequest(indexName).type(issueTypeName).id(extractDocumentId(document))
 				.source(prepareIndexedDocument(spaceKey, document)));

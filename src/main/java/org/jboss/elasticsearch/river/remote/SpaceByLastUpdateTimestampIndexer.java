@@ -232,7 +232,7 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 		logger.debug("Go to process remote system deletes for Space {} for documents not updated in index after {}",
 				spaceKey, boundDate);
 
-		String indexName = documentIndexStructureBuilder.getIssuesSearchIndexName(spaceKey);
+		String indexName = documentIndexStructureBuilder.getDocumentSearchIndexName(spaceKey);
 		esIntegrationComponent.refreshSearchIndex(indexName);
 
 		logger.debug("go to delete indexed issues for project {} not updated after {}", spaceKey, boundDate);

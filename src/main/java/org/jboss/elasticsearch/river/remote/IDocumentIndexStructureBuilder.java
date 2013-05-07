@@ -34,7 +34,7 @@ public interface IDocumentIndexStructureBuilder {
 	 * 
 	 * @return search index name
 	 */
-	String getIssuesSearchIndexName(String spaceKey);
+	String getDocumentSearchIndexName(String spaceKey);
 
 	/**
 	 * Get unique identifier for document from data obtained from remote system.

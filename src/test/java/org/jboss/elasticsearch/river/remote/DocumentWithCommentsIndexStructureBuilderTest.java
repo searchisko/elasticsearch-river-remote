@@ -453,7 +453,9 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		{
 			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
 			tested.commentIndexingMode = CommentIndexingMode.NONE;
-			tested.indexDocument(esBulk, "ORG-1501", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"));
+			Map<String, Object> document = TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501");
+			tested.indexDocument(esBulk, "ORG", document);
+			Assert.assertEquals("ORG", document.get("spaceKey"));
 			Assert.assertEquals(1, esBulk.request().numberOfActions());
 		}
 
@@ -461,7 +463,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		{
 			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
 			tested.commentIndexingMode = CommentIndexingMode.EMBEDDED;
-			tested.indexDocument(esBulk, "ORG-1501", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"));
+			tested.indexDocument(esBulk, "ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"));
 			Assert.assertEquals(1, esBulk.request().numberOfActions());
 		}
 
@@ -469,7 +471,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		{
 			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
 			tested.commentIndexingMode = CommentIndexingMode.CHILD;
-			tested.indexDocument(esBulk, "ORG-1501", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"));
+			tested.indexDocument(esBulk, "ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"));
 			Assert.assertEquals(3, esBulk.request().numberOfActions());
 		}
 
@@ -477,7 +479,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		{
 			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
 			tested.commentIndexingMode = CommentIndexingMode.STANDALONE;
-			tested.indexDocument(esBulk, "ORG-1501", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"));
+			tested.indexDocument(esBulk, "ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"));
 			Assert.assertEquals(3, esBulk.request().numberOfActions());
 		}
 
@@ -485,7 +487,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		{
 			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
 			tested.commentIndexingMode = CommentIndexingMode.STANDALONE;
-			tested.indexDocument(esBulk, "ORG-15013", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-15013"));
+			tested.indexDocument(esBulk, "ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-15013"));
 			Assert.assertEquals(1, esBulk.request().numberOfActions());
 		}
 
@@ -502,7 +504,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 			});
 			tested.addDataPreprocessor(idp1);
 
-			tested.indexDocument(esBulk, "ORG-15013", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-15013"));
+			tested.indexDocument(esBulk, "ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-15013"));
 			Assert.assertEquals(1, esBulk.request().numberOfActions());
 			verify(idp1, times(1)).preprocessData(Mockito.anyMap());
 		}

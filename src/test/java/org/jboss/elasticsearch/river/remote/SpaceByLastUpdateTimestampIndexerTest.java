@@ -454,7 +454,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 			String testIndexName = "test_index";
 			Date boundDate = DateTimeUtils.parseISODateTime("2012-08-14T07:00:00.000-0400");
 
-			when(documentIndexStructureBuilderMock.getIssuesSearchIndexName("ORG")).thenReturn(testIndexName);
+			when(documentIndexStructureBuilderMock.getDocumentSearchIndexName("ORG")).thenReturn(testIndexName);
 			SearchRequestBuilder srbmock = new SearchRequestBuilder(null);
 			when(esIntegrationMock.prepareESScrollSearchRequestBuilder(testIndexName)).thenReturn(srbmock);
 			when(esIntegrationMock.executeESSearchRequest(srbmock)).thenReturn(prepareSearchResponse("scrlid3"));
@@ -462,7 +462,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 			tested.processDelete(boundDate);
 
 			Assert.assertEquals(0, tested.indexingInfo.documentsDeleted);
-			verify(documentIndexStructureBuilderMock).getIssuesSearchIndexName("ORG");
+			verify(documentIndexStructureBuilderMock).getDocumentSearchIndexName("ORG");
 			verify(esIntegrationMock).refreshSearchIndex(testIndexName);
 			verify(documentIndexStructureBuilderMock)
 					.buildSearchForIndexedDocumentsNotUpdatedAfter(srbmock, "ORG", boundDate);
@@ -484,7 +484,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 			String testIndexName = "test_index";
 			Date boundDate = DateTimeUtils.parseISODateTime("2012-08-14T07:00:00.000-0400");
 
-			when(documentIndexStructureBuilderMock.getIssuesSearchIndexName("ORG")).thenReturn(testIndexName);
+			when(documentIndexStructureBuilderMock.getDocumentSearchIndexName("ORG")).thenReturn(testIndexName);
 			SearchRequestBuilder srbmock = new SearchRequestBuilder(null);
 			when(esIntegrationMock.prepareESScrollSearchRequestBuilder(testIndexName)).thenReturn(srbmock);
 
@@ -513,7 +513,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 			tested.processDelete(boundDate);
 
 			Assert.assertEquals(5, tested.indexingInfo.documentsDeleted);
-			verify(documentIndexStructureBuilderMock).getIssuesSearchIndexName("ORG");
+			verify(documentIndexStructureBuilderMock).getDocumentSearchIndexName("ORG");
 			verify(esIntegrationMock).refreshSearchIndex(testIndexName);
 			verify(documentIndexStructureBuilderMock)
 					.buildSearchForIndexedDocumentsNotUpdatedAfter(srbmock, "ORG", boundDate);

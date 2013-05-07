@@ -53,7 +53,7 @@ public abstract class ElasticSearchIntegrationTest {
 			Date date = DateTimeUtils.parseISODateTime("2012-08-30T16:25:51");
 
 			SearchRequestBuilder srb = jr.prepareESScrollSearchRequestBuilder(structureBuilder
-					.getIssuesSearchIndexName(project));
+					.getDocumentSearchIndexName(project));
 
 			structureBuilder.buildSearchForIndexedDocumentsNotUpdatedAfter(srb, project, date);
 

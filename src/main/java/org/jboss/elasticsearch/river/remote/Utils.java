@@ -69,23 +69,23 @@ public class Utils {
    * <li><code>w</code> - weeks
    * </ul>
    * 
-   * @param jiraSettings map to get value from
+   * @param settings map to get value from
    * @param key of config value in map
    * @param defaultDuration default duration used if no value in config
    * @param defaultTimeUnit time unit for default duration - if null no default is used, so return 0 as default in this
    *          case
    * @return time value in millis
    */
-  protected static long parseTimeValue(Map<String, Object> jiraSettings, String key, long defaultDuration,
+  protected static long parseTimeValue(Map<String, Object> settings, String key, long defaultDuration,
       TimeUnit defaultTimeUnit) {
     long ret = 0;
-    if (jiraSettings == null || !jiraSettings.containsKey(key)) {
+    if (settings == null || !settings.containsKey(key)) {
       if (defaultTimeUnit != null) {
         ret = new TimeValue(defaultDuration, defaultTimeUnit).millis();
       }
     } else {
       try {
-        ret = TimeValue.parseTimeValue(XContentMapValues.nodeStringValue(jiraSettings.get(key), null),
+        ret = TimeValue.parseTimeValue(XContentMapValues.nodeStringValue(settings.get(key), null),
             new TimeValue(defaultDuration, defaultTimeUnit)).millis();
       } catch (ElasticSearchParseException e) {
         throw new ElasticSearchParseException(e.getMessage() + " for setting: " + key);

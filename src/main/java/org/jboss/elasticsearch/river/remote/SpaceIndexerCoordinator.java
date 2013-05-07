@@ -71,7 +71,7 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	protected int maxIndexingThreads;
 
 	/**
-	 * Period of index update from jira [ms].
+	 * Period of index update from remote system [ms].
 	 */
 	protected long indexUpdatePeriod;
 
@@ -100,13 +100,13 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	/**
 	 * Constructor with parameters.
 	 * 
-	 * @param remoteSystemClient configured remote system access client to be passed into {@link SpaceByLastUpdateTimestampIndexer}
-	 *          instances started from coordinator
+	 * @param remoteSystemClient configured remote system access client to be passed into
+	 *          {@link SpaceByLastUpdateTimestampIndexer} instances started from coordinator
 	 * @param esIntegrationComponent to be used to call River component and ElasticSearch functions
 	 * @param documentIndexStructureBuilder component used to build structures for search index
 	 * @param indexUpdatePeriod index update period [ms]
 	 * @param maxIndexingThreads maximal number of parallel JIRA indexing threads started by this coordinator
-	 * @param indexFullUpdatePeriod period of index automatic full update from jira [ms]. value <= 0 means never.
+	 * @param indexFullUpdatePeriod period of index automatic full update from remote system [ms]. value <= 0 means never.
 	 */
 	public SpaceIndexerCoordinator(IRemoteSystemClient remoteSystemClient, IESIntegration esIntegrationComponent,
 			IDocumentIndexStructureBuilder documentIndexStructureBuilder, long indexUpdatePeriod, int maxIndexingThreads,
@@ -235,8 +235,8 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 				continue;
 			}
 
-			SpaceByLastUpdateTimestampIndexer indexer = new SpaceByLastUpdateTimestampIndexer(spaceKey, fullUpdateNecessary, remoteSystemClient,
-					esIntegrationComponent, documentIndexStructureBuilder);
+			SpaceByLastUpdateTimestampIndexer indexer = new SpaceByLastUpdateTimestampIndexer(spaceKey, fullUpdateNecessary,
+					remoteSystemClient, esIntegrationComponent, documentIndexStructureBuilder);
 			Thread it = esIntegrationComponent.acquireIndexingThread("remote_river_indexer_" + spaceKey, indexer);
 			esIntegrationComponent.storeDatetimeValue(spaceKey, STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE, new Date(),
 					null);

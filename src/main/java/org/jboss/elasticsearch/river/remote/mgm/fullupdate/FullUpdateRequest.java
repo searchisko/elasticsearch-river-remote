@@ -43,8 +43,8 @@ public class FullUpdateRequest extends JRMgmBaseRequest {
 		return spaceKey;
 	}
 
-	public void setSpaceKey(String projectKey) {
-		this.spaceKey = projectKey;
+	public void setSpaceKey(String spaceKey) {
+		this.spaceKey = spaceKey;
 	}
 
 	public boolean isSpaceKeyRequest() {

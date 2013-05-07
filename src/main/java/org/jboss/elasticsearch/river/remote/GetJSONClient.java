@@ -155,12 +155,6 @@ public class GetJSONClient implements IRemoteSystemClient {
 
 	}
 
-	/**
-	 * Get projectKeys of all projects in configured JIRA instance.
-	 * 
-	 * @return list of project keys
-	 * @throws Exception
-	 */
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<String> getAllSpaces() throws Exception {
@@ -276,7 +270,7 @@ public class GetJSONClient implements IRemoteSystemClient {
 	/**
 	 * Perform defined REST call to remote REST API.
 	 * 
-	 * @param restOperation name of REST operation to call on JIRA API (eg. 'search' or 'project' )
+	 * @param url to perform GET request for
 	 * @return response from server if successful
 	 * @throws Exception in case of unsuccessful call
 	 */
@@ -305,7 +299,7 @@ public class GetJSONClient implements IRemoteSystemClient {
 				responseContent = EntityUtils.toByteArray(response.getEntity());
 			}
 			if (statusCode != HttpStatus.SC_OK) {
-				throw new Exception("Failed JIRA REST API call. HTTP error code: " + statusCode + " Response body: "
+				throw new Exception("Failed remote system REST API call. HTTP error code: " + statusCode + " Response body: "
 						+ responseContent);
 			}
 			return responseContent;

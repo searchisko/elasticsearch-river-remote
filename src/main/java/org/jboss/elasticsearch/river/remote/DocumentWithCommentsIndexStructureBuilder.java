@@ -223,8 +223,8 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 		validateConfigurationObject(filtersConfig, "index/value_filters");
 		validateConfigurationObject(fieldsConfig, "index/fields");
 		validateConfigurationString(indexFieldForRiverName, "index/field_river_name");
-		validateConfigurationString(indexFieldForSpaceKey, "index/field_project_key");
-		validateConfigurationString(indexFieldForRemoteDocumentId, "index/field_issue_key");
+		validateConfigurationString(indexFieldForSpaceKey, "index/field_space_key");
+		validateConfigurationString(indexFieldForRemoteDocumentId, "index/field_document_id");
 		validateConfigurationObject(commentIndexingMode, "index/comment_mode");
 		if (commentIndexingMode != CommentIndexingMode.NONE) {
 			validateConfigurationString(remoteDataFieldForComments, "index/" + CONFIG_REMOTEFIELD_COMMENTS);
@@ -509,12 +509,14 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 					if (o instanceof Map) {
 						Utils.remapDataInMap((Map<String, Object>) o, valueFieldFilter);
 					} else {
-						logger.warn("Filter defined for field which is not filterable - jira array field '{}' with value: {}",
+						logger.warn(
+								"Filter defined for field which is not filterable - remote document array field '{}' with value: {}",
 								valuePath, v);
 					}
 				}
 			} else {
-				logger.warn("Filter defined for field which is not filterable - jira field '{}' with value: {}", valuePath, v);
+				logger.warn("Filter defined for field which is not filterable - remote document field '{}' with value: {}",
+						valuePath, v);
 			}
 		}
 		addValueToTheIndexField(out, indexField, v);
@@ -557,7 +559,7 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 			}
 			Map<String, String> fc = value.get(idxFieldName);
 			if (Utils.isEmpty(fc.get(CONFIG_FIELDS_REMOTEFIELD))) {
-				throw new SettingsException("'jira_field' is not defined in '" + configFieldName + "/" + idxFieldName + "'");
+				throw new SettingsException("'remote_field' is not defined in '" + configFieldName + "/" + idxFieldName + "'");
 			}
 			String fil = fc.get(CONFIG_FIELDS_VALUEFILTER);
 			if (fil != null && !filtersConfig.containsKey(fil)) {

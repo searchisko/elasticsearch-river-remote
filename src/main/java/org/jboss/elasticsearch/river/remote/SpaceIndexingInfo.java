@@ -106,7 +106,7 @@ public class SpaceIndexingInfo {
 	}
 
 	/**
-	 * Add object with project indexing info to given document builder.
+	 * Add object with space indexing info to given document builder.
 	 * 
 	 * @param builder to add information Object into
 	 * @param printSpaceKey set to true to print Space key into document

@@ -494,10 +494,10 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 		List<String> pkeys = getAllIndexedSpaceKeys();
 		if (pkeys != null) {
 			builder.startArray("indexed_spaces");
-			for (String projectKey : pkeys) {
+			for (String spaceKey : pkeys) {
 				builder.startObject();
-				builder.field("space_key", projectKey);
-				SpaceIndexingInfo lastIndexing = getLastProjectIndexingInfo(projectKey);
+				builder.field("space_key", spaceKey);
+				SpaceIndexingInfo lastIndexing = getLastSpaceIndexingInfo(spaceKey);
 				if (lastIndexing != null) {
 					builder.field("last_indexing");
 					lastIndexing.buildDocument(builder, false, true);
@@ -514,7 +514,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	 * @param spaceKey to get info for
 	 * @return spaces indexing info or null if not found.
 	 */
-	protected SpaceIndexingInfo getLastProjectIndexingInfo(String spaceKey) {
+	protected SpaceIndexingInfo getLastSpaceIndexingInfo(String spaceKey) {
 		SpaceIndexingInfo lastIndexing = lastSpaceIndexingInfo.get(spaceKey);
 		if (lastIndexing == null && activityLogIndexName != null) {
 			try {
@@ -527,10 +527,10 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 					SearchHit hit = sr.hits().getAt(0);
 					lastIndexing = SpaceIndexingInfo.readFromDocument(hit.sourceAsMap());
 				} else {
-					logger.debug("No last indexing info found in activity log for project {}", spaceKey);
+					logger.debug("No last indexing info found in activity log for space {}", spaceKey);
 				}
 			} catch (Exception e) {
-				logger.warn("Error during LastProjectIndexingInfo reading from activity log ES index: {} {}", e.getClass()
+				logger.warn("Error during LastSpaceIndexingInfo reading from activity log ES index: {} {}", e.getClass()
 						.getName(), e.getMessage());
 			}
 		}
@@ -558,8 +558,8 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	 * @see #getRunningInstances()
 	 * @see #getRunningInstance(String)
 	 */
-	public static void addRunningInstance(IRiverMgm jiraRiver) {
-		riverInstances.put(jiraRiver.riverName().getName(), jiraRiver);
+	public static void addRunningInstance(IRiverMgm remoteRiver) {
+		riverInstances.put(remoteRiver.riverName().getName(), remoteRiver);
 	}
 
 	/**

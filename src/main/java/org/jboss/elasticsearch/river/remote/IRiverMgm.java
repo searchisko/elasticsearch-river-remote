@@ -47,7 +47,7 @@ public interface IRiverMgm {
 	/**
 	 * Get name of river.
 	 * 
-	 * @return name of jira river
+	 * @return name of the river
 	 */
 	public abstract RiverName riverName();
 

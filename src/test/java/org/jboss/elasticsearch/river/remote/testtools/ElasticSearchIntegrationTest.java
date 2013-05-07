@@ -48,14 +48,14 @@ public abstract class ElasticSearchIntegrationTest {
 			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
 					"my_jira_river", "my_jira_index", "jira_issue", null);
 
-			String project = "ORG";
+			String spaceKey = "ORG";
 			// Date date = new Date();
 			Date date = DateTimeUtils.parseISODateTime("2012-08-30T16:25:51");
 
 			SearchRequestBuilder srb = jr.prepareESScrollSearchRequestBuilder(structureBuilder
-					.getDocumentSearchIndexName(project));
+					.getDocumentSearchIndexName(spaceKey));
 
-			structureBuilder.buildSearchForIndexedDocumentsNotUpdatedAfter(srb, project, date);
+			structureBuilder.buildSearchForIndexedDocumentsNotUpdatedAfter(srb, spaceKey, date);
 
 			System.out.println(srb);
 

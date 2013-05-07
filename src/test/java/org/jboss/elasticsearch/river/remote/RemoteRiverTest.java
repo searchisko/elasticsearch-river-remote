@@ -585,7 +585,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 					.parseISODateTime("2012-09-27T09:21:26.422Z"));
 			TestUtils.assertStringFromClasspathFile("/asserts/RemoteRiver_getRiverOperationInfo_1.json", info);
 
-			// case - last indexed record into ES index for FFF project found
+			// case - last indexed record into ES index for FFF space found
 			indexCreate(tested.activityLogIndexName);
 			client.admin().indices().preparePutMapping(tested.activityLogIndexName).setType(tested.activityLogTypeName)
 					.setSource(TestUtils.readStringFromClasspathFile("/examples/remote_river_indexupdate.json")).execute()
@@ -613,14 +613,14 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		ISpaceIndexerCoordinator coordinatorMock = mock(ISpaceIndexerCoordinator.class);
 		tested.coordinatorInstance = coordinatorMock;
 
-		// case - all projects but no any exists
+		// case - all spaces but no any exists
 		{
 			tested.allIndexedSpacesKeys = null;
 			Assert.assertEquals("", tested.forceFullReindex(null));
 			Mockito.verifyNoMoreInteractions(coordinatorMock);
 		}
 
-		// case - all projects and some exists
+		// case - all spaces and some exists
 		{
 			reset(coordinatorMock);
 			tested.allIndexedSpacesKeys = new ArrayList<String>();
@@ -632,7 +632,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 			Mockito.verifyNoMoreInteractions(coordinatorMock);
 		}
 
-		// case - one project not exists
+		// case - one space not exists
 		{
 			reset(coordinatorMock);
 			Assert.assertNull(tested.forceFullReindex("BBB"));
@@ -640,7 +640,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 
 		}
 
-		// case - one project which exists
+		// case - one space which exists
 		{
 			reset(coordinatorMock);
 			Assert.assertEquals("ORG", tested.forceFullReindex("ORG"));

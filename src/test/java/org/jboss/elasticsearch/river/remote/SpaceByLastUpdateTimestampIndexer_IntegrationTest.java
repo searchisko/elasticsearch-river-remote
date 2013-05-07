@@ -604,7 +604,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 	}
 
 	/**
-	 * Adds two issues from <code>AAA</code> project into search index for tests - keys <code>AAA-1</code> and
+	 * Adds two issues from <code>AAA</code> space into search index for tests - keys <code>AAA-1</code> and
 	 * <code>AAA-2</code>
 	 * 
 	 * @param remoteRiverMock to be used

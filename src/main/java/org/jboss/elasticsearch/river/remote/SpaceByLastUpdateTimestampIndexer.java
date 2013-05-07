@@ -235,7 +235,7 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 		String indexName = documentIndexStructureBuilder.getDocumentSearchIndexName(spaceKey);
 		esIntegrationComponent.refreshSearchIndex(indexName);
 
-		logger.debug("go to delete indexed issues for project {} not updated after {}", spaceKey, boundDate);
+		logger.debug("go to delete indexed issues for space {} not updated after {}", spaceKey, boundDate);
 		SearchRequestBuilder srb = esIntegrationComponent.prepareESScrollSearchRequestBuilder(indexName);
 		documentIndexStructureBuilder.buildSearchForIndexedDocumentsNotUpdatedAfter(srb, spaceKey, boundDate);
 

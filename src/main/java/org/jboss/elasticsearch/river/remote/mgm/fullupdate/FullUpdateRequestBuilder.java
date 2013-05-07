@@ -10,7 +10,7 @@ import org.elasticsearch.action.support.BaseRequestBuilder;
 import org.elasticsearch.client.Client;
 
 /**
- * Request builder to force full index update for some Remote river and some or all projects in it.
+ * Request builder to force full index update for some Remote river and some or all spaces in it.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */

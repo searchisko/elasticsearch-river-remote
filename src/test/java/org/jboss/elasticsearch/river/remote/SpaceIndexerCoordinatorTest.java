@@ -233,7 +233,7 @@ public class SpaceIndexerCoordinatorTest {
 				-1);
 		Assert.assertTrue(tested.spaceKeysToIndexQueue.isEmpty());
 
-		// case - no any project available (both null or empty list)
+		// case - no any space available (both null or empty list)
 		{
 			when(esIntegrationMock.getAllIndexedSpaceKeys()).thenReturn(null);
 			tested.fillSpaceKeysToIndexQueue();
@@ -246,7 +246,7 @@ public class SpaceIndexerCoordinatorTest {
 			verify(esIntegrationMock, times(0)).readDatetimeValue(Mockito.any(String.class), Mockito.anyString());
 		}
 
-		// case - some projects available
+		// case - some spaces available
 		{
 			reset(esIntegrationMock);
 			when(esIntegrationMock.getAllIndexedSpaceKeys()).thenReturn(Utils.parseCsvString("ORG,AAA,BBB,CCC,DDD"));
@@ -280,7 +280,7 @@ public class SpaceIndexerCoordinatorTest {
 			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("DDD"));
 		}
 
-		// case - some project available for index update, but in processing already, so do not schedule it for processing
+		// case - some space available for index update, but in processing already, so do not schedule it for processing
 		// now
 		{
 			reset(esIntegrationMock);
@@ -301,7 +301,7 @@ public class SpaceIndexerCoordinatorTest {
 			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("DDD"));
 		}
 
-		// case - some project available for index update, but in queue already, so do not schedule it for processing now
+		// case - some space available for index update, but in queue already, so do not schedule it for processing now
 		{
 			reset(esIntegrationMock);
 			tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2, -1);
@@ -390,7 +390,7 @@ public class SpaceIndexerCoordinatorTest {
 					Mockito.eq((BulkRequestBuilder) null));
 		}
 
-		// case - two slots empty and more project available, start two indexers
+		// case - two slots empty and more space available, start two indexers
 		{
 			reset(esIntegrationMock);
 			tested.spaceIndexerThreads.clear();
@@ -427,7 +427,7 @@ public class SpaceIndexerCoordinatorTest {
 					Mockito.eq((BulkRequestBuilder) null));
 		}
 
-		// case - two slots empty but only one project available, start it
+		// case - two slots empty but only one space available, start it
 		{
 			reset(esIntegrationMock);
 			tested.spaceIndexerThreads.clear();
@@ -524,7 +524,7 @@ public class SpaceIndexerCoordinatorTest {
 			Assert.assertEquals(1, tested.spaceKeysToIndexQueue.size());
 		}
 
-		// case - one slot empty from two, so use it for incremental update for second project in queue
+		// case - one slot empty from two, so use it for incremental update for second space in queue
 		{
 			reset(esIntegrationMock);
 			tested.indexFullUpdatePeriod = 1000;
@@ -548,7 +548,7 @@ public class SpaceIndexerCoordinatorTest {
 			Assert.assertTrue(tested.spaceIndexerThreads.containsKey("AAA"));
 			Assert.assertTrue(tested.spaceIndexerThreads.containsKey("BBB"));
 			Assert.assertFalse(tested.spaceIndexerThreads.containsKey("ORG"));
-			// check first project stayed in queue!
+			// check first space stayed in queue!
 			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("ORG"));
 			Assert.assertEquals(1, tested.spaceKeysToIndexQueue.size());
 		}
@@ -763,7 +763,8 @@ public class SpaceIndexerCoordinatorTest {
 		// case - full indexing with success
 		{
 			tested.spaceIndexerThreads.put("AAA", new Thread());
-			tested.spaceIndexers.put("AAA", new SpaceByLastUpdateTimestampIndexer("AAA", false, null, esIntegrationMock, null));
+			tested.spaceIndexers.put("AAA",
+					new SpaceByLastUpdateTimestampIndexer("AAA", false, null, esIntegrationMock, null));
 			tested.reportIndexingFinished("AAA", true, true);
 			Assert.assertEquals(0, tested.spaceIndexerThreads.size());
 			Assert.assertEquals(0, tested.spaceIndexers.size());
@@ -790,7 +791,8 @@ public class SpaceIndexerCoordinatorTest {
 
 		{
 			tested.spaceIndexers.put("II", new SpaceByLastUpdateTimestampIndexer("II", true, null, esIntegrationMock, null));
-			tested.spaceIndexers.put("III", new SpaceByLastUpdateTimestampIndexer("III", false, null, esIntegrationMock, null));
+			tested.spaceIndexers.put("III",
+					new SpaceByLastUpdateTimestampIndexer("III", false, null, esIntegrationMock, null));
 			List<SpaceIndexingInfo> l = tested.getCurrentSpaceIndexingInfo();
 			Assert.assertNotNull(l);
 			Assert.assertEquals(2, l.size());

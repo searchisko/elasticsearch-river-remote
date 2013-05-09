@@ -231,8 +231,8 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 			validateConfigurationString(indexFieldForComments, "index/field_comments");
 			validateConfigurationObject(commentFieldsConfig, "index/comment_fields");
 			validateConfigurationFieldsStructure(commentFieldsConfig, "index/comment_fields");
-			validateConfigurationString(commentTypeName, "index/comment_type");
-			if (commentIndexingMode != CommentIndexingMode.EMBEDDED) {
+			if (commentIndexingMode.isExtraDocumentIndexed()) {
+				validateConfigurationString(commentTypeName, "index/comment_type");
 				validateConfigurationString(remoteDataFieldForCommentId, "index/" + CONFIG_REMOTEFIELD_COMMENTID);
 			}
 		}

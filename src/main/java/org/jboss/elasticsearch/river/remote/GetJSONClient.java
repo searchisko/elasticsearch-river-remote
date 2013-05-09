@@ -300,7 +300,7 @@ public class GetJSONClient implements IRemoteSystemClient {
 			}
 			if (statusCode != HttpStatus.SC_OK) {
 				throw new Exception("Failed remote system REST API call. HTTP error code: " + statusCode + " Response body: "
-						+ responseContent);
+						+ new String(responseContent));
 			}
 			return responseContent;
 		} finally {

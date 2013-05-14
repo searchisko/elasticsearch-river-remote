@@ -654,6 +654,35 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		}
 	}
 
+	@Test
+	public void loadPassword() throws Exception {
+
+		// case - password document not defined
+		{
+			RemoteRiver tested = prepareRiverInstanceForTest(null);
+			try {
+				tested.client = prepareESClientForUnitTest();
+				indexCreate(tested.getRiverIndexName());
+				Assert.assertNull(tested.loadPassword(""));
+			} finally {
+				finalizeESClientForUnitTest();
+			}
+		}
+
+		// case - password found
+		{
+			RemoteRiver tested = prepareRiverInstanceForTest(null);
+			try {
+				tested.client = prepareESClientForUnitTest();
+				tested.client.prepareIndex(tested.getRiverIndexName(), tested.riverName().getName(), "_pwd")
+						.setSource("{ \"pwd\" : \"passwd\"}").execute().actionGet();
+				Assert.assertEquals("passwd", tested.loadPassword(""));
+			} finally {
+				finalizeESClientForUnitTest();
+			}
+		}
+	}
+
 	/**
 	 * Prepare {@link RemoteRiver} instance for unit test, with Mockito moceked jiraClient and elasticSearchClient.
 	 * 

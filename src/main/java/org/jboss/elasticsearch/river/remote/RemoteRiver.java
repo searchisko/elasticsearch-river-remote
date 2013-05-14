@@ -44,7 +44,7 @@ import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessorFactor
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
-public class RemoteRiver extends AbstractRiverComponent implements River, IESIntegration, IRiverMgm {
+public class RemoteRiver extends AbstractRiverComponent implements River, IESIntegration, IRiverMgm, IPwdLoader {
 
 	/**
 	 * Map of running river instances. Used for management operations dispatching. See {@link #getRunningInstance(String)}
@@ -224,7 +224,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 			} else {
 				remoteSystemClient = new GetJSONClient();
 			}
-			remoteSystemClient.init(remoteSettings, allIndexedSpacesKeysNextRefresh != Long.MAX_VALUE);
+			remoteSystemClient.init(remoteSettings, allIndexedSpacesKeysNextRefresh != Long.MAX_VALUE, this);
 		} else {
 			throw new SettingsException("'remote' element of river configuration structure not found");
 		}
@@ -775,6 +775,23 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	public SearchResponse executeESScrollSearchNextRequest(SearchResponse scrollResp) {
 		return client.prepareSearchScroll(scrollResp.getScrollId()).setScroll(new TimeValue(ES_SCROLL_KEEPALIVE)).execute()
 				.actionGet();
+	}
+
+	@Override
+	public String loadPassword(String username) {
+		logger.info("loading password for username {}", username);
+		String ret = null;
+		String riverIndexName = getRiverIndexName();
+		refreshSearchIndex(riverIndexName);
+		GetResponse resp = client.prepareGet(riverIndexName, riverName().name(), "_pwd").execute().actionGet();
+		if (resp.exists()) {
+			if (logger.isDebugEnabled()) {
+				logger.debug("Password document: {}", resp.getSourceAsString());
+			}
+			Map<String, Object> newset = resp.getSource();
+			ret = XContentMapValues.nodeStringValue(newset.get("pwd"), null);
+		}
+		return ret;
 	}
 
 }

@@ -199,10 +199,14 @@ Configuration parameters for this client type:
   * `{startAtIndex}` - remote system must return only documents matching previous two criteria, and starting at this index in result set.  
 * `remote/getDocsResFieldDocuments` defines field in JSON data returned from `remote/urlGetDocuments` call, where array of documents is stored. If not defined then the array is expected directly in the root of returned data. Dot notation may be used for deeper nesting in the JSON structure.
 * `remote/getDocsResFieldTotalcount` defines field in JSON data returned from `remote/urlGetDocuments` call, where total number of documents matching passed search criteria is stored. Dot notation may be used for deeper nesting in the JSON structure. 
-* `remote/username` and `remote/pwd` are optional login credentials to access documents in remote system. HTTP BASIC authentication is supported.
+* `remote/username` and `remote/pwd` are optional login credentials to access documents in remote system. HTTP BASIC authentication is supported. Alternatively you can store password into separate JSON document called `_pwd` stored in the rived index beside `_meta` document, into field called `pwd`, see example later.
 * `remote/timeout` time value, defines timeout for http/s request to the remote system. Optional, 5s is default if not provided.
 * `remote/urlGetSpaces` is URL used to call *List Spaces* operation from remote system. Necessary if `remote/spacesIndexed` is not provided.
 * `remote/getSpacesResField` defines field in JSON data returned from `remote/urlGetSpaces` call, where array of space keys is stored. If not defined then the array is expected directly in root of returned data. Dot notation may be used for deeper nesting in the JSON structure.
+
+Password can be created using:
+
+	curl -XPUT localhost:9200/_river/my_remote_river/_pwd -d '{"pwd" : "mypassword"}'
 
 
 Indexed document structure

@@ -20,9 +20,11 @@ public interface IRemoteSystemClient {
 	 * @param config configuration structure (taken from <code>remote</code> element in river configuration)
 	 * @param spaceListLoadingEnabled if <code>true</code> then {@link #getAllSpaces()} will be called by river to load
 	 *          list of spaces from remote system. So client must be initialized to be able to use this method.
+	 * @param pwdLoader used to load password if not defined in <code>config</code>
 	 * @throws SettingsException
 	 */
-	public abstract void init(Map<String, Object> config, boolean spaceListLoadingEnabled) throws SettingsException;
+	public abstract void init(Map<String, Object> config, boolean spaceListLoadingEnabled, IPwdLoader pwdLoader)
+			throws SettingsException;
 
 	/**
 	 * Set index structure builder so remote system client can use it (for example it can request from remote system only

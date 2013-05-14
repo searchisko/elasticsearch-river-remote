@@ -15,6 +15,7 @@ import junit.framework.Assert;
 import org.elasticsearch.common.jackson.core.JsonParseException;
 import org.elasticsearch.common.settings.SettingsException;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 /**
  * Unit test for {@link GetJSONClient}.
@@ -29,7 +30,7 @@ public class GetJSONClientTest {
 		try {
 			Map<String, Object> config = new HashMap<String, Object>();
 			GetJSONClient tested = new GetJSONClient();
-			tested.init(config, false);
+			tested.init(config, false, null);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			// OK
@@ -39,7 +40,7 @@ public class GetJSONClientTest {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "bad url format");
 			GetJSONClient tested = new GetJSONClient();
-			tested.init(config, false);
+			tested.init(config, false, null);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			// OK
@@ -52,7 +53,7 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
 			config.put(GetJSONClient.CFG_URL_GET_SPACES, "http://test.org/spaces");
 			config.put(GetJSONClient.CFG_GET_SPACES_RESPONSE_FIELD, "field");
-			tested.init(config, false);
+			tested.init(config, false, null);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertNull(tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
@@ -64,7 +65,7 @@ public class GetJSONClientTest {
 			GetJSONClient tested = new GetJSONClient();
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
-			tested.init(config, true);
+			tested.init(config, true, null);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			// OK
@@ -74,13 +75,13 @@ public class GetJSONClientTest {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
 			config.put(GetJSONClient.CFG_URL_GET_SPACES, "bad url format");
-			tested.init(config, true);
+			tested.init(config, true, null);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			// OK
 		}
 
-		// case - basic config, getSpaces required, authentication
+		// case - basic config, getSpaces required, authentication with pwd in config
 		{
 			GetJSONClient tested = new GetJSONClient();
 			Map<String, Object> config = new HashMap<String, Object>();
@@ -89,11 +90,44 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_GET_SPACES_RESPONSE_FIELD, "");
 			config.put(GetJSONClient.CFG_USERNAME, "myuser");
 			config.put(GetJSONClient.CFG_PASSWORD, "paaswd");
-			tested.init(config, true);
+			IPwdLoader pwdLoaderMock = Mockito.mock(IPwdLoader.class);
+			tested.init(config, true, pwdLoaderMock);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
 			Assert.assertTrue(tested.isAuthConfigured);
+			Mockito.verifyZeroInteractions(pwdLoaderMock);
+		}
+
+		// case - basic config, getSpaces required, authentication with pwd from loader
+		{
+			GetJSONClient tested = new GetJSONClient();
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
+			config.put(GetJSONClient.CFG_URL_GET_SPACES, "http://test.org/spaces");
+			config.put(GetJSONClient.CFG_USERNAME, "myuser");
+			IPwdLoader pwdLoaderMock = Mockito.mock(IPwdLoader.class);
+			Mockito.when(pwdLoaderMock.loadPassword("myuser")).thenReturn("paaswd");
+			tested.init(config, true, pwdLoaderMock);
+			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
+			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
+			Assert.assertNull(tested.getSpacesResField);
+			Assert.assertTrue(tested.isAuthConfigured);
+			Mockito.verify(pwdLoaderMock).loadPassword("myuser");
+		}
+
+		// case - basic config, authentication put pwd not defined
+		{
+			GetJSONClient tested = new GetJSONClient();
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
+			config.put(GetJSONClient.CFG_URL_GET_SPACES, "http://test.org/spaces");
+			config.put(GetJSONClient.CFG_USERNAME, "myuser");
+			tested.init(config, true, null);
+			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
+			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
+			Assert.assertNull(tested.getSpacesResField);
+			Assert.assertFalse(tested.isAuthConfigured);
 		}
 
 	}
@@ -194,7 +228,7 @@ public class GetJSONClientTest {
 			};
 
 		};
-		tested.init(config, true);
+		tested.init(config, true, null);
 		return tested;
 	}
 
@@ -258,7 +292,7 @@ public class GetJSONClientTest {
 			};
 
 		};
-		tested.init(config, false);
+		tested.init(config, false, null);
 		return tested;
 	}
 

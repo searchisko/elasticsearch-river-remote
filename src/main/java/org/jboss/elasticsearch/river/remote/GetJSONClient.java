@@ -90,7 +90,7 @@ public class GetJSONClient implements IRemoteSystemClient {
 	}
 
 	@Override
-	public void init(Map<String, Object> config, boolean spaceListLoadingEnabled) {
+	public void init(Map<String, Object> config, boolean spaceListLoadingEnabled, IPwdLoader pwdLoader) {
 		urlGetDocuments = XContentMapValues.nodeStringValue(config.get(CFG_URL_GET_DOCUMENTS), null);
 		if (Utils.isEmpty(urlGetDocuments)) {
 			throw new SettingsException("remote/urlGetDocuments element of configuration structure not found or empty");
@@ -137,12 +137,19 @@ public class GetJSONClient implements IRemoteSystemClient {
 		}
 
 		String remoteUsername = Utils.trimToNull(XContentMapValues.nodeStringValue(config.get(CFG_USERNAME), null));
-		String remotePassword = Utils.trimToNull(XContentMapValues.nodeStringValue(config.get(CFG_PASSWORD), null));
+		String remotePassword = XContentMapValues.nodeStringValue(config.get(CFG_PASSWORD), null);
 		if (remoteUsername != null) {
-			String host = urlGetDocumentsUrl.getHost();
-			httpclient.getCredentialsProvider().setCredentials(new AuthScope(host, AuthScope.ANY_PORT),
-					new UsernamePasswordCredentials(remoteUsername, remotePassword));
-			isAuthConfigured = true;
+			if (remotePassword == null && pwdLoader != null)
+				remotePassword = pwdLoader.loadPassword(remoteUsername);
+			if (remotePassword != null) {
+				String host = urlGetDocumentsUrl.getHost();
+				httpclient.getCredentialsProvider().setCredentials(new AuthScope(host, AuthScope.ANY_PORT),
+						new UsernamePasswordCredentials(remoteUsername, remotePassword));
+				isAuthConfigured = true;
+			} else {
+				logger.warn("Password not found so authentication is not used!");
+				remoteUsername = null;
+			}
 		} else {
 			remoteUsername = null;
 		}

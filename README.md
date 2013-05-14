@@ -16,6 +16,8 @@ In order to install the plugin into ElasticSearch, simply run:
     --------------------------------------------------
     | master       | 0.19.12          |              |
     --------------------------------------------------
+    | 1.0.0        | 0.19.12          | 14.5.2013    |
+    --------------------------------------------------
 
 For changelog, planned milestones/enhancements and known bugs see 
 [github issue tracker](https://github.com/jbossorg/elasticsearch-river-remote/issues) please.

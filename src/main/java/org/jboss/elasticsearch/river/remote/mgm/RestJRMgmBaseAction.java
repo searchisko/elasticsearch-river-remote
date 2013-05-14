@@ -28,7 +28,7 @@ public abstract class RestJRMgmBaseAction extends BaseRestHandler {
 	 * @return base REST management url ending by <code>/</code>
 	 */
 	protected String baseRestMgmUrl() {
-		return "/" + RiverIndexName.Conf.indexName(settings) + "/{riverName}/_mgm/";
+		return "/" + RiverIndexName.Conf.indexName(settings) + "/{riverName}/_mgm_rr/";
 	}
 
 }

@@ -276,26 +276,26 @@ for, so replace it with real name for your calls.
 Get [state info](/src/main/resources/examples/mgm/rest_river_info.json) about
 the river operation:
 
-	curl -XGET localhost:9200/_river/my_remote_river/_mgm/state
+	curl -XGET localhost:9200/_river/my_remote_river/_mgm_rr/state
 
 Stop remote river indexing process. Process is stopped permanently, so even
 after complete elasticsearch cluster restart or river migration to another 
 node. You need to `restart` it over management REST API (see next command):
 
-	curl -XPOST localhost:9200/_river/my_remote_river/_mgm/stop
+	curl -XPOST localhost:9200/_river/my_remote_river/_mgm_rr/stop
 
 Restart remote river indexing process. Configuration of river is reloaded during 
 restart. You can restart running indexing, or stopped indexing (see previous command):
 
-	curl -XPOST localhost:9200/_river/my_remote_river/_mgm/restart
+	curl -XPOST localhost:9200/_river/my_remote_river/_mgm_rr/restart
 
 Force full index update for all document spaces:
 
-	curl -XPOST localhost:9200/_river/my_remote_river/_mgm/fullupdate
+	curl -XPOST localhost:9200/_river/my_remote_river/_mgm_rr/fullupdate
 
 Force full index update of documents for Space with key provided in `spaceKey`:
 
-	curl -XPOST localhost:9200/_river/my_remote_river/_mgm/fullupdate/spaceKey
+	curl -XPOST localhost:9200/_river/my_remote_river/_mgm_rr/fullupdate/spaceKey
 
 List names of all Remote Rivers running in ES cluster:
 

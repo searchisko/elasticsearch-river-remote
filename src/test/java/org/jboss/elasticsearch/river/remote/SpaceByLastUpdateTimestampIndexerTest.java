@@ -88,7 +88,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 			Date mockDateAfter = new Date();
 			when(
 					esIntegrationMock.readDatetimeValue("ORG",
-							SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE)).thenReturn(
+							SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE)).thenReturn(
 					mockDateAfter);
 			when(remoteClientMock.getChangedDocuments("ORG", 0, mockDateAfter)).thenReturn(
 					new ChangedDocumentsResults(issues, 0, 0));
@@ -115,7 +115,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 			reset(documentIndexStructureBuilderMock);
 			when(
 					esIntegrationMock.readDatetimeValue("ORG",
-							SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE)).thenReturn(null);
+							SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE)).thenReturn(null);
 			addDocumentMock(issues, "ORG-45", "2012-08-14T08:00:00.000-0400");
 			addDocumentMock(issues, "ORG-46", "2012-08-14T08:01:00.000-0400");
 			addDocumentMock(issues, "ORG-47", "2012-08-14T08:02:10.000-0400");
@@ -133,7 +133,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 			verify(documentIndexStructureBuilderMock, times(3)).indexDocument(Mockito.eq(brb), Mockito.eq("ORG"),
 					Mockito.any(Map.class));
 			verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq("ORG"),
-					Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE),
+					Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE),
 					Mockito.eq(DateTimeUtils.parseISODateTime("2012-08-14T08:02:10.000-0400")), eq(brb));
 			verify(esIntegrationMock, times(1)).executeESBulkRequest(eq(brb));
 			verify(esIntegrationMock, Mockito.atLeastOnce()).isClosed();
@@ -160,7 +160,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		Date mockDateAfter = DateTimeUtils.parseISODateTime("2012-08-14T08:00:20.000-0400");
 		when(
 				esIntegrationMock.readDatetimeValue("ORG",
-						SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE)).thenReturn(
+						SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE)).thenReturn(
 				mockDateAfter);
 		addDocumentMock(issues, "ORG-45", "2012-08-14T08:00:20.000-0400");
 		configureStructureBuilderMockDefaults(jiraIssueIndexStructureBuilderMock);
@@ -178,12 +178,12 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		verify(jiraIssueIndexStructureBuilderMock, times(1)).indexDocument(Mockito.eq(brb), Mockito.eq("ORG"),
 				Mockito.any(Map.class));
 		verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq("ORG"),
-				Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE),
+				Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE),
 				Mockito.eq(DateTimeUtils.parseISODateTime("2012-08-14T08:00:20.000-0400")), eq(brb));
 		verify(esIntegrationMock, times(1)).executeESBulkRequest(eq(brb));
 		// one more timestamp store with time incremented by one second not to index last updated document next time again!
 		verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq("ORG"),
-				Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE),
+				Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE),
 				Mockito.eq(DateTimeUtils.parseISODateTime("2012-08-14T08:00:21.000-0400")),
 				((BulkRequestBuilder) Mockito.isNull()));
 		verify(esIntegrationMock, Mockito.atLeastOnce()).isClosed();
@@ -218,7 +218,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		addDocumentMock(issues3, "ORG-91", "2012-08-14T08:07:20.000-0400");
 		when(
 				esIntegrationMock.readDatetimeValue("ORG",
-						SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE)).thenReturn(null);
+						SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE)).thenReturn(null);
 		when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(issues, 0, 8));
 		when(remoteClientMock.getChangedDocuments("ORG", 0, after2)).thenReturn(new ChangedDocumentsResults(issues2, 0, 5));
 		when(remoteClientMock.getChangedDocuments("ORG", 0, after3)).thenReturn(new ChangedDocumentsResults(issues3, 0, 2));
@@ -238,15 +238,15 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		verify(esIntegrationMock, times(3)).storeDatetimeValue(Mockito.any(String.class), Mockito.any(String.class),
 				Mockito.any(Date.class), Mockito.any(BulkRequestBuilder.class));
 		verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq("ORG"),
-				Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE),
+				Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE),
 				Mockito.eq(ISODateTimeFormat.dateTimeParser().parseDateTime("2012-08-14T08:02:20.000-0400").toDate()),
 				Mockito.any(BulkRequestBuilder.class));
 		verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq("ORG"),
-				Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE),
+				Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE),
 				Mockito.eq(ISODateTimeFormat.dateTimeParser().parseDateTime("2012-08-14T08:05:20.000-0400").toDate()),
 				Mockito.any(BulkRequestBuilder.class));
 		verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq("ORG"),
-				Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE),
+				Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE),
 				Mockito.eq(ISODateTimeFormat.dateTimeParser().parseDateTime("2012-08-14T08:07:20.000-0400").toDate()),
 				Mockito.any(BulkRequestBuilder.class));
 		verify(esIntegrationMock, times(3)).executeESBulkRequest(Mockito.any(BulkRequestBuilder.class));
@@ -282,7 +282,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		addDocumentMock(issues3, "ORG-91", "2012-08-14T08:00:00.000-0400");
 		when(
 				esIntegrationMock.readDatetimeValue("ORG",
-						SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE)).thenReturn(null);
+						SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE)).thenReturn(null);
 		when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(issues, 0, 8));
 		when(remoteClientMock.getChangedDocuments("ORG", 3, null)).thenReturn(new ChangedDocumentsResults(issues2, 3, 8));
 		when(remoteClientMock.getChangedDocuments("ORG", 6, null)).thenReturn(new ChangedDocumentsResults(issues3, 6, 8));
@@ -301,7 +301,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		verify(esIntegrationMock, times(3)).storeDatetimeValue(Mockito.any(String.class), Mockito.any(String.class),
 				Mockito.any(Date.class), Mockito.any(BulkRequestBuilder.class));
 		verify(esIntegrationMock, times(3)).storeDatetimeValue(Mockito.eq("ORG"),
-				Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE),
+				Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE),
 				Mockito.eq(DateTimeUtils.parseISODateTime("2012-08-14T08:00:00.000-0400")),
 				Mockito.any(BulkRequestBuilder.class));
 		verify(esIntegrationMock, times(3)).executeESBulkRequest(Mockito.any(BulkRequestBuilder.class));
@@ -330,7 +330,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		{
 			when(
 					esIntegrationMock.readDatetimeValue("ORG",
-							SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE)).thenReturn(
+							SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE)).thenReturn(
 					lastUpdatedDate);
 			when(remoteClientMock.getChangedDocuments("ORG", 0, lastUpdatedDate)).thenReturn(
 					new ChangedDocumentsResults(issues, 0, 3));
@@ -348,7 +348,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 			reset(remoteClientMock);
 			when(
 					esIntegrationMock.readDatetimeValue("ORG",
-							SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE)).thenReturn(null);
+							SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE)).thenReturn(null);
 			when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(issues, 0, 4));
 			when(remoteClientMock.getChangedDocuments("ORG", 3, null)).thenThrow(new Exception("Remote call error"));
 			when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(new BulkRequestBuilder(null));
@@ -370,7 +370,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 			Date mockDate = new Date();
 			when(
 					esIntegrationMock.readDatetimeValue("ORG",
-							SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE))
+							SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE))
 					.thenReturn(mockDate);
 			// updatedAfter is null here (even some is returned from previous when) because we run full update!
 			when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(issues, 0, 3));

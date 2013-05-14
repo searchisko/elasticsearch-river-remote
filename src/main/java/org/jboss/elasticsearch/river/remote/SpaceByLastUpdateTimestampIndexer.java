@@ -32,12 +32,12 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 	private static final ESLogger logger = Loggers.getLogger(SpaceByLastUpdateTimestampIndexer.class);
 
 	/**
-	 * Property value where "last indexed issue update date" is stored
+	 * Property value where "last indexed document update date" is stored
 	 * 
 	 * @see IESIntegration#storeDatetimeValue(String, String, Date, BulkRequestBuilder)
 	 * @see IESIntegration#readDatetimeValue(String, String)
 	 */
-	protected static final String STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE = "lastIndexedIssueUpdateDate";
+	protected static final String STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE = "lastIndexedDocumentUpdateDate";
 
 	protected final IRemoteSystemClient remoteSystemClient;
 
@@ -182,8 +182,6 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 					updatedAfter = lastDocumentUpdatedDate;
 					if (res.getTotal() != null)
 						cont = res.getTotal() > (res.getStartAt() + res.getDocumentsCount());
-					else
-						cont = res.getDocumentsCount() > 0;
 					startAt = 0;
 				} else {
 					// more documents updated in same time, we must go over them using pagination only, which may sometimes lead
@@ -193,11 +191,12 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 						startAt = res.getStartAt() + res.getDocumentsCount();
 						cont = res.getTotal() > startAt;
 					} else {
-						logger
-								.warn("All documents loaded from remote system contain same update timestamp, but we have no total count from response, so we may miss some documents because we shift timestamp for new request by one second!");
-						startAt = 0;
 						updatedAfter = new Date(lastDocumentUpdatedDate.getTime() + 1000);
-						cont = res.getDocumentsCount() > 0;
+						logger
+								.warn(
+										"All documents loaded from remote system for space '{}' contain same update timestamp {}, but we have no total count from response, so we may miss some documents because we shift timestamp for new request by one second to {}!",
+										spaceKey, lastDocumentUpdatedDate, updatedAfter);
+						startAt = 0;
 					}
 				}
 			}
@@ -283,7 +282,7 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 	 * @see #storeLastDocumentUpdatedDate(BulkRequestBuilder, String, Date)
 	 */
 	protected Date readLastDocumentUpdatedDate(String spaceKey) throws Exception {
-		return esIntegrationComponent.readDatetimeValue(spaceKey, STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE);
+		return esIntegrationComponent.readDatetimeValue(spaceKey, STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE);
 	}
 
 	/**
@@ -298,7 +297,7 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 	 */
 	protected void storeLastDocumentUpdatedDate(BulkRequestBuilder esBulk, String spaceKey, Date lastDocumentUpdatedDate)
 			throws Exception {
-		esIntegrationComponent.storeDatetimeValue(spaceKey, STORE_PROPERTYNAME_LAST_INDEXED_ISSUE_UPDATE_DATE,
+		esIntegrationComponent.storeDatetimeValue(spaceKey, STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE,
 				lastDocumentUpdatedDate, esBulk);
 	}
 

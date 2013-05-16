@@ -5,14 +5,14 @@
  */
 package org.jboss.elasticsearch.river.remote.mgm.riverslist;
 
-import org.elasticsearch.action.support.nodes.NodesOperationRequest;
+import org.jboss.elasticsearch.river.remote.mgm.JRMgmBaseRequest;
 
 /**
  * Request to list names of all Remote Rivers running in ES cluster.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
-public class ListRiversRequest extends NodesOperationRequest {
+public class ListRiversRequest extends JRMgmBaseRequest<ListRiversRequest> {
 
 	public ListRiversRequest() {
 		super();

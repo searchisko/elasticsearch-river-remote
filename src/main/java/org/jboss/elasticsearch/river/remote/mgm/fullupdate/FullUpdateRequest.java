@@ -17,7 +17,7 @@ import org.jboss.elasticsearch.river.remote.mgm.JRMgmBaseRequest;
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
-public class FullUpdateRequest extends JRMgmBaseRequest {
+public class FullUpdateRequest extends JRMgmBaseRequest<FullUpdateRequest> {
 
 	/**
 	 * Key of Space to request full reindex for. Null or Empty means full reindex for all Spaces.

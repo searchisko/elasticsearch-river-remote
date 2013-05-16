@@ -240,12 +240,12 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 
 		SearchResponse scrollResp = esIntegrationComponent.executeESSearchRequest(srb);
 
-		if (scrollResp.hits().totalHits() > 0) {
+		if (scrollResp.getHits().getTotalHits() > 0) {
 			if (isClosed())
 				throw new InterruptedException("Interrupted because River is closed");
 			scrollResp = esIntegrationComponent.executeESScrollSearchNextRequest(scrollResp);
 			BulkRequestBuilder esBulk = esIntegrationComponent.prepareESBulkRequestBuilder();
-			while (scrollResp.hits().hits().length > 0) {
+			while (scrollResp.getHits().getHits().length > 0) {
 				for (SearchHit hit : scrollResp.getHits()) {
 					logger.debug("Go to delete indexed document for ES document id {}", hit.getId());
 					if (documentIndexStructureBuilder.deleteESDocument(esBulk, hit)) {

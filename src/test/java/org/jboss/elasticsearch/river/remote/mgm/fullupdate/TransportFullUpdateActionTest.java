@@ -62,7 +62,7 @@ public class TransportFullUpdateActionTest {
 
 		NodeFullUpdateResponse resp = tested.newNodeResponse();
 		Assert.assertNotNull(resp);
-		Assert.assertEquals(dn, resp.node());
+		Assert.assertEquals(dn, resp.getNode());
 	}
 
 	@Test
@@ -80,7 +80,7 @@ public class TransportFullUpdateActionTest {
 		NodeFullUpdateResponse[] array = new NodeFullUpdateResponse[0];
 		FullUpdateResponse resp = tested.newResponse(clusterName, array);
 		Assert.assertNotNull(resp);
-		Assert.assertEquals(resp.clusterName(), clusterName);
+		Assert.assertEquals(resp.getClusterName(), clusterName);
 		Assert.assertEquals(resp.getNodes(), array);
 
 	}

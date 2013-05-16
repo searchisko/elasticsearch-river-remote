@@ -35,16 +35,21 @@ public class RestJRStateAction extends RestJRMgmBaseAction {
 
 		JRStateRequest actionRequest = new JRStateRequest(restRequest.param("riverName"));
 
-		client.execute(JRStateAction.INSTANCE, actionRequest,
-				new JRMgmBaseActionListener<JRStateRequest, JRStateResponse, NodeJRStateResponse>(actionRequest, restRequest,
-						restChannel) {
+		client
+				.admin()
+				.cluster()
+				.execute(
+						JRStateAction.INSTANCE,
+						actionRequest,
+						new JRMgmBaseActionListener<JRStateRequest, JRStateResponse, NodeJRStateResponse>(actionRequest,
+								restRequest, restChannel) {
 
-					@Override
-					protected void handleRiverResponse(NodeJRStateResponse nodeInfo) throws Exception {
-						restChannel.sendResponse(new BytesRestResponse(nodeInfo.stateInformation.getBytes(), XContentType.JSON
-								.restContentType()));
-					}
+							@Override
+							protected void handleRiverResponse(NodeJRStateResponse nodeInfo) throws Exception {
+								restChannel.sendResponse(new BytesRestResponse(nodeInfo.stateInformation.getBytes(), XContentType.JSON
+										.restContentType()));
+							}
 
-				});
+						});
 	}
 }

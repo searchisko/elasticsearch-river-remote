@@ -18,11 +18,6 @@ import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 import org.jboss.elasticsearch.river.remote.IRiverMgm;
 import org.jboss.elasticsearch.river.remote.RemoteRiver;
-import org.jboss.elasticsearch.river.remote.mgm.riverslist.ListRiversAction;
-import org.jboss.elasticsearch.river.remote.mgm.riverslist.ListRiversRequest;
-import org.jboss.elasticsearch.river.remote.mgm.riverslist.NodeListRiversRequest;
-import org.jboss.elasticsearch.river.remote.mgm.riverslist.NodeListRiversResponse;
-import org.jboss.elasticsearch.river.remote.mgm.riverslist.TransportListRiversAction;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -69,7 +64,7 @@ public class TransportListRiversActionTest {
 
 		NodeListRiversResponse resp = tested.newNodeResponse();
 		Assert.assertNotNull(resp);
-		Assert.assertEquals(dn, resp.node());
+		Assert.assertEquals(dn, resp.getNode());
 	}
 
 	@Test
@@ -78,7 +73,7 @@ public class TransportListRiversActionTest {
 		TransportListRiversAction tested = prepareTestedInstance(clusterName);
 
 		{
-			NodeListRiversRequest req = new NodeListRiversRequest(dn.getId());
+			NodeListRiversRequest req = Mockito.mock(NodeListRiversRequest.class);
 			NodeListRiversResponse resp = tested.nodeOperation(req);
 			Assert.assertNotNull(resp);
 			Assert.assertNotNull(resp.riverNames);
@@ -90,7 +85,7 @@ public class TransportListRiversActionTest {
 			RiverName riverName = new RiverName("jira", "myRiver");
 			Mockito.when(jiraRiverMock.riverName()).thenReturn(riverName);
 			RemoteRiver.addRunningInstance(jiraRiverMock);
-			NodeListRiversRequest req = new NodeListRiversRequest(dn.getId());
+			NodeListRiversRequest req = Mockito.mock(NodeListRiversRequest.class);
 			NodeListRiversResponse resp = tested.nodeOperation(req);
 			Assert.assertNotNull(resp);
 			Assert.assertNotNull(resp.riverNames);
@@ -103,7 +98,7 @@ public class TransportListRiversActionTest {
 			RiverName riverName = new RiverName("jira", "myRiver2");
 			Mockito.when(jiraRiverMock.riverName()).thenReturn(riverName);
 			RemoteRiver.addRunningInstance(jiraRiverMock);
-			NodeListRiversRequest req = new NodeListRiversRequest(dn.getId());
+			NodeListRiversRequest req = Mockito.mock(NodeListRiversRequest.class);
 			NodeListRiversResponse resp = tested.nodeOperation(req);
 			Assert.assertNotNull(resp);
 			Assert.assertNotNull(resp.riverNames);

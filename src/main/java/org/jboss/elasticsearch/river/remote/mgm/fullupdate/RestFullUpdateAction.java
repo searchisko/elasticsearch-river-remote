@@ -41,23 +41,28 @@ public class RestFullUpdateAction extends RestJRMgmBaseAction {
 
 		FullUpdateRequest actionRequest = new FullUpdateRequest(riverName, spaceKey);
 
-		client.execute(FullUpdateAction.INSTANCE, actionRequest,
-				new JRMgmBaseActionListener<FullUpdateRequest, FullUpdateResponse, NodeFullUpdateResponse>(actionRequest,
-						restRequest, restChannel) {
+		client
+				.admin()
+				.cluster()
+				.execute(
+						FullUpdateAction.INSTANCE,
+						actionRequest,
+						new JRMgmBaseActionListener<FullUpdateRequest, FullUpdateResponse, NodeFullUpdateResponse>(actionRequest,
+								restRequest, restChannel) {
 
-					@Override
-					protected void handleRiverResponse(NodeFullUpdateResponse nodeInfo) throws Exception {
-						if (actionRequest.isSpaceKeyRequest() && !nodeInfo.spaceFound) {
-							restChannel.sendResponse(new XContentRestResponse(restRequest, RestStatus.NOT_FOUND,
-									buildMessageDocument(restRequest, "Space '" + spaceKey
-											+ "' is not indexed by RemoteRiver with name: " + riverName)));
-						} else {
-							restChannel.sendResponse(new XContentRestResponse(restRequest, OK, buildMessageDocument(restRequest,
-									"Scheduled full reindex for Spaces: " + nodeInfo.reindexedSpaces)));
-						}
-					}
+							@Override
+							protected void handleRiverResponse(NodeFullUpdateResponse nodeInfo) throws Exception {
+								if (actionRequest.isSpaceKeyRequest() && !nodeInfo.spaceFound) {
+									restChannel.sendResponse(new XContentRestResponse(restRequest, RestStatus.NOT_FOUND,
+											buildMessageDocument(restRequest, "Space '" + spaceKey
+													+ "' is not indexed by RemoteRiver with name: " + riverName)));
+								} else {
+									restChannel.sendResponse(new XContentRestResponse(restRequest, OK, buildMessageDocument(restRequest,
+											"Scheduled full reindex for Spaces: " + nodeInfo.reindexedSpaces)));
+								}
+							}
 
-				});
+						});
 	}
 
 }

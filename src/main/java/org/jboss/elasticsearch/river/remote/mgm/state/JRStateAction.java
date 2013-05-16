@@ -5,15 +5,15 @@
  */
 package org.jboss.elasticsearch.river.remote.mgm.state;
 
-import org.elasticsearch.action.Action;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.admin.cluster.ClusterAction;
+import org.elasticsearch.client.ClusterAdminClient;
 
 /**
  * Remote River get state info action implementation.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
-public class JRStateAction extends Action<JRStateRequest, JRStateResponse, JRStateRequestBuilder> {
+public class JRStateAction extends ClusterAction<JRStateRequest, JRStateResponse, JRStateRequestBuilder> {
 
 	public static final JRStateAction INSTANCE = new JRStateAction();
 	public static final String NAME = "remote_river/state";
@@ -23,7 +23,7 @@ public class JRStateAction extends Action<JRStateRequest, JRStateResponse, JRSta
 	}
 
 	@Override
-	public JRStateRequestBuilder newRequestBuilder(Client client) {
+	public JRStateRequestBuilder newRequestBuilder(ClusterAdminClient client) {
 		return new JRStateRequestBuilder(client);
 	}
 

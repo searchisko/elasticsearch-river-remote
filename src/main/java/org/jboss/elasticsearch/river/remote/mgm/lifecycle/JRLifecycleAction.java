@@ -5,15 +5,16 @@
  */
 package org.jboss.elasticsearch.river.remote.mgm.lifecycle;
 
-import org.elasticsearch.action.Action;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.admin.cluster.ClusterAction;
+import org.elasticsearch.client.ClusterAdminClient;
 
 /**
  * Remote River lifecycle action implementation.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
-public class JRLifecycleAction extends Action<JRLifecycleRequest, JRLifecycleResponse, JRLifecycleRequestBuilder> {
+public class JRLifecycleAction extends
+		ClusterAction<JRLifecycleRequest, JRLifecycleResponse, JRLifecycleRequestBuilder> {
 
 	public static final JRLifecycleAction INSTANCE = new JRLifecycleAction();
 	public static final String NAME = "remote_river/lifecycle";
@@ -23,7 +24,7 @@ public class JRLifecycleAction extends Action<JRLifecycleRequest, JRLifecycleRes
 	}
 
 	@Override
-	public JRLifecycleRequestBuilder newRequestBuilder(Client client) {
+	public JRLifecycleRequestBuilder newRequestBuilder(ClusterAdminClient client) {
 		return new JRLifecycleRequestBuilder(client);
 	}
 

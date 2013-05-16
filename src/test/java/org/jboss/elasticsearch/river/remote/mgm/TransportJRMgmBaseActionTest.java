@@ -53,16 +53,16 @@ public class TransportJRMgmBaseActionTest {
 		{
 			AtomicReferenceArray<NodeJRLifecycleResponse> responses = new AtomicReferenceArray<NodeJRLifecycleResponse>(0);
 			JRLifecycleResponse res = tested.newResponse(null, responses);
-			Assert.assertEquals(clusterName.value(), res.getClusterName());
-			Assert.assertEquals(0, res.nodes().length);
+			Assert.assertEquals(clusterName, res.getClusterName());
+			Assert.assertEquals(0, res.getNodes().length);
 		}
 
 		{
 			AtomicReferenceArray<NodeJRLifecycleResponse> responses = new AtomicReferenceArray<NodeJRLifecycleResponse>(
 					new NodeJRLifecycleResponse[] { new NodeJRLifecycleResponse(dn), new NodeJRLifecycleResponse(dn2) });
 			JRLifecycleResponse res = tested.newResponse(null, responses);
-			Assert.assertEquals(clusterName.value(), res.getClusterName());
-			Assert.assertEquals(2, res.nodes().length);
+			Assert.assertEquals(clusterName, res.getClusterName());
+			Assert.assertEquals(2, res.getNodes().length);
 		}
 
 	}

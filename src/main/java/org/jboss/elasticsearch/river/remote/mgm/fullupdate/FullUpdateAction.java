@@ -5,15 +5,15 @@
  */
 package org.jboss.elasticsearch.river.remote.mgm.fullupdate;
 
-import org.elasticsearch.action.Action;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.admin.cluster.ClusterAction;
+import org.elasticsearch.client.ClusterAdminClient;
 
 /**
  * Remote River Force full index update action implementation.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
-public class FullUpdateAction extends Action<FullUpdateRequest, FullUpdateResponse, FullUpdateRequestBuilder> {
+public class FullUpdateAction extends ClusterAction<FullUpdateRequest, FullUpdateResponse, FullUpdateRequestBuilder> {
 
 	public static final FullUpdateAction INSTANCE = new FullUpdateAction();
 	public static final String NAME = "remote_river/force_full_update";
@@ -23,7 +23,7 @@ public class FullUpdateAction extends Action<FullUpdateRequest, FullUpdateRespon
 	}
 
 	@Override
-	public FullUpdateRequestBuilder newRequestBuilder(Client client) {
+	public FullUpdateRequestBuilder newRequestBuilder(ClusterAdminClient client) {
 		return new FullUpdateRequestBuilder(client);
 	}
 

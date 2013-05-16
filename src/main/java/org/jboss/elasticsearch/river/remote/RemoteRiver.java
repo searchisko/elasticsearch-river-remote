@@ -378,7 +378,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 		String riverIndexName = getRiverIndexName();
 		refreshSearchIndex(riverIndexName);
 		GetResponse resp = client.prepareGet(riverIndexName, riverName().name(), "_meta").execute().actionGet();
-		if (resp.exists()) {
+		if (resp.isExists()) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Configuration document: {}", resp.getSourceAsString());
 			}
@@ -523,8 +523,8 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 						.setFilter(FilterBuilders.termFilter(SpaceIndexingInfo.DOCFIELD_SPACE_KEY, spaceKey))
 						.setQuery(QueryBuilders.matchAllQuery()).addSort(SpaceIndexingInfo.DOCFIELD_START_DATE, SortOrder.DESC)
 						.addField("_source").setSize(1).execute().actionGet();
-				if (sr.hits().getTotalHits() > 0) {
-					SearchHit hit = sr.hits().getAt(0);
+				if (sr.getHits().getTotalHits() > 0) {
+					SearchHit hit = sr.getHits().getAt(0);
 					lastIndexing = SpaceIndexingInfo.readFromDocument(hit.sourceAsMap());
 				} else {
 					logger.debug("No last indexing info found in activity log for space {}", spaceKey);
@@ -676,8 +676,8 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 		refreshSearchIndex(getRiverIndexName());
 		GetResponse lastSeqGetResponse = client.prepareGet(getRiverIndexName(), riverName.name(), documentName).execute()
 				.actionGet();
-		if (lastSeqGetResponse.exists()) {
-			Object timestamp = lastSeqGetResponse.sourceAsMap().get(STORE_FIELD_VALUE);
+		if (lastSeqGetResponse.isExists()) {
+			Object timestamp = lastSeqGetResponse.getSourceAsMap().get(STORE_FIELD_VALUE);
 			if (timestamp != null) {
 				lastDate = DateTimeUtils.parseISODateTime(timestamp.toString());
 			}
@@ -700,7 +700,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 		DeleteResponse lastSeqGetResponse = client.prepareDelete(getRiverIndexName(), riverName.name(), documentName)
 				.execute().actionGet();
-		if (lastSeqGetResponse.notFound()) {
+		if (lastSeqGetResponse.isNotFound()) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("{} document doesn't exist in remote river persistent store", documentName);
 			}
@@ -784,7 +784,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 		String riverIndexName = getRiverIndexName();
 		refreshSearchIndex(riverIndexName);
 		GetResponse resp = client.prepareGet(riverIndexName, riverName().name(), "_pwd").execute().actionGet();
-		if (resp.exists()) {
+		if (resp.isExists()) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Password document: {}", resp.getSourceAsString());
 			}

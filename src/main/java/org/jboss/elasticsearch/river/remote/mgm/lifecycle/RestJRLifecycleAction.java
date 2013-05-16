@@ -41,16 +41,21 @@ public class RestJRLifecycleAction extends RestJRMgmBaseAction {
 
 		JRLifecycleRequest actionRequest = new JRLifecycleRequest(restRequest.param("riverName"), command);
 
-		client.execute(JRLifecycleAction.INSTANCE, actionRequest,
-				new JRMgmBaseActionListener<JRLifecycleRequest, JRLifecycleResponse, NodeJRLifecycleResponse>(actionRequest,
-						restRequest, restChannel) {
+		client
+				.admin()
+				.cluster()
+				.execute(
+						JRLifecycleAction.INSTANCE,
+						actionRequest,
+						new JRMgmBaseActionListener<JRLifecycleRequest, JRLifecycleResponse, NodeJRLifecycleResponse>(
+								actionRequest, restRequest, restChannel) {
 
-					@Override
-					protected void handleRiverResponse(NodeJRLifecycleResponse nodeInfo) throws Exception {
-						restChannel.sendResponse(new XContentRestResponse(restRequest, OK, buildMessageDocument(restRequest,
-								"Command successful")));
-					}
+							@Override
+							protected void handleRiverResponse(NodeJRLifecycleResponse nodeInfo) throws Exception {
+								restChannel.sendResponse(new XContentRestResponse(restRequest, OK, buildMessageDocument(restRequest,
+										"Command successful")));
+							}
 
-				});
+						});
 	}
 }

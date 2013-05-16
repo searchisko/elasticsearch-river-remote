@@ -42,37 +42,38 @@ public class RestListRiversAction extends RestJRMgmBaseAction {
 		ListRiversRequest actionRequest = new ListRiversRequest();
 
 		logger.debug("Go to look for remote rivers in the cluster");
-		client.execute(ListRiversAction.INSTANCE, actionRequest, new ActionListener<ListRiversResponse>() {
+		client.admin().cluster()
+				.execute(ListRiversAction.INSTANCE, actionRequest, new ActionListener<ListRiversResponse>() {
 
-			@Override
-			public void onResponse(ListRiversResponse response) {
-				try {
-					Set<String> allRivers = new HashSet<String>();
-					for (NodeListRiversResponse node : response.nodes()) {
-						if (node.riverNames != null) {
-							allRivers.addAll(node.riverNames);
+					@Override
+					public void onResponse(ListRiversResponse response) {
+						try {
+							Set<String> allRivers = new HashSet<String>();
+							for (NodeListRiversResponse node : response.getNodes()) {
+								if (node.riverNames != null) {
+									allRivers.addAll(node.riverNames);
+								}
+							}
+
+							XContentBuilder builder = RestXContentBuilder.restContentBuilder(restRequest);
+							builder.startObject();
+							builder.field("river_names", allRivers);
+							builder.endObject();
+							restChannel.sendResponse(new XContentRestResponse(restRequest, RestStatus.OK, builder));
+						} catch (Exception e) {
+							onFailure(e);
 						}
 					}
 
-					XContentBuilder builder = RestXContentBuilder.restContentBuilder(restRequest);
-					builder.startObject();
-					builder.field("river_names", allRivers);
-					builder.endObject();
-					restChannel.sendResponse(new XContentRestResponse(restRequest, RestStatus.OK, builder));
-				} catch (Exception e) {
-					onFailure(e);
-				}
-			}
+					@Override
+					public void onFailure(Throwable e) {
+						try {
+							restChannel.sendResponse(new XContentThrowableRestResponse(restRequest, e));
+						} catch (IOException e1) {
+							logger.error("Failed to send failure response", e1);
+						}
+					}
 
-			@Override
-			public void onFailure(Throwable e) {
-				try {
-					restChannel.sendResponse(new XContentThrowableRestResponse(restRequest, e));
-				} catch (IOException e1) {
-					logger.error("Failed to send failure response", e1);
-				}
-			}
-
-		});
+				});
 	}
 }

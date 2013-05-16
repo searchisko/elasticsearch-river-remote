@@ -14,8 +14,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.transport.DummyTransportAddress;
-import org.jboss.elasticsearch.river.remote.mgm.state.JRStateResponse;
-import org.jboss.elasticsearch.river.remote.mgm.state.NodeJRStateResponse;
 import org.junit.Test;
 
 /**
@@ -25,57 +23,56 @@ import org.junit.Test;
  */
 public class JRStateResponseTest {
 
-  @Test
-  public void constructor_filling() {
-    ClusterName cn = new ClusterName("mycluster");
+	@Test
+	public void constructor_filling() {
+		ClusterName cn = new ClusterName("mycluster");
 
-    NodeJRStateResponse[] nodes = new NodeJRStateResponse[0];
-    JRStateResponse tested = new JRStateResponse(cn, nodes);
+		NodeJRStateResponse[] nodes = new NodeJRStateResponse[0];
+		JRStateResponse tested = new JRStateResponse(cn, nodes);
 
-    Assert.assertEquals(cn, tested.clusterName());
-    Assert.assertEquals(nodes, tested.getNodes());
-    Assert.assertEquals(nodes, tested.nodes());
+		Assert.assertEquals(cn, tested.getClusterName());
+		Assert.assertEquals(nodes, tested.getNodes());
 
-  }
+	}
 
-  @Test
-  public void serialization() throws IOException {
-    ClusterName cn = new ClusterName("mycluster");
+	@Test
+	public void serialization() throws IOException {
+		ClusterName cn = new ClusterName("mycluster");
 
-    DiscoveryNode dn = new DiscoveryNode("aa", DummyTransportAddress.INSTANCE);
-    DiscoveryNode dn2 = new DiscoveryNode("aa2", DummyTransportAddress.INSTANCE);
-    DiscoveryNode dn3 = new DiscoveryNode("aa3", DummyTransportAddress.INSTANCE);
+		DiscoveryNode dn = new DiscoveryNode("aa", DummyTransportAddress.INSTANCE);
+		DiscoveryNode dn2 = new DiscoveryNode("aa2", DummyTransportAddress.INSTANCE);
+		DiscoveryNode dn3 = new DiscoveryNode("aa3", DummyTransportAddress.INSTANCE);
 
-    {
-      NodeJRStateResponse[] nodes = new NodeJRStateResponse[] {};
-      JRStateResponse testedSrc = new JRStateResponse(cn, nodes);
-      performSerializationAndBasicAsserts(testedSrc);
+		{
+			NodeJRStateResponse[] nodes = new NodeJRStateResponse[] {};
+			JRStateResponse testedSrc = new JRStateResponse(cn, nodes);
+			performSerializationAndBasicAsserts(testedSrc);
 
-    }
+		}
 
-    {
-      NodeJRStateResponse[] nodes = new NodeJRStateResponse[] { new NodeJRStateResponse(dn, false, null),
-          new NodeJRStateResponse(dn2, false, null), new NodeJRStateResponse(dn3, true, "responseText") };
-      JRStateResponse testedSrc = new JRStateResponse(cn, nodes);
-      JRStateResponse testedTarget = performSerializationAndBasicAsserts(testedSrc);
+		{
+			NodeJRStateResponse[] nodes = new NodeJRStateResponse[] { new NodeJRStateResponse(dn, false, null),
+					new NodeJRStateResponse(dn2, false, null), new NodeJRStateResponse(dn3, true, "responseText") };
+			JRStateResponse testedSrc = new JRStateResponse(cn, nodes);
+			JRStateResponse testedTarget = performSerializationAndBasicAsserts(testedSrc);
 
-      Assert.assertEquals(testedSrc.nodes()[0].node().getId(), testedTarget.nodes()[0].node().getId());
-      Assert.assertEquals(testedSrc.nodes()[1].node().getId(), testedTarget.nodes()[1].node().getId());
-      Assert.assertEquals(testedSrc.nodes()[2].node().getId(), testedTarget.nodes()[2].node().getId());
-    }
+			Assert.assertEquals(testedSrc.getNodes()[0].getNode().getId(), testedTarget.getNodes()[0].getNode().getId());
+			Assert.assertEquals(testedSrc.getNodes()[1].getNode().getId(), testedTarget.getNodes()[1].getNode().getId());
+			Assert.assertEquals(testedSrc.getNodes()[2].getNode().getId(), testedTarget.getNodes()[2].getNode().getId());
+		}
 
-  }
+	}
 
-  private JRStateResponse performSerializationAndBasicAsserts(JRStateResponse testedSrc) throws IOException {
-    BytesStreamOutput out = new BytesStreamOutput();
-    testedSrc.writeTo(out);
-    JRStateResponse testedTarget = new JRStateResponse();
-    testedTarget.readFrom(new BytesStreamInput(out.bytes()));
+	private JRStateResponse performSerializationAndBasicAsserts(JRStateResponse testedSrc) throws IOException {
+		BytesStreamOutput out = new BytesStreamOutput();
+		testedSrc.writeTo(out);
+		JRStateResponse testedTarget = new JRStateResponse();
+		testedTarget.readFrom(new BytesStreamInput(out.bytes()));
 
-    Assert.assertEquals(testedSrc.getClusterName(), testedTarget.getClusterName());
-    Assert.assertEquals(testedSrc.nodes().length, testedTarget.nodes().length);
+		Assert.assertEquals(testedSrc.getClusterName(), testedTarget.getClusterName());
+		Assert.assertEquals(testedSrc.getNodes().length, testedTarget.getNodes().length);
 
-    return testedTarget;
-  }
+		return testedTarget;
+	}
 
 }

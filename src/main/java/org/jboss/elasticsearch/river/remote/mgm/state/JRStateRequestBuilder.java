@@ -6,18 +6,20 @@
 package org.jboss.elasticsearch.river.remote.mgm.state;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.BaseRequestBuilder;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.support.nodes.NodesOperationRequestBuilder;
+import org.elasticsearch.client.ClusterAdminClient;
+import org.elasticsearch.client.internal.InternalClusterAdminClient;
 
 /**
  * Request builder to get state of some Remote river.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
-public class JRStateRequestBuilder extends BaseRequestBuilder<JRStateRequest, JRStateResponse> {
+public class JRStateRequestBuilder extends
+		NodesOperationRequestBuilder<JRStateRequest, JRStateResponse, JRStateRequestBuilder> {
 
-	public JRStateRequestBuilder(Client client) {
-		super(client, new JRStateRequest());
+	public JRStateRequestBuilder(ClusterAdminClient client) {
+		super((InternalClusterAdminClient) client, new JRStateRequest());
 	}
 
 	/**
@@ -35,7 +37,7 @@ public class JRStateRequestBuilder extends BaseRequestBuilder<JRStateRequest, JR
 	protected void doExecute(ActionListener<JRStateResponse> listener) {
 		if (request.getRiverName() == null)
 			throw new IllegalArgumentException("riverName must be provided for request");
-		client.execute(JRStateAction.INSTANCE, request, listener);
+		((InternalClusterAdminClient) client).execute(JRStateAction.INSTANCE, request, listener);
 	}
 
 }

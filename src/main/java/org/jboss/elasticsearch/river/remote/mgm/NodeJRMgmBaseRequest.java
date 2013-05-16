@@ -26,7 +26,7 @@ public abstract class NodeJRMgmBaseRequest<T extends JRMgmBaseRequest> extends N
 	 * @param request to be send to the node
 	 */
 	protected NodeJRMgmBaseRequest(String nodeId, T request) {
-		super(nodeId);
+		super(request, nodeId);
 		this.request = request;
 	}
 

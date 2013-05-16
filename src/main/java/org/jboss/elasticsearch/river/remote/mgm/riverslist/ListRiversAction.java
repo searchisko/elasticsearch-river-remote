@@ -5,15 +5,15 @@
  */
 package org.jboss.elasticsearch.river.remote.mgm.riverslist;
 
-import org.elasticsearch.action.Action;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.admin.cluster.ClusterAction;
+import org.elasticsearch.client.ClusterAdminClient;
 
 /**
  * All Remote River names in ES cluster listing action implementation.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
-public class ListRiversAction extends Action<ListRiversRequest, ListRiversResponse, ListRiversRequestBuilder> {
+public class ListRiversAction extends ClusterAction<ListRiversRequest, ListRiversResponse, ListRiversRequestBuilder> {
 
 	public static final ListRiversAction INSTANCE = new ListRiversAction();
 	public static final String NAME = "remote_river/list_river_names";
@@ -23,7 +23,7 @@ public class ListRiversAction extends Action<ListRiversRequest, ListRiversRespon
 	}
 
 	@Override
-	public ListRiversRequestBuilder newRequestBuilder(Client client) {
+	public ListRiversRequestBuilder newRequestBuilder(ClusterAdminClient client) {
 		return new ListRiversRequestBuilder(client);
 	}
 

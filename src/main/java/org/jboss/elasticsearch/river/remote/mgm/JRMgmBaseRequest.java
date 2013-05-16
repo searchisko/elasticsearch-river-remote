@@ -16,7 +16,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
-public class JRMgmBaseRequest extends NodesOperationRequest {
+public class JRMgmBaseRequest<T extends NodesOperationRequest> extends NodesOperationRequest<T> {
 
 	/**
 	 * Name of JIRA river to request full reindex on.

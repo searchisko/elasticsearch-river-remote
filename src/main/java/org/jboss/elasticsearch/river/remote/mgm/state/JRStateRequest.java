@@ -12,7 +12,7 @@ import org.jboss.elasticsearch.river.remote.mgm.JRMgmBaseRequest;
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
-public class JRStateRequest extends JRMgmBaseRequest {
+public class JRStateRequest extends JRMgmBaseRequest<JRStateRequest> {
 
 	JRStateRequest() {
 

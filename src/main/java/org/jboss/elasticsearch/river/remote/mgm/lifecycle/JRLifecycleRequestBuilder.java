@@ -6,18 +6,20 @@
 package org.jboss.elasticsearch.river.remote.mgm.lifecycle;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.BaseRequestBuilder;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.support.nodes.NodesOperationRequestBuilder;
+import org.elasticsearch.client.ClusterAdminClient;
+import org.elasticsearch.client.internal.InternalClusterAdminClient;
 
 /**
  * Request builder to perform lifecycle method of some Remote river.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
-public class JRLifecycleRequestBuilder extends BaseRequestBuilder<JRLifecycleRequest, JRLifecycleResponse> {
+public class JRLifecycleRequestBuilder extends
+		NodesOperationRequestBuilder<JRLifecycleRequest, JRLifecycleResponse, JRLifecycleRequestBuilder> {
 
-	public JRLifecycleRequestBuilder(Client client) {
-		super(client, new JRLifecycleRequest());
+	public JRLifecycleRequestBuilder(ClusterAdminClient client) {
+		super((InternalClusterAdminClient) client, new JRLifecycleRequest());
 	}
 
 	/**
@@ -48,11 +50,7 @@ public class JRLifecycleRequestBuilder extends BaseRequestBuilder<JRLifecycleReq
 			throw new IllegalArgumentException("riverName must be provided for request");
 		if (request.getCommand() == null)
 			throw new IllegalArgumentException("command must be provided for request");
-		client.execute(JRLifecycleAction.INSTANCE, request, listener);
-	}
-
-	protected Client getClient() {
-		return client;
+		((InternalClusterAdminClient) client).execute(JRLifecycleAction.INSTANCE, request, listener);
 	}
 
 }

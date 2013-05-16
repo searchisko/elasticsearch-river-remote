@@ -83,7 +83,7 @@ public class TransportListRiversAction extends
 
 	@Override
 	protected NodeListRiversRequest newNodeRequest(String nodeId, ListRiversRequest request) {
-		return new NodeListRiversRequest(nodeId);
+		return new NodeListRiversRequest(nodeId, request);
 	}
 
 	@Override

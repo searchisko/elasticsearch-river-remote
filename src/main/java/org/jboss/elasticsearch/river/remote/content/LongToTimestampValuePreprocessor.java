@@ -12,13 +12,14 @@ import java.util.Map;
 
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
+import org.jboss.elasticsearch.river.remote.DateTimeUtils;
 import org.jboss.elasticsearch.tools.content.StructureUtils;
 import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessorBase;
 import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessorFactory;
 
 /**
- * Content preprocessor which allows to transform {@link Long} value from source field to the {@link Date} instance and
- * store it to another or same target field. Example of configuration for this preprocessor:
+ * Content preprocessor which allows to transform {@link Long} value from source field to the ISO formatted timestamp
+ * value and store it to another or same target field. Example of configuration for this preprocessor:
  * 
  * <pre>
  * { 
@@ -35,7 +36,7 @@ import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessorFactor
  * <ul>
  * <li><code>source_field</code> - source field in input data. Dot notation for nested values can be used here (see
  * {@link XContentMapValues#extractValue(String, Map)}).
- * <li><code>target_field</code> - target field in data to store mapped value into. Can be same as input field. Dot
+ * <li><code>target_field</code> - target field in data to store transformed value into. Can be same as input field. Dot
  * notation can be used here for structure nesting.
  * <li><code>source_bases</code> - list of fields in source data which are used as bases for conversion. If defined then
  * conversion is performed for each of this fields, <code>source_field</code> and <code>target_field</code> are resolved
@@ -110,9 +111,9 @@ public class LongToTimestampValuePreprocessor extends StructuredContentPreproces
 
 		if (v != null) {
 			if (v instanceof Long) {
-				putTargetValue(data, new Date((Long) v));
+				putTargetValue(data, DateTimeUtils.formatISODateTime(new Date((Long) v)));
 			} else if (v instanceof String) {
-				putTargetValue(data, new Date(new Long((String) v)));
+				putTargetValue(data, DateTimeUtils.formatISODateTime(new Date(new Long((String) v))));
 			} else {
 				logger.warn("value for field '" + fieldSource + "' is not Long but is " + v.getClass().getName()
 						+ ", so can't be processed by '" + name + "' preprocessor");

@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.jboss.elasticsearch</groupId>
   <artifactId>elasticsearch-river-remote</artifactId>
-  <version>1.1.0</version>
+  <version>1.1.1</version>
   <packaging>jar</packaging>
   <description>Universal remote system indexing River Plugin for ElasticSearch</description>
   <inceptionYear>2013</inceptionYear>

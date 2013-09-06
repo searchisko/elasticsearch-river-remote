@@ -138,6 +138,10 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 					Mockito.eq(DateTimeUtils.parseISODateTime("2012-08-14T08:02:10.000-0400")), eq(brb));
 			verify(esIntegrationMock, times(1)).executeESBulkRequest(eq(brb));
 			verify(esIntegrationMock, Mockito.atLeastOnce()).isClosed();
+
+			verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-45");
+			verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-46");
+			verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-47");
 			Mockito.verifyNoMoreInteractions(remoteClientMock);
 			Mockito.verifyNoMoreInteractions(esIntegrationMock);
 		}
@@ -188,6 +192,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 				Mockito.eq(DateTimeUtils.parseISODateTime("2012-08-14T08:00:21.000-0400")),
 				((BulkRequestBuilder) Mockito.isNull()));
 		verify(esIntegrationMock, Mockito.atLeastOnce()).isClosed();
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-45");
 		Mockito.verifyNoMoreInteractions(remoteClientMock);
 		Mockito.verifyNoMoreInteractions(esIntegrationMock);
 
@@ -252,6 +257,14 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 				Mockito.any(BulkRequestBuilder.class));
 		verify(esIntegrationMock, times(3)).executeESBulkRequest(Mockito.any(BulkRequestBuilder.class));
 		verify(esIntegrationMock, Mockito.atLeastOnce()).isClosed();
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-45");
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-46");
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-47");
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-481");
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-49");
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-154");
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-4");
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-91");
 		Mockito.verifyNoMoreInteractions(remoteClientMock);
 		Mockito.verifyNoMoreInteractions(esIntegrationMock);
 
@@ -307,6 +320,15 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 				Mockito.any(BulkRequestBuilder.class));
 		verify(esIntegrationMock, times(3)).executeESBulkRequest(Mockito.any(BulkRequestBuilder.class));
 		verify(esIntegrationMock, Mockito.atLeastOnce()).isClosed();
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-45");
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-46");
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-47");
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-481");
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-49");
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-154");
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-4");
+		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-91");
+
 		Mockito.verifyNoMoreInteractions(remoteClientMock);
 		Mockito.verifyNoMoreInteractions(esIntegrationMock);
 

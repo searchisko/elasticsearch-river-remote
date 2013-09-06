@@ -156,6 +156,10 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 						throw new IllegalArgumentException("Document ID not found in remote system response for Space " + spaceKey
 								+ " within data: " + document);
 					}
+					Object detail = remoteSystemClient.getChangedDocumentDetails(spaceKey, documentId);
+					if (detail != null) {
+						document.put("detail", detail);
+					}
 					lastDocumentUpdatedDate = documentIndexStructureBuilder.extractDocumentUpdated(document);
 					logger.debug("Go to update index for document {} with updated {}", documentId, lastDocumentUpdatedDate);
 					if (lastDocumentUpdatedDate == null) {

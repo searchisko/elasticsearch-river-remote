@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -64,6 +65,8 @@ public class GetJSONClient implements IRemoteSystemClient {
 
 	protected static final String CFG_URL_GET_DOCUMENTS = "urlGetDocuments";
 
+	protected static final String CFG_URL_GET_DOCUMENT_DETAILS = "urlGetDocumentDetails";
+
 	private static final ESLogger logger = Loggers.getLogger(GetJSONClient.class);
 
 	private DefaultHttpClient httpclient;
@@ -78,6 +81,8 @@ public class GetJSONClient implements IRemoteSystemClient {
 
 	protected String urlGetDocuments;
 
+	protected String urlGetDocumentDetails;
+
 	protected boolean isAuthConfigured = false;
 
 	protected IDocumentIndexStructureBuilder indexStructureBuilder;
@@ -91,33 +96,15 @@ public class GetJSONClient implements IRemoteSystemClient {
 
 	@Override
 	public void init(Map<String, Object> config, boolean spaceListLoadingEnabled, IPwdLoader pwdLoader) {
-		urlGetDocuments = XContentMapValues.nodeStringValue(config.get(CFG_URL_GET_DOCUMENTS), null);
-		if (Utils.isEmpty(urlGetDocuments)) {
-			throw new SettingsException("remote/urlGetDocuments element of configuration structure not found or empty");
-		}
-
-		URL urlGetDocumentsUrl = null;
-		try {
-			urlGetDocumentsUrl = new URL(urlGetDocuments);
-		} catch (MalformedURLException e) {
-			throw new SettingsException("Parameter remote/urlGetDocuments is malformed " + e.getMessage());
-		}
+		urlGetDocuments = getUrlFromConfig(config, CFG_URL_GET_DOCUMENTS, true);
+		urlGetDocumentDetails = getUrlFromConfig(config, CFG_URL_GET_DOCUMENT_DETAILS, false);
 		getDocsResFieldDocuments = Utils.trimToNull(XContentMapValues.nodeStringValue(
 				config.get(CFG_GET_DOCS_RES_FIELD_DOCUMENTS), null));
 		getDocsResFieldTotalcount = Utils.trimToNull(XContentMapValues.nodeStringValue(
 				config.get(CFG_GET_DOCS_RES_FIELD_TOTALCOUNT), null));
 
-		URL urlGetSpacesUrl = null;
 		if (spaceListLoadingEnabled) {
-			urlGetSpaces = XContentMapValues.nodeStringValue(config.get(CFG_URL_GET_SPACES), null);
-			if (Utils.isEmpty(urlGetSpaces)) {
-				throw new SettingsException("remote/urlGetSpaces element of configuration structure not found or empty");
-			}
-			try {
-				urlGetSpacesUrl = new URL(urlGetSpaces);
-			} catch (MalformedURLException e) {
-				throw new SettingsException("Parameter remote/urlGetSpaces is malformed " + e.getMessage());
-			}
+			urlGetSpaces = getUrlFromConfig(config, CFG_URL_GET_SPACES, true);
 			getSpacesResField = Utils.trimToNull(XContentMapValues.nodeStringValue(config.get(CFG_GET_SPACES_RESPONSE_FIELD),
 					null));
 		}
@@ -142,10 +129,15 @@ public class GetJSONClient implements IRemoteSystemClient {
 			if (remotePassword == null && pwdLoader != null)
 				remotePassword = pwdLoader.loadPassword(remoteUsername);
 			if (remotePassword != null) {
-				String host = urlGetDocumentsUrl.getHost();
-				httpclient.getCredentialsProvider().setCredentials(new AuthScope(host, AuthScope.ANY_PORT),
-						new UsernamePasswordCredentials(remoteUsername, remotePassword));
-				isAuthConfigured = true;
+				try {
+					URL urlGetDocumentsUrl = new URL(urlGetDocuments);
+					String host = urlGetDocumentsUrl.getHost();
+					httpclient.getCredentialsProvider().setCredentials(new AuthScope(host, AuthScope.ANY_PORT),
+							new UsernamePasswordCredentials(remoteUsername, remotePassword));
+					isAuthConfigured = true;
+				} catch (MalformedURLException e) {
+					// this should never happen due validation before
+				}
 			} else {
 				logger.warn("Password not found so authentication is not used!");
 				remoteUsername = null;
@@ -156,10 +148,27 @@ public class GetJSONClient implements IRemoteSystemClient {
 
 		logger
 				.info(
-						"Configured GET JSON remote client. Spaces listing URL '{}', documents listing url '{}', remote system user '{}'.",
-						urlGetSpacesUrl != null ? urlGetSpacesUrl : "unused", urlGetDocumentsUrl,
-						remoteUsername != null ? remoteUsername : "Anonymous access");
+						"Configured GET JSON remote client. Spaces listing URL '{}', documents listing url '{}', document detail url '{}', remote system user '{}'.",
+						urlGetSpaces != null ? urlGetSpaces : "unused", urlGetDocuments,
+						urlGetDocumentDetails != null ? urlGetDocumentDetails : "", remoteUsername != null ? remoteUsername
+								: "Anonymous access");
 
+	}
+
+	private String getUrlFromConfig(Map<String, Object> config, String cfgProperyName, boolean mandatory) {
+		String url = XContentMapValues.nodeStringValue(config.get(cfgProperyName), null);
+		if (mandatory && Utils.isEmpty(url)) {
+			throw new SettingsException("remote/" + cfgProperyName + " element of configuration structure not found or empty");
+		}
+		url = Utils.trimToNull(url);
+		if (url != null) {
+			try {
+				new URL(url);
+			} catch (MalformedURLException e) {
+				throw new SettingsException("Parameter remote/" + cfgProperyName + " is malformed URL " + e.getMessage());
+			}
+		}
+		return url;
 	}
 
 	@Override
@@ -225,6 +234,22 @@ public class GetJSONClient implements IRemoteSystemClient {
 		}
 	}
 
+	@Override
+	public Object getChangedDocumentDetails(String spaceKey, String documentId) throws Exception {
+		if (urlGetDocumentDetails == null)
+			return null;
+		String url = enhanceUrlGetDocumentDetails(urlGetDocumentDetails, spaceKey, documentId);
+		byte[] responseData = performGetRESTCall(url);
+		return parseJSONResponse(responseData);
+	}
+
+	protected static String enhanceUrlGetDocumentDetails(String url, String spaceKey, String documentId)
+			throws UnsupportedEncodingException {
+		url = url.replaceAll("\\{space\\}", URLEncoder.encode(spaceKey, "UTF-8"));
+		url = url.replaceAll("\\{id\\}", URLEncoder.encode(documentId, "UTF-8"));
+		return url;
+	}
+
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public ChangedDocumentsResults getChangedDocuments(String spaceKey, int startAt, Date updatedAfter) throws Exception {
@@ -267,8 +292,9 @@ public class GetJSONClient implements IRemoteSystemClient {
 		}
 	}
 
-	protected static String enhanceUrlGetDocuments(String url, String spaceKey, Date updatedAfter, int startAt) {
-		url = url.replaceAll("\\{space\\}", spaceKey);
+	protected static String enhanceUrlGetDocuments(String url, String spaceKey, Date updatedAfter, int startAt)
+			throws UnsupportedEncodingException {
+		url = url.replaceAll("\\{space\\}", URLEncoder.encode(spaceKey, "UTF-8"));
 		url = url.replaceAll("\\{updatedAfter\\}", updatedAfter != null ? updatedAfter.getTime() + "" : "");
 		url = url.replaceAll("\\{startAtIndex\\}", startAt + "");
 		return url;

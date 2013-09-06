@@ -58,6 +58,17 @@ public interface IRemoteSystemClient {
 			throws Exception;
 
 	/**
+	 * Get detailed data for document from remote system and parse them into <code>Map of Maps</code> structure.
+	 * 
+	 * @param spaceKey mandatory key of Space to get document for
+	 * @param documentId mandatory document id to return document for
+	 * @return detailed document informations parsed from remote system reply (may be Map, or List, or simple value). May
+	 *         be null.
+	 * @throws Exception
+	 */
+	public abstract Object getChangedDocumentDetails(String spaceKey, String documentId) throws Exception;
+
+	/**
 	 * Get actual index structure builder.
 	 * 
 	 * @return actual index structure builder

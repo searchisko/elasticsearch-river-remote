@@ -9,12 +9,14 @@ and uses remote APIs (REST with JSON or XML, SOAP etc.) to obtain documents
 from remote systems.
 
 In order to install the plugin into ElasticSearch, simply run: 
-`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.1.0/elasticsearch-river-remote-1.1.0.zip -install elasticsearch-river-remote`.
+`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.2.0/elasticsearch-river-remote-1.2.0.zip -install elasticsearch-river-remote`.
 
     --------------------------------------------------
     | Remote River | ElasticSearch    | Release date |
     --------------------------------------------------
     | master       | 0.90.0           |              |
+    --------------------------------------------------
+    | 1.2.0        | 0.90.0           | 6.9.2013     |
     --------------------------------------------------
     | 1.1.0        | 0.90.0           | 16.5.2013    |
     --------------------------------------------------
@@ -159,7 +161,7 @@ Remote system API to obtain data from
 -------------------------------------
 
 ###Remote system API requirements
-Remote river uses two operations to obtain necessary data from remote system.
+Remote river uses these operations to obtain necessary data from remote system.
 
 #####List Spaces
 This operation is used to obtain list of Space keys from remote system. 
@@ -188,6 +190,19 @@ Operation MUST return these results:
 * `documents` - list of documents with informations to be stored in search index. Unique identifier and 'last document update' timestamp must be present in data. Returned list MUST be ascending ordered by timestamp of last document update!
 * `total count` - total number of documents matching request search criteria (but response may contain only part of them). Use of this feature is optional, some bulk updates in remote system may be missed if not used (because pooling is based only on updated timestamp in this case). If used then remote system MUST handle `startAtIndex` request parameter. 
 
+####Get Document Details
+This operation may be used by indexer to obtain details for one document. 
+Is used when "List Documents" operation do not provide all informations necessary for indexing. 
+This operation is called once for each item in list returned from "List Documents" call.
+Note that this type of indexing requires lots of remote system calls, so for performance it is better to return all necessary data directly in List Documents" response.  
+ 
+Operation MUST accept and correctly handle these request parameters provided by indexer: 
+
+* `documentId` - identifier of document obtained from item in list of documents from field named in `index/remote_field_document_id` (always provided by indexer)
+* `spaceKey` - space key document belongs to (always provided by indexer)
+
+Data returned from this call are stored into document structure under `detail` key, so you can map them into search index then.
+
 ###Remote system API clients
 You can use some clients provided by river to use distinct remote system access technology and protocols, 
 or you can create a new one by implementing [`org.jboss.elasticsearch.river.remote.IRemoteSystemClient`](/src/main/java/org/jboss/elasticsearch/river/remote/IRemoteSystemClient.java) interface.
@@ -203,6 +218,10 @@ Configuration parameters for this client type:
   * `{startAtIndex}` - remote system must return only documents matching previous two criteria, and starting at this index in result set.  
 * `remote/getDocsResFieldDocuments` defines field in JSON data returned from `remote/urlGetDocuments` call, where array of documents is stored. If not defined then the array is expected directly in the root of returned data. Dot notation may be used for deeper nesting in the JSON structure.
 * `remote/getDocsResFieldTotalcount` defines field in JSON data returned from `remote/urlGetDocuments` call, where total number of documents matching passed search criteria is stored. Dot notation may be used for deeper nesting in the JSON structure. 
+* `remote/urlGetDocumentDetails` is URL used to call *Get Document Details* operation from remote system. If not defined then call is not performed (in case if list operation returns all data for indexing). 
+   You may use two placeholders in this URL to be replaced by parameters required by indexing process as described above:
+  * `{id}` - identifier of document we need details for 
+  * `{space}` - identifier of space document is for 
 * `remote/username` and `remote/pwd` are optional login credentials to access documents in remote system. HTTP BASIC authentication is supported. Alternatively you can store password into separate JSON document called `_pwd` stored in the rived index beside `_meta` document, into field called `pwd`, see example later.
 * `remote/timeout` time value, defines timeout for http/s request to the remote system. Optional, 5s is default if not provided.
 * `remote/urlGetSpaces` is URL used to call *List Spaces* operation from remote system. Necessary if `remote/spacesIndexed` is not provided.

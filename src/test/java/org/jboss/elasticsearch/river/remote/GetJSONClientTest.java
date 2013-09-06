@@ -5,6 +5,7 @@
  */
 package org.jboss.elasticsearch.river.remote;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -239,7 +240,7 @@ public class GetJSONClientTest {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
 					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
-			IRemoteSystemClient tested = getChangedDocuments_createTested(config, "invalid json",
+			IRemoteSystemClient tested = createTestedInstance(config, "invalid json",
 					"http://test.org/documents?docSpace=myspace&docUpdatedAfter=&startAtIndex=0");
 			tested.getChangedDocuments("myspace", 0, null);
 			Assert.fail("JsonParseException expected");
@@ -252,7 +253,7 @@ public class GetJSONClientTest {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
 					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
-			IRemoteSystemClient tested = getChangedDocuments_createTested(config, "[{\"key\" : \"a\"},{\"key\" : \"b\"}]",
+			IRemoteSystemClient tested = createTestedInstance(config, "[{\"key\" : \"a\"},{\"key\" : \"b\"}]",
 					"http://test.org/documents?docSpace=myspace&docUpdatedAfter=1256&startAtIndex=12");
 			ChangedDocumentsResults ret = tested.getChangedDocuments("myspace", 12, new Date(1256l));
 			Assert.assertEquals(2, ret.getDocumentsCount());
@@ -269,7 +270,7 @@ public class GetJSONClientTest {
 					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
 			config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_DOCUMENTS, "response.items");
 			config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_TOTALCOUNT, "response.total");
-			IRemoteSystemClient tested = getChangedDocuments_createTested(config,
+			IRemoteSystemClient tested = createTestedInstance(config,
 					"{\"response\": { \"total\":20 ,\"items\":[{\"key\" : \"a\"},{\"key\" : \"b\"}]}}",
 					"http://test.org/documents?docSpace=myspace&docUpdatedAfter=1256&startAtIndex=12");
 			ChangedDocumentsResults ret = tested.getChangedDocuments("myspace", 12, new Date(1256l));
@@ -282,7 +283,7 @@ public class GetJSONClientTest {
 
 	}
 
-	private IRemoteSystemClient getChangedDocuments_createTested(Map<String, Object> config, final String returnJson,
+	private IRemoteSystemClient createTestedInstance(Map<String, Object> config, final String returnJson,
 			final String expectadCallUrl) {
 		IRemoteSystemClient tested = new GetJSONClient() {
 			@Override
@@ -296,16 +297,85 @@ public class GetJSONClientTest {
 		return tested;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Test
-	public void enhanceUrlGetDocuments() {
+	public void getChangedDocumentDetails() throws Exception {
+		// case - test REST not called if URL is not configured
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			IRemoteSystemClient tested = createTestedInstance(config, "invalid json", "not called");
+			Assert.assertNull(tested.getChangedDocumentDetails("myspace", "myid"));
+		}
+
+		// case - test bad JSON returned
+		try {
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/document?docSpace={space}&id={id}");
+			IRemoteSystemClient tested = createTestedInstance(config, "invalid json",
+					"http://test.org/document?docSpace=myspace&id=myid");
+			tested.getChangedDocumentDetails("myspace", "myid");
+			Assert.fail("JsonParseException expected");
+		} catch (JsonParseException e) {
+			// OK
+		}
+
+		// case - test JSON object returned
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/document?docSpace={space}&id={id}");
+			IRemoteSystemClient tested = createTestedInstance(config, "{\"item1\":\"val1\"}",
+					"http://test.org/document?docSpace=myspace&id=myid");
+			Object ret = tested.getChangedDocumentDetails("myspace", "myid");
+			Assert.assertNotNull(ret);
+			Assert.assertTrue(ret instanceof Map);
+			Map<String, Object> rm = (Map<String, Object>) ret;
+			Assert.assertEquals(1, rm.size());
+			Assert.assertEquals("val1", rm.get("item1"));
+		}
+		// case - test JSON array returned
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/document?docSpace={space}&id={id}");
+			IRemoteSystemClient tested = createTestedInstance(config, "[{\"item1\":\"val1\"}]",
+					"http://test.org/document?docSpace=myspace&id=myid");
+			Object ret = tested.getChangedDocumentDetails("myspace", "myid");
+			Assert.assertNotNull(ret);
+			Assert.assertTrue(ret instanceof List);
+			List<Map<String, Object>> rm = (List<Map<String, Object>>) ret;
+			Assert.assertEquals("val1", rm.get(0).get("item1"));
+		}
+
+	}
+
+	@Test
+	public void enhanceUrlGetDocumentDetails() throws UnsupportedEncodingException {
+
+		Assert.assertEquals("http://test.org?docSpace=myspace&id=myid",
+				GetJSONClient.enhanceUrlGetDocumentDetails("http://test.org?docSpace={space}&id={id}", "myspace", "myid"));
+
+		// param URL encoding test
+		Assert.assertEquals("http://test.org?docSpace=myspac%26e&id=my%26id",
+				GetJSONClient.enhanceUrlGetDocumentDetails("http://test.org?docSpace={space}&id={id}", "myspac&e", "my&id"));
+	}
+
+	@Test
+	public void enhanceUrlGetDocuments() throws UnsupportedEncodingException {
 		Assert.assertEquals("http://test.org?docSpace=myspace&docUpdatedAfter=123456&startAtIndex=0", GetJSONClient
 				.enhanceUrlGetDocuments(
 						"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}", "myspace",
 						new Date(123456l), 0));
 
-		Assert.assertEquals("http://test.org?docSpace=myspace&docUpdatedAfter=&startAtIndex=125", GetJSONClient
+		Assert.assertEquals("http://test.org?docSpace=my%26space&docUpdatedAfter=&startAtIndex=125", GetJSONClient
 				.enhanceUrlGetDocuments(
-						"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}", "myspace",
+						"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}", "my&space",
 						null, 125));
 
 	}

@@ -306,8 +306,8 @@ public class GetJSONClient implements IRemoteSystemClient {
 				responseContent = EntityUtils.toByteArray(response.getEntity());
 			}
 			if (statusCode != HttpStatus.SC_OK) {
-				throw new Exception("Failed remote system REST API call. HTTP error code: " + statusCode + " Response body: "
-						+ new String(responseContent));
+				throw new Exception("Failed remote system REST API call to the url '" + url + "'. HTTP error code: "
+						+ statusCode + " Response body: " + new String(responseContent));
 			}
 			return responseContent;
 		} finally {

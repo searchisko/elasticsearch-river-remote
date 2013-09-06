@@ -297,17 +297,30 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 			spaceIndexerThreads.remove(spaceKey);
 			spaceIndexers.remove(spaceKey);
 		}
-		if (finishedOK && fullUpdate) {
-			try {
-				esIntegrationComponent.storeDatetimeValue(spaceKey, STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE, new Date(),
-						null);
-			} catch (Exception e) {
-				logger.error("Can't store {} value due: {}", STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE, e.getMessage());
-			}
-			try {
-				esIntegrationComponent.deleteDatetimeValue(spaceKey, STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE);
-			} catch (Exception e) {
-				logger.error("Can't store {} value due: {}", STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE, e.getMessage());
+		if (fullUpdate) {
+			if (finishedOK) {
+				try {
+					esIntegrationComponent.deleteDatetimeValue(spaceKey, STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE);
+				} catch (Exception e) {
+					logger
+							.error("Can't delete {} value due: {}", STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE, e.getMessage());
+				}
+				try {
+					esIntegrationComponent.storeDatetimeValue(spaceKey, STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE,
+							new Date(), null);
+				} catch (Exception e) {
+					logger.error("Can't store {} value due: {}", STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE, e.getMessage());
+				}
+			} else {
+				// bugfix for #3
+				if (indexFullUpdatePeriod < 1) {
+					logger.info("Full update failed for space {} so we are going to force it again next time ", spaceKey);
+					try {
+						forceFullReindex(spaceKey);
+					} catch (Exception e) {
+						logger.error("Can't force full update due: {}", e.getMessage());
+					}
+				}
 			}
 		}
 	}

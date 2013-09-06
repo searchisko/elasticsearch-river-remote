@@ -751,11 +751,25 @@ public class SpaceIndexerCoordinatorTest {
 			Mockito.verifyZeroInteractions(esIntegrationMock);
 		}
 
-		// case - full indexing without success
+		// case - full indexing without success, full reindex is enabled
+		tested.indexFullUpdatePeriod = 10;
 		{
 			tested.reportIndexingFinished("AAA", false, true);
 			Assert.assertEquals(0, tested.spaceIndexerThreads.size());
 			Assert.assertEquals(0, tested.spaceIndexers.size());
+			// no full reindex date stored
+			Mockito.verifyZeroInteractions(esIntegrationMock);
+		}
+
+		// case - full indexing without success, full reindex is disabled so we have to force it
+		tested.indexFullUpdatePeriod = -1;
+		{
+			tested.reportIndexingFinished("AAA", false, true);
+			Assert.assertEquals(0, tested.spaceIndexerThreads.size());
+			Assert.assertEquals(0, tested.spaceIndexers.size());
+			verify(esIntegrationMock).storeDatetimeValue(Mockito.eq("AAA"),
+					Mockito.eq(SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE), Mockito.any(Date.class),
+					(BulkRequestBuilder) Mockito.isNull());
 			// no full reindex date stored
 			Mockito.verifyZeroInteractions(esIntegrationMock);
 		}

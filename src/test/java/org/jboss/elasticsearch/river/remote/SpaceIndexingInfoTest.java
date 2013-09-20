@@ -9,34 +9,63 @@ import java.io.IOException;
 
 import junit.framework.Assert;
 
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.DeserializationConfig;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jboss.elasticsearch.river.remote.testtools.TestUtils;
+import org.junit.BeforeClass;
 import org.junit.Test;
+
+import static org.junit.Assert.fail;
 
 /**
  * Unit test for {@link SpaceIndexingInfo}.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
+ * @author Lukáš Vlček (lvlcek@redhat.com)
  */
 public class SpaceIndexingInfoTest {
+
+	private static ObjectMapper mapper;
+
+	private JsonNode toJsonNode(String source) {
+		JsonNode node = null;
+		try {
+			node = mapper.readValue(source, JsonNode.class);
+		} catch (IOException e) {
+			fail("Exception while parsing!: " + e);
+		}
+		return node;
+	}
+
+	@BeforeClass
+	public static void setUp() {
+		mapper = new ObjectMapper();
+		mapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+	}
+
+	private boolean shouldEqual(String expected, String actual) {
+		return toJsonNode(expected).equals(toJsonNode(actual));
+	}
 
 	@Test
 	public void buildDocument() throws Exception {
 
-		TestUtils.assertStringFromClasspathFile("/asserts/SpaceIndexingInfoTest_1.json",
+		shouldEqual(TestUtils.readStringFromClasspathFile("/asserts/SpaceIndexingInfoTest_1.json"),
 				new SpaceIndexingInfo("ORG", true, 10, 1, 1, DateTimeUtils.parseISODateTime("2012-09-10T12:55:58Z"), true,
 						1250, null).buildDocument(XContentFactory.jsonBuilder(), true, true).string());
 
-		TestUtils.assertStringFromClasspathFile("/asserts/SpaceIndexingInfoTest_2.json",
+		shouldEqual(TestUtils.readStringFromClasspathFile("/asserts/SpaceIndexingInfoTest_2.json"),
 				new SpaceIndexingInfo("ORG", true, 10, 1, 1, DateTimeUtils.parseISODateTime("2012-09-10T12:56:50Z"), false,
 						125, "Error message").buildDocument(XContentFactory.jsonBuilder(), true, true).string());
 
-		TestUtils.assertStringFromClasspathFile("/asserts/SpaceIndexingInfoTest_3.json",
+		shouldEqual(TestUtils.readStringFromClasspathFile("/asserts/SpaceIndexingInfoTest_3.json"),
 				new SpaceIndexingInfo("ORG", true, 10, 1, 1, DateTimeUtils.parseISODateTime("2012-09-10T12:55:58Z"), true,
 						1250, null).buildDocument(XContentFactory.jsonBuilder(), false, true).string());
 
-		TestUtils.assertStringFromClasspathFile("/asserts/SpaceIndexingInfoTest_4.json",
+		shouldEqual(TestUtils.readStringFromClasspathFile("/asserts/SpaceIndexingInfoTest_4.json"),
 				new SpaceIndexingInfo("ORG", true, 10, 1, 1, DateTimeUtils.parseISODateTime("2012-09-10T12:55:58Z"), true,
 						1250, null).buildDocument(XContentFactory.jsonBuilder(), false, false).string());
 	}

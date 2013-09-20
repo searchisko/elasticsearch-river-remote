@@ -5,6 +5,8 @@
  */
 package org.jboss.elasticsearch.river.remote;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -19,6 +21,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.DeserializationConfig;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.common.settings.SettingsException;
@@ -28,6 +33,7 @@ import org.elasticsearch.common.xcontent.XContentGenerator;
 import org.jboss.elasticsearch.river.remote.testtools.TestUtils;
 import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessor;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -37,8 +43,27 @@ import org.mockito.stubbing.Answer;
  * Unit test for {@link DocumentWithCommentsIndexStructureBuilder}.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
+ * @author Lukáš Vlček (lvlcek@redhat.com)
  */
 public class DocumentWithCommentsIndexStructureBuilderTest {
+
+	private static ObjectMapper mapper;
+
+	private JsonNode toJsonNode(String source) {
+		JsonNode node = null;
+		try {
+			node = mapper.readValue(source, JsonNode.class);
+		} catch (IOException e) {
+			fail("Exception while parsing!: " + e);
+		}
+		return node;
+	}
+
+	@BeforeClass
+	public static void setUp() {
+		mapper = new ObjectMapper();
+		mapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+	}
 
 	@Test
 	public void configuration_read_ok() {
@@ -246,8 +271,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 			tested.buildSearchForIndexedDocumentsNotUpdatedAfter(srb, "ORG",
 					DateTimeUtils.parseISODateTime("2012-09-06T12:22:19Z"));
 			Assert.assertArrayEquals(new String[] { "issue_type" }, srb.request().types());
-			TestUtils.assertStringFromClasspathFile("/asserts/buildSearchForIndexedDocumentsNotUpdatedAfter.json",
-					srb.toString());
+			assertTrue("Should equals", toJsonNode(srb.toString()).equals(
+					toJsonNode(TestUtils.readStringFromClasspathFile("/asserts/buildSearchForIndexedDocumentsNotUpdatedAfter.json"))));
 		}
 
 		// case - comments EMBEDDED
@@ -257,8 +282,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 			tested.buildSearchForIndexedDocumentsNotUpdatedAfter(srb, "ORG",
 					DateTimeUtils.parseISODateTime("2012-09-06T12:22:19Z"));
 			Assert.assertArrayEquals(new String[] { "issue_type" }, srb.request().types());
-			TestUtils.assertStringFromClasspathFile("/asserts/buildSearchForIndexedDocumentsNotUpdatedAfter.json",
-					srb.toString());
+			assertTrue("Should equals", toJsonNode(srb.toString()).equals(
+					toJsonNode(TestUtils.readStringFromClasspathFile("/asserts/buildSearchForIndexedDocumentsNotUpdatedAfter.json"))));
 		}
 
 		// case - comments EMBEDDED
@@ -268,8 +293,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 			tested.buildSearchForIndexedDocumentsNotUpdatedAfter(srb, "ORG",
 					DateTimeUtils.parseISODateTime("2012-09-06T12:22:19Z"));
 			Assert.assertArrayEquals(new String[] { "issue_type", "comment_type" }, srb.request().types());
-			TestUtils.assertStringFromClasspathFile("/asserts/buildSearchForIndexedDocumentsNotUpdatedAfter.json",
-					srb.toString());
+			assertTrue("Should equals", toJsonNode(srb.toString()).equals(
+					toJsonNode(TestUtils.readStringFromClasspathFile("/asserts/buildSearchForIndexedDocumentsNotUpdatedAfter.json"))));
 		}
 
 		// case - comments EMBEDDED
@@ -279,8 +304,9 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 			tested.buildSearchForIndexedDocumentsNotUpdatedAfter(srb, "ORG",
 					DateTimeUtils.parseISODateTime("2012-09-06T12:22:19Z"));
 			Assert.assertArrayEquals(new String[] { "issue_type", "comment_type" }, srb.request().types());
-			TestUtils.assertStringFromClasspathFile("/asserts/buildSearchForIndexedDocumentsNotUpdatedAfter.json",
-					srb.toString());
+			assertTrue("Should equals", toJsonNode(srb.toString()).equals(
+					toJsonNode(TestUtils.readStringFromClasspathFile("/asserts/buildSearchForIndexedDocumentsNotUpdatedAfter.json"))));
+
 		}
 
 	}
@@ -296,7 +322,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 			String res = tested.prepareIndexedDocument("ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"))
 					.string();
-			TestUtils.assertStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_NOCOMMENT.json", res);
+			assertTrue("Should equals", toJsonNode(res).equals(
+					toJsonNode(TestUtils.readStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_NOCOMMENT.json"))));
 		}
 
 		tested.remoteDataFieldForComments = "fields.comment.comments";
@@ -306,7 +333,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 			String res = tested.prepareIndexedDocument("ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"))
 					.string();
-			TestUtils.assertStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_NOCOMMENT.json", res);
+			assertTrue("Should equals", toJsonNode(res).equals(
+					toJsonNode(TestUtils.readStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_NOCOMMENT.json"))));
 		}
 
 		// case - comments as STANDALONE so not in this document
@@ -315,7 +343,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 			String res = tested.prepareIndexedDocument("ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"))
 					.string();
-			TestUtils.assertStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_NOCOMMENT.json", res);
+			assertTrue("Should equals", toJsonNode(res).equals(
+					toJsonNode(TestUtils.readStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_NOCOMMENT.json"))));
 		}
 
 		// case - comments as EMBEDDED so present in this document
@@ -324,7 +353,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 			String res = tested.prepareIndexedDocument("ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"))
 					.string();
-			TestUtils.assertStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_COMMENTS.json", res);
+			assertTrue("Should equals", toJsonNode(res).equals(
+					toJsonNode(TestUtils.readStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1501_COMMENTS.json"))));
 		}
 
 		// case - comments as EMBEDDED but not in source so no present in this document
@@ -334,7 +364,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 			String res = tested.prepareIndexedDocument("ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1513"))
 					.string();
 			System.out.println(res);
-			TestUtils.assertStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1513_NOCOMMENTS.json", res);
+			assertTrue("Should equals", toJsonNode(res).equals(
+					toJsonNode(TestUtils.readStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1513_NOCOMMENTS.json"))));
 		}
 
 	}
@@ -348,7 +379,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		List<Map<String, Object>> comments = tested.extractComments(issue);
 
 		String res = tested.prepareCommentIndexedDocument("ORG", "ORG-1501", comments.get(0)).string();
-		TestUtils.assertStringFromClasspathFile("/asserts/prepareCommentIndexedDocument_ORG-1501_1.json", res);
+		assertTrue("Should equals", toJsonNode(res).equals(
+				toJsonNode(TestUtils.readStringFromClasspathFile("/asserts/prepareCommentIndexedDocument_ORG-1501_1.json"))));
 	}
 
 	@Test

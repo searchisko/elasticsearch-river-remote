@@ -554,7 +554,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	/**
 	 * Put running instance of remote river into registry. Used for REST management operations handling.
 	 * 
-	 * @param riverName to get instance for
+	 * @param remoteRiver to get instance for
 	 * @see #getRunningInstances()
 	 * @see #getRunningInstance(String)
 	 */
@@ -571,6 +571,18 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	 */
 	public static Set<String> getRunningInstances() {
 		return Collections.unmodifiableSet((riverInstances.keySet()));
+	}
+
+	/**
+	 * Remove rivers of given names.
+	 * Note: this method was added because of unit tests. Do not call this method in production code.
+	 *
+	 * @param riverNames
+	 */
+	public static void removeRunningInstances(String... riverNames) {
+		for (String riverName : riverNames) {
+			riverInstances.remove(riverName);
+		}
 	}
 
 	@Override

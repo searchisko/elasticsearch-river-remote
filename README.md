@@ -9,12 +9,14 @@ and uses remote APIs (REST with JSON or XML, SOAP etc.) to obtain documents
 from remote systems.
 
 In order to install the plugin into ElasticSearch, simply run: 
-`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.2.0/elasticsearch-river-remote-1.2.0.zip -install elasticsearch-river-remote`.
+`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.2.1/elasticsearch-river-remote-1.2.1.zip -install elasticsearch-river-remote`.
 
     --------------------------------------------------
     | Remote River | ElasticSearch    | Release date |
     --------------------------------------------------
-    | master       | 0.90.0           |              |
+    | master       | 0.90.5           |              |
+    --------------------------------------------------
+    | 1.2.1        | 0.90.5           | 20.9.2013    |
     --------------------------------------------------
     | 1.2.0        | 0.90.0           | 6.9.2013     |
     --------------------------------------------------
@@ -30,7 +32,7 @@ The river indexes documents with comments from remote system, and makes them sea
 by ElasticSearch. Remote system is pooled periodically to detect changed documents and 
 update search index in incremental update mode. 
 Periodical full update may be configured too to completely refresh search index and 
-remove documents deleted in remote system (deletes are not catched by incremental updates).
+remove documents deleted in remote system (deletes are not catch by incremental updates).
 
 River can be created using:
 
@@ -78,11 +80,11 @@ The example above lists all the main options controlling the creation and behavi
 * `index/remote_field_updated` is used to define field in remote system document data where timestamp of last update is stored - timestamp may be formatted by ISO format or number representing millis from 1.1.1970. Dot notation may be used for deeper nesting in document data. 
 * `index/comment_mode` defines mode of issue comments indexing: `none` - no comments indexed, `embedded` - comments indexed as array in document, `child` - comment indexed as separate document with [parent-child relation](http://www.elasticsearch.org/guide/reference/mapping/parent-field.html) to the document, `standalone` - comment indexed as separate document. Setting is optional, `none` value is default if not provided.
 * `index/comment_type` defines [type](http://www.elasticsearch.org/guide/appendix/glossary.html#type) used when issue comment is stored into search index in `child` or `standalone` mode. See related notes later!
-* `index/field_comments`, `index/comment_fields` can be used to change structure comment informations in indexed documents. See 'index document structure' chapter.
+* `index/field_comments`, `index/comment_fields` can be used to change structure comment information in indexed documents. See 'index document structure' chapter.
 * `index/remote_field_comments` is used to define field in remote system document data where array of comments is stored. Dot notation may be used for deeper nesting in document data.
 * `index/remote_field_comment_id` is used to define field in remote system's comment data where unique comment identifier is stored. Used if `comment_mode` is  `child` or `standalone`. Dot notation may be used for deeper nesting in document data.
 * `index/preprocessors` optional parameter. Defines chain of preprocessors applied to document data read from remote system before stored into index. See related notes later!
-* `activity_log` part defines where information about remote river index update activity are stored. If omitted then no activity informations are stored.
+* `activity_log` part defines where information about remote river index update activity are stored. If omitted then no activity information are stored.
 * `activity_log/index` defines name of index where information about remote river activity are stored.
 * `activity_log/type` defines [type](http://www.elasticsearch.org/guide/appendix/glossary.html#type) used to store information about remote river activity. Parameter is optional, `remote_river_indexupdate` is used if omitted.
 
@@ -187,12 +189,12 @@ Operation MUST accept and correctly handle these request parameters if provided 
 
 Operation MUST return these results:
 
-* `documents` - list of documents with informations to be stored in search index. Unique identifier and 'last document update' timestamp must be present in data. Returned list MUST be ascending ordered by timestamp of last document update!
+* `documents` - list of documents with information to be stored in search index. Unique identifier and 'last document update' timestamp must be present in data. Returned list MUST be ascending ordered by timestamp of last document update!
 * `total count` - total number of documents matching request search criteria (but response may contain only part of them). Use of this feature is optional, some bulk updates in remote system may be missed if not used (because pooling is based only on updated timestamp in this case). If used then remote system MUST handle `startAtIndex` request parameter. 
 
 ####Get Document Details
 This operation may be used by indexer to obtain details for one document. 
-Is used when "List Documents" operation do not provide all informations necessary for indexing. 
+Is used when "List Documents" operation do not provide all information necessary for indexing.
 This operation is called once for each item in list returned from "List Documents" call.
 Note that this type of indexing requires lots of remote system calls, so for performance it is better to return all necessary data directly in List Documents" response.  
  
@@ -260,7 +262,7 @@ You can use dot notation for deeper nesting of
     --------------------------------------------------------------------------------------------------------------------------------------------------------
 
 Array of comments is taken from document structure from field defined in `index/remote_field_comments` configuration. 
-Remote River uses following structure to store comment informations into search index. 
+Remote River uses following structure to store comment information into search index.
 Comment id is taken from field configured in `index/remote_field_comment_id` and is used as document 
 [id](http://www.elasticsearch.org/guide/appendix/glossary.html#id) in search index in `child` or `standalone` mode.
 
@@ -269,7 +271,7 @@ Comment id is taken from field configured in `index/remote_field_comment_id` and
     -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     | source          | name of the river the comment was indexed by, not in `embedded` mode | index/field_river_name                  | N/A                                      |
     -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    | space_key       | key of documents's space the comment is for, not in `embedded` mode  | index/field_space_key                   | N/A                                      |
+    | space_key       | key of documents' space the comment is for, not in `embedded` mode   | index/field_space_key                   | N/A                                      |
     -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     | document_id     | id of the document the comment is for, not in `embedded` mode        | index/field_document_id                 | index/remote_field_document_id           |
     -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -277,7 +279,7 @@ Comment id is taken from field configured in `index/remote_field_comment_id` and
     -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 You can also implement and configure some preprocessors, which allows you to 
-change/extend document informations loaded from remote system and store 
+change/extend document information loaded from remote system and store
 these changes/extensions to the search index.
 This allows you for example value normalizations, or creation of some index 
 fields with values aggregated from more document fields.

@@ -7,12 +7,12 @@ package org.jboss.elasticsearch.river.remote.mgm.lifecycle;
 
 import java.io.IOException;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.transport.DummyTransportAddress;
 import org.jboss.elasticsearch.river.remote.mgm.NodeJRMgmBaseResponse;
-import org.jboss.elasticsearch.river.remote.mgm.lifecycle.NodeJRLifecycleResponse;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -23,7 +23,7 @@ import org.junit.Test;
  */
 public class NodeJRLifecycleResponseTest {
 
-  DiscoveryNode dn = new DiscoveryNode("aa", DummyTransportAddress.INSTANCE);
+  DiscoveryNode dn = new DiscoveryNode("aa", DummyTransportAddress.INSTANCE, Version.CURRENT);
 
   @Test
   public void constructor() {

@@ -539,7 +539,7 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> loadDefaultSettingsMapFromFile() throws SettingsException {
-		Map<String, Object> json = Utils.loadJSONFromJarPackagedFile("/templates/river_configuration_default.json");
+		Map<String, Object> json = Utils.loadJSONFromJarPackagedFile("/templates/remote_river_configuration_default.json");
 		return (Map<String, Object>) json.get("index");
 	}
 

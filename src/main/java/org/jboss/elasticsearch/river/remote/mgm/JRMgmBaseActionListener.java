@@ -24,7 +24,7 @@ import org.elasticsearch.rest.action.support.RestXContentBuilder;
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
-public abstract class JRMgmBaseActionListener<Request extends JRMgmBaseRequest, Response extends JRMgmBaseResponse<NodeResponse>, NodeResponse extends NodeJRMgmBaseResponse>
+public abstract class JRMgmBaseActionListener<Request extends JRMgmBaseRequest<?>, Response extends JRMgmBaseResponse<NodeResponse>, NodeResponse extends NodeJRMgmBaseResponse>
 		implements ActionListener<Response> {
 
 	protected final ESLogger logger;

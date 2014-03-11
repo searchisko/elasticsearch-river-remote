@@ -5,10 +5,6 @@
  */
 package org.jboss.elasticsearch.river.remote;
 
-import static org.elasticsearch.client.Requests.deleteRequest;
-import static org.elasticsearch.client.Requests.indexRequest;
-import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
-
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -28,6 +24,10 @@ import org.elasticsearch.index.query.FilterBuilders;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessor;
+
+import static org.elasticsearch.client.Requests.deleteRequest;
+import static org.elasticsearch.client.Requests.indexRequest;
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 /**
  * Universal configurable implementation of component responsible to transform document data obtained from remote system
@@ -359,7 +359,7 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 		FilterBuilder filterProject = FilterBuilders.termFilter(indexFieldForSpaceKey, spaceKey);
 		FilterBuilder filterSource = FilterBuilders.termFilter(indexFieldForRiverName, riverName);
 		FilterBuilder filter = FilterBuilders.boolFilter().must(filterTime).must(filterProject).must(filterSource);
-		srb.setQuery(QueryBuilders.matchAllQuery()).addField("_id").setFilter(filter);
+		srb.setQuery(QueryBuilders.matchAllQuery()).addField("_id").setPostFilter(filter);
 		if (commentIndexingMode.isExtraDocumentIndexed())
 			srb.setTypes(issueTypeName, commentTypeName);
 		else

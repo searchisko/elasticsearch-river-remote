@@ -5,9 +5,6 @@
  */
 package org.jboss.elasticsearch.river.remote;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,6 +29,9 @@ import org.jboss.elasticsearch.river.remote.testtools.ESRealClientTestBase;
 import org.jboss.elasticsearch.river.remote.testtools.TestUtils;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * jUnit test for {@link SpaceByLastUpdateTimestampIndexer} which tests search index update processes against embedded
@@ -485,7 +485,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 		SearchRequestBuilder srb = client.prepareSearch(CFG_INDEX_NAME).setTypes(documentType)
 				.setQuery(QueryBuilders.matchAllQuery());
-		srb.setFilter(FilterBuilders.termFilter("_parent", parentDocumentId));
+		srb.setPostFilter(FilterBuilders.termFilter("_parent", parentDocumentId));
 
 		assertImplSearchResults(client, srb, childDocumentIds);
 	}
@@ -560,7 +560,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			filterTime = FilterBuilders.rangeFilter("_timestamp").gte(boundDate);
 		}
 		SearchRequestBuilder srb = client.prepareSearch(CFG_INDEX_NAME).setTypes(documentType)
-				.setQuery(QueryBuilders.matchAllQuery()).setFilter(filterTime);
+				.setQuery(QueryBuilders.matchAllQuery()).setPostFilter(filterTime);
 
 		assertImplSearchResults(client, srb, documentIds);
 	}

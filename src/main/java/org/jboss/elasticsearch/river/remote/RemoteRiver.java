@@ -1,8 +1,5 @@
 package org.jboss.elasticsearch.river.remote;
 
-import static org.elasticsearch.client.Requests.indexRequest;
-import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
-
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.Collections;
@@ -13,7 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteResponse;
@@ -38,6 +35,9 @@ import org.elasticsearch.river.RiverSettings;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
 import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessorFactory;
+
+import static org.elasticsearch.client.Requests.indexRequest;
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 /**
  * Remote River implementation class.
@@ -520,7 +520,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 			try {
 				refreshSearchIndex(activityLogIndexName);
 				SearchResponse sr = client.prepareSearch(activityLogIndexName).setTypes(activityLogTypeName)
-						.setFilter(FilterBuilders.termFilter(SpaceIndexingInfo.DOCFIELD_SPACE_KEY, spaceKey))
+						.setPostFilter(FilterBuilders.termFilter(SpaceIndexingInfo.DOCFIELD_SPACE_KEY, spaceKey))
 						.setQuery(QueryBuilders.matchAllQuery()).addSort(SpaceIndexingInfo.DOCFIELD_START_DATE, SortOrder.DESC)
 						.addField("_source").setSize(1).execute().actionGet();
 				if (sr.getHits().getTotalHits() > 0) {
@@ -574,9 +574,9 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	}
 
 	/**
-	 * Remove rivers of given names.
-	 * Note: this method was added because of unit tests. Do not call this method in production code.
-	 *
+	 * Remove rivers of given names. Note: this method was added because of unit tests. Do not call this method in
+	 * production code.
+	 * 
 	 * @param riverNames
 	 */
 	public static void removeRunningInstances(String... riverNames) {
@@ -712,7 +712,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 		DeleteResponse lastSeqGetResponse = client.prepareDelete(getRiverIndexName(), riverName.name(), documentName)
 				.execute().actionGet();
-		if (lastSeqGetResponse.isNotFound()) {
+		if (!lastSeqGetResponse.isFound()) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("{} document doesn't exist in remote river persistent store", documentName);
 			}
@@ -757,7 +757,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	public void executeESBulkRequest(BulkRequestBuilder esBulk) throws Exception {
 		BulkResponse response = esBulk.execute().actionGet();
 		if (response.hasFailures()) {
-			throw new ElasticSearchException("Failed to execute ES index bulk update: " + response.buildFailureMessage());
+			throw new ElasticsearchException("Failed to execute ES index bulk update: " + response.buildFailureMessage());
 		}
 	}
 

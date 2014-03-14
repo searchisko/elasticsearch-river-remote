@@ -5,12 +5,6 @@
  */
 package org.jboss.elasticsearch.river.remote;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -38,6 +32,12 @@ import org.jboss.elasticsearch.river.remote.testtools.TestUtils;
 import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessor;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit test for {@link RemoteRiver}.
@@ -368,11 +368,24 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		RemoteRiver tested = prepareRiverInstanceForTest(null);
 
 		String dt = "2012-09-30T12:22:44.156Z";
-		Assert.assertEquals("{\"propertyName\":\"my_property\",\"value\":\"2012-09-30T14:22:44.156+0200\"}", tested
-				.storeDatetimeValueBuildDocument(null, "my_property", DateTimeUtils.parseISODateTime(dt)).string());
-		Assert.assertEquals(
-				"{\"spaceKey\":\"AAA\",\"propertyName\":\"my_property\",\"value\":\"2012-09-30T14:22:44.156+0200\"}", tested
-						.storeDatetimeValueBuildDocument("AAA", "my_property", DateTimeUtils.parseISODateTime(dt)).string());
+		Date d = DateTimeUtils.parseISODateTime(dt);
+
+		{
+			Map<String, Object> out = TestUtils.getJSONMapFromString(tested.storeDatetimeValueBuildDocument(null,
+					"my_property", d).string());
+			Assert.assertEquals(2, out.size());
+			Assert.assertEquals("my_property", out.get("propertyName"));
+			Assert.assertEquals(d.getTime(), DateTimeUtils.parseISODateTime((String) out.get("value")).getTime());
+		}
+
+		{
+			Map<String, Object> out = TestUtils.getJSONMapFromString(tested.storeDatetimeValueBuildDocument("AAA",
+					"my_property", d).string());
+			Assert.assertEquals(3, out.size());
+			Assert.assertEquals("AAA", out.get("spaceKey"));
+			Assert.assertEquals("my_property", out.get("propertyName"));
+			Assert.assertEquals(d.getTime(), DateTimeUtils.parseISODateTime((String) out.get("value")).getTime());
+		}
 	}
 
 	@Test

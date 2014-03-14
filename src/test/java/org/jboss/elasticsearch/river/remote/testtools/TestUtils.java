@@ -10,6 +10,10 @@ import java.io.StringWriter;
 import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
+import org.elasticsearch.common.settings.SettingsException;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.jboss.elasticsearch.river.remote.Utils;
 import org.junit.Assert;
 
@@ -53,6 +57,24 @@ public abstract class TestUtils {
 		StringWriter stringWriter = new StringWriter();
 		IOUtils.copy(TestUtils.class.getResourceAsStream(filePath), stringWriter, "UTF-8");
 		return stringWriter.toString();
+	}
+
+	/**
+	 * Read JSON from string representation.
+	 * 
+	 * @param jsonString to parse
+	 * @return parsed JSON
+	 * @throws SettingsException
+	 */
+	public static Map<String, Object> getJSONMapFromString(String jsonString) throws IOException {
+		XContentParser parser = null;
+		try {
+			parser = XContentFactory.xContent(XContentType.JSON).createParser(jsonString);
+			return parser.mapAndClose();
+		} finally {
+			if (parser != null)
+				parser.close();
+		}
 	}
 
 }

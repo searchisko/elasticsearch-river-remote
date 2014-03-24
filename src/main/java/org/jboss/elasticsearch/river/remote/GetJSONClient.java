@@ -41,6 +41,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
+import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
 
 /**
  * Class used to call remote system by http GET operation with JSON response.
@@ -235,12 +236,21 @@ public class GetJSONClient implements IRemoteSystemClient {
 	}
 
 	@Override
-	public Object getChangedDocumentDetails(String spaceKey, String documentId) throws Exception {
-		if (urlGetDocumentDetails == null)
-			return null;
-		String url = enhanceUrlGetDocumentDetails(urlGetDocumentDetails, spaceKey, documentId);
-		byte[] responseData = performGetRESTCall(url);
-		return parseJSONResponse(responseData);
+	public Object getChangedDocumentDetails(String spaceKey, String documentId) throws Exception,
+			RemoteDocumentNotFoundException {
+		try {
+			if (urlGetDocumentDetails == null)
+				return null;
+			String url = enhanceUrlGetDocumentDetails(urlGetDocumentDetails, spaceKey, documentId);
+			byte[] responseData = performGetRESTCall(url);
+			return parseJSONResponse(responseData);
+		} catch (RestCallHttpException e) {
+			if (e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+				throw new RemoteDocumentNotFoundException(e);
+			} else {
+				throw e;
+			}
+		}
 	}
 
 	protected static String enhanceUrlGetDocumentDetails(String url, String spaceKey, String documentId)
@@ -305,9 +315,10 @@ public class GetJSONClient implements IRemoteSystemClient {
 	 * 
 	 * @param url to perform GET request for
 	 * @return response from server if successful
+	 * @throws RestCallHttpException incase of failed http rest call
 	 * @throws Exception in case of unsuccessful call
 	 */
-	protected byte[] performGetRESTCall(String url) throws Exception {
+	protected byte[] performGetRESTCall(String url) throws Exception, RestCallHttpException {
 
 		logger.debug("Going to perform remote system HTTP GET REST API call to the the {}", url);
 
@@ -332,13 +343,27 @@ public class GetJSONClient implements IRemoteSystemClient {
 				responseContent = EntityUtils.toByteArray(response.getEntity());
 			}
 			if (statusCode != HttpStatus.SC_OK) {
-				throw new Exception("Failed remote system REST API call to the url '" + url + "'. HTTP error code: "
-						+ statusCode + " Response body: " + new String(responseContent));
+				throw new RestCallHttpException(url, statusCode, new String(responseContent));
 			}
 			return responseContent;
 		} finally {
 			method.releaseConnection();
 		}
+	}
+
+	public static final class RestCallHttpException extends Exception {
+		int statusCode;
+
+		public RestCallHttpException(String url, int statusCode, String responseContent) {
+			super("Failed remote system REST API call to the url '" + url + "'. HTTP error code: " + statusCode
+					+ " Response body: " + responseContent);
+			this.statusCode = statusCode;
+		}
+
+		public int getStatusCode() {
+			return statusCode;
+		}
+
 	}
 
 	@Override

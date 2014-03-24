@@ -13,8 +13,11 @@ import java.util.Map;
 
 import junit.framework.Assert;
 
+import org.apache.http.HttpStatus;
 import org.elasticsearch.common.jackson.core.JsonParseException;
 import org.elasticsearch.common.settings.SettingsException;
+import org.jboss.elasticsearch.river.remote.GetJSONClient.RestCallHttpException;
+import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -297,6 +300,19 @@ public class GetJSONClientTest {
 		return tested;
 	}
 
+	private IRemoteSystemClient createTestedInstanceWithRestCallHttpException(Map<String, Object> config,
+			final int returnHttpCode) {
+		IRemoteSystemClient tested = new GetJSONClient() {
+			@Override
+			protected byte[] performGetRESTCall(String url) throws Exception {
+				throw new RestCallHttpException(url, returnHttpCode, "response content");
+			};
+
+		};
+		tested.init(config, false, null);
+		return tested;
+	}
+
 	@SuppressWarnings("unchecked")
 	@Test
 	public void getChangedDocumentDetails() throws Exception {
@@ -351,6 +367,36 @@ public class GetJSONClientTest {
 			Assert.assertTrue(ret instanceof List);
 			List<Map<String, Object>> rm = (List<Map<String, Object>>) ret;
 			Assert.assertEquals("val1", rm.get(0).get("item1"));
+		}
+
+		// case - HTTP code 404 must throw special exception not to fail indexing completely- issue #11
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/document?docSpace={space}&id={id}");
+			IRemoteSystemClient tested = createTestedInstanceWithRestCallHttpException(config, HttpStatus.SC_NOT_FOUND);
+			try {
+				tested.getChangedDocumentDetails("myspace", "myid");
+				Assert.fail("RemoteDocumentNotFoundException expected");
+			} catch (RemoteDocumentNotFoundException e) {
+				// OK
+			}
+		}
+
+		// case - other HTTP codes must throw RestCallHttpException to fail indexing completely
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/document?docSpace={space}&id={id}");
+			IRemoteSystemClient tested = createTestedInstanceWithRestCallHttpException(config, HttpStatus.SC_FORBIDDEN);
+			try {
+				tested.getChangedDocumentDetails("myspace", "myid");
+				Assert.fail("RestCallHttpException expected");
+			} catch (RestCallHttpException e) {
+				// OK
+			}
 		}
 
 	}

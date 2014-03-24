@@ -15,6 +15,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.search.SearchHit;
+import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
 
 /**
  * Class used to run one index update process for one Space. Incremental indexing process is based on date of last
@@ -156,9 +157,15 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 						throw new IllegalArgumentException("Document ID not found in remote system response for Space " + spaceKey
 								+ " within data: " + document);
 					}
-					Object detail = remoteSystemClient.getChangedDocumentDetails(spaceKey, documentId);
-					if (detail != null) {
-						document.put("detail", detail);
+					try {
+						Object detail = remoteSystemClient.getChangedDocumentDetails(spaceKey, documentId);
+						if (detail != null) {
+							document.put("detail", detail);
+						}
+					} catch (RemoteDocumentNotFoundException e) {
+						// skip rest of processing in this case
+						logger.warn("Document '{}' details not found on server, so skip it: " + e.getMessage(), documentId);
+						continue;
 					}
 					lastDocumentUpdatedDate = documentIndexStructureBuilder.extractDocumentUpdated(document);
 					logger.debug("Go to update index for document {} with updated {}", documentId, lastDocumentUpdatedDate);

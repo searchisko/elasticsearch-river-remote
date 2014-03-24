@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.common.settings.SettingsException;
+import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
 
 /**
  * Interface for Remote system calls Client implementation. Only one instance is created by river, so implementation
@@ -64,9 +65,11 @@ public interface IRemoteSystemClient {
 	 * @param documentId mandatory document id to return document for
 	 * @return detailed document informations parsed from remote system reply (may be Map, or List, or simple value). May
 	 *         be null.
-	 * @throws Exception
+	 * @throws RemoteDocumentNotFoundException if document is not found on remote server
+	 * @throws Exception in case of other problems
 	 */
-	public abstract Object getChangedDocumentDetails(String spaceKey, String documentId) throws Exception;
+	public abstract Object getChangedDocumentDetails(String spaceKey, String documentId)
+			throws RemoteDocumentNotFoundException, Exception;
 
 	/**
 	 * Get actual index structure builder.

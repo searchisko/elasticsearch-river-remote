@@ -22,6 +22,7 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.internal.InternalSearchHit;
 import org.elasticsearch.search.internal.InternalSearchHits;
 import org.elasticsearch.search.internal.InternalSearchResponse;
+import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
 import org.jboss.elasticsearch.river.remote.testtools.ProjectInfoMatcher;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -118,6 +119,9 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 			when(
 					esIntegrationMock.readDatetimeValue("ORG",
 							SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE)).thenReturn(null);
+			// test skipping of bad read of remote document - issue #11
+			when(remoteClientMock.getChangedDocumentDetails("ORG", "ORG-46"))
+					.thenThrow(new RemoteDocumentNotFoundException());
 			addDocumentMock(issues, "ORG-45", "2012-08-14T08:00:00.000-0400");
 			addDocumentMock(issues, "ORG-46", "2012-08-14T08:01:00.000-0400");
 			addDocumentMock(issues, "ORG-47", "2012-08-14T08:02:10.000-0400");
@@ -127,12 +131,12 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 			when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(brb);
 
 			tested.processUpdate();
-			Assert.assertEquals(3, tested.indexingInfo.documentsUpdated);
+			Assert.assertEquals(2, tested.indexingInfo.documentsUpdated);
 			Assert.assertTrue(tested.indexingInfo.fullUpdate);
 			verify(remoteClientMock, times(1)).getChangedDocuments("ORG", 0, null);
 			verify(esIntegrationMock, times(1)).readDatetimeValue(Mockito.any(String.class), Mockito.any(String.class));
 			verify(esIntegrationMock, times(1)).prepareESBulkRequestBuilder();
-			verify(documentIndexStructureBuilderMock, times(3)).indexDocument(Mockito.eq(brb), Mockito.eq("ORG"),
+			verify(documentIndexStructureBuilderMock, times(2)).indexDocument(Mockito.eq(brb), Mockito.eq("ORG"),
 					Mockito.any(Map.class));
 			verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq("ORG"),
 					Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE),

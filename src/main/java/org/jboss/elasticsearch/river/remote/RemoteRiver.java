@@ -496,7 +496,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 			builder.startArray("indexed_spaces");
 			for (String spaceKey : pkeys) {
 				builder.startObject();
-				builder.field("space_key", spaceKey);
+				builder.field(SpaceIndexingInfo.DOCFIELD_SPACE_KEY, spaceKey);
 				SpaceIndexingInfo lastIndexing = getLastSpaceIndexingInfo(spaceKey);
 				if (lastIndexing != null) {
 					builder.field("last_indexing");

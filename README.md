@@ -78,7 +78,7 @@ The example above lists all the main options controlling the creation and behavi
 * `index/remote_field_document_id` is used to define field in remote system document data where unique document identifier is stored. Dot notation may be used for deeper nesting in document data.
 * `index/remote_field_updated` is used to define field in remote system document data where timestamp of last update is stored - timestamp may be formatted by ISO format or number representing millis from 1.1.1970. Dot notation may be used for deeper nesting in document data. 
 * `index/comment_mode` defines mode of issue comments indexing: `none` - no comments indexed, `embedded` - comments indexed as array in document, `child` - comment indexed as separate document with [parent-child relation](http://www.elasticsearch.org/guide/reference/mapping/parent-field.html) to the document, `standalone` - comment indexed as separate document. Setting is optional, `none` value is default if not provided.
-* `index/comment_type` defines [type](http://www.elasticsearch.org/guide/appendix/glossary.html#type) used when issue comment is stored into search index in `child` or `standalone` mode. See related notes later!
+* `index/comment_type` defines [type](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/glossary.html#glossary-type) used when issue comment is stored into search index in `child` or `standalone` mode. See related notes later!
 * `index/field_comments`, `index/comment_fields` can be used to change structure comment information in indexed documents. See 'index document structure' chapter.
 * `index/remote_field_comments` is used to define field in remote system document data where array of comments is stored. Dot notation may be used for deeper nesting in document data.
 * `index/remote_field_comment_id` is used to define field in remote system's comment data where unique comment identifier is stored. Used if `comment_mode` is  `child` or `standalone`. Dot notation may be used for deeper nesting in document data.
@@ -89,7 +89,7 @@ The example above lists all the main options controlling the creation and behavi
 
 Time value in configuration is number representing milliseconds, but you can use these postfixes appended to the number to define units: `s` for seconds, `m` for minutes, `h` for hours, `d` for days and `w` for weeks. So for example value `5h` means five fours, `2w` means two weeks.
  
-To get rid of some unwanted WARN log messages add next line to the [logging configuration file](http://www.elasticsearch.org/guide/reference/setup/configuration.html) of your Elasticsearch instance which is `config/logging.yml`:
+To get rid of some unwanted WARN log messages add next line to the [logging configuration file](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/setup-configuration.html) of your Elasticsearch instance which is `config/logging.yml`:
 
 	org.apache.commons.httpclient: ERROR
 
@@ -236,7 +236,7 @@ Password can be created using:
 Indexed document structure
 --------------------------
 You can configure which fields from document obtained from remote system will be available in search
-index and under which names. See [`river_configuration_default.json`](/src/main/resources/templates/river_configuration_default.json) 
+index and under which names. See [`remote_river_configuration_default.json`](/src/main/resources/templates/remote_river_configuration_default.json) 
 and [`river_configuration_example.json`](/src/main/resources/examples/river_configuration_example.json)
 file for example of river configuration, which is used to create default configuration.
 

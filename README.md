@@ -1,41 +1,34 @@
-Universal remote system indexing River Plugin for ElasticSearch
+Universal remote system indexing River Plugin for Elasticsearch
 ===============================================================
 
 The Universal remote system indexing River Plugin allows index documents from
-remotely accessible systems into [ElasticSearch](http://www.elasticsearch.org). 
-It's implemented as ElasticSearch [river](http://www.elasticsearch.org/guide/reference/river/) 
-[plugin](http://www.elasticsearch.org/guide/reference/modules/plugins.html) 
-and uses remote APIs (REST with JSON or XML, SOAP etc.) to obtain documents 
+remotely accessible systems into [Elasticsearch](http://www.elasticsearch.org). 
+It's implemented as Elasticsearch [river](http://www.elasticsearch.org/guide/en/elasticsearch/rivers/current/index.html) 
+[plugin](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/modules-plugins.html) 
+and uses remote APIs (REST with JSON for now, but should be REST with XML, SOAP etc.) to obtain documents 
 from remote systems.
 
-In order to install the plugin into ElasticSearch, simply run: 
-`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.3.0/elasticsearch-river-remote-1.3.0.zip -install elasticsearch-river-remote`.
+In order to install the plugin into Elasticsearch, simply run: 
+`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.3.1/elasticsearch-river-remote-1.3.1.zip -install elasticsearch-river-remote`.
 
     --------------------------------------------------
-    | Remote River | ElasticSearch    | Release date |
+    | Remote River | Elasticsearch    | Release date |
     --------------------------------------------------
     | master       | 1.0.0            |              |
+    --------------------------------------------------
+    | 1.3.1        | 1.0.0            | 26.3.2014    |
     --------------------------------------------------
     | 1.3.0        | 1.0.0            | 11.3.2014    |
     --------------------------------------------------
     | 1.2.3        | 0.90.5           | 10.10.2013   |
     --------------------------------------------------
-    | 1.2.2        | 0.90.5           | 23.9.2013    |
-    --------------------------------------------------
-    | 1.2.1        | 0.90.5           | 20.9.2013    |
-    --------------------------------------------------
-    | 1.2.0        | 0.90.0           | 6.9.2013     |
-    --------------------------------------------------
-    | 1.1.0        | 0.90.0           | 16.5.2013    |
-    --------------------------------------------------
-    | 1.0.0        | 0.19.12          | 14.5.2013    |
-    --------------------------------------------------
+    
 
-For changelog, planned milestones/enhancements and known bugs see 
-[github issue tracker](https://github.com/jbossorg/elasticsearch-river-remote/issues) please.
+For info about older releases, detailed changelog, planned milestones/enhancements and known bugs see 
+[github issue tracker](https://github.com/searchisko/elasticsearch-river-remote/issues) please.
 
 The river indexes documents with comments from remote system, and makes them searchable
-by ElasticSearch. Remote system is pooled periodically to detect changed documents and 
+by Elasticsearch. Remote system is pooled periodically to detect changed documents and 
 update search index in incremental update mode. 
 Periodical full update may be configured too to completely refresh search index and 
 remove documents deleted in remote system (deletes are not catch by incremental updates).
@@ -75,12 +68,12 @@ The example above lists all the main options controlling the creation and behavi
 * `remote/spacesIndexed` comma separated list of keys for remote system spaces to be indexed. Optional, list of spaces is obtained from remote system if omitted (so new spaces are indexed automatically).
 * `remote/spaceKeysExcluded` comma separated list of keys for remote system spaces to be excluded from indexing if list is obtained from remote system (so used only if no `remote/spacesIndexed` is defined). Optional.
 * `remote/indexUpdatePeriod`  time value, defines how often is search index updated from remote system. Optional, default 5 minutes.
-* `remote/indexFullUpdatePeriod` time value, defines how often is search index updated from remote system in full update mode. Optional, default 12 hours. You can use `0` to disable automatic full updates. Full update updates all documents in search index from remote system, and removes documents deleted in remote system from search index also. This brings more load to both remote system and ElasticSearch servers, and may run for long time in case of remote systems with many documents. Incremental updates are performed between full updates as defined by `indexUpdatePeriod` parameter.
-* `remote/maxIndexingThreads` defines maximal number of parallel indexing threads running for this river. Optional, default 1. This setting influences load on both JIRA and ElasticSearch servers during indexing. Threads are started per JIRA project update. If there is more threads allowed, then one is always dedicated for incremental updates only (so full updates do not block incremental updates for another projects).
+* `remote/indexFullUpdatePeriod` time value, defines how often is search index updated from remote system in full update mode. Optional, default 12 hours. You can use `0` to disable automatic full updates. Full update updates all documents in search index from remote system, and removes documents deleted in remote system from search index also. This brings more load to both remote system and Elasticsearch servers, and may run for long time in case of remote systems with many documents. Incremental updates are performed between full updates as defined by `indexUpdatePeriod` parameter.
+* `remote/maxIndexingThreads` defines maximal number of parallel indexing threads running for this river. Optional, default 1. This setting influences load on both JIRA and Elasticsearch servers during indexing. Threads are started per JIRA project update. If there is more threads allowed, then one is always dedicated for incremental updates only (so full updates do not block incremental updates for another projects).
 * `remote/remoteClientClass` class implementing *remote system API client* used to pull data from remote system. See dedicated chapter later. Optional, *GET JSON remote system API client* used by default. Client class must implement [`org.jboss.elasticsearch.river.remote.IRemoteSystemClient`](/src/main/java/org/jboss/elasticsearch/river/remote/IRemoteSystemClient.java) interface.
 * `remote/*` other params are used by the *remote system API client*
-* `index/index` defines name of search [index](http://www.elasticsearch.org/guide/appendix/glossary.html#index) where documents from remote system are stored. Parameter is optional, name of river is used if omitted. See related notes later!
-* `index/type` defines [type](http://www.elasticsearch.org/guide/appendix/glossary.html#type) used when document from remote system is stored into search index. Parameter is optional, `remote_document` is used if omitted. See related notes later!
+* `index/index` defines name of search [index](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/glossary.html#glossary-index) where documents from remote system are stored. Parameter is optional, name of river is used if omitted. See related notes later!
+* `index/type` defines [type](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/glossary.html#glossary-type) used when document from remote system is stored into search index. Parameter is optional, `remote_document` is used if omitted. See related notes later!
 * `index/field_river_name`, `index/field_space_key`, `index/field_document_id`, `index/fields`, `index/value_filters` are used to define structure of indexed document. See 'Index document structure' chapter.
 * `index/remote_field_document_id` is used to define field in remote system document data where unique document identifier is stored. Dot notation may be used for deeper nesting in document data.
 * `index/remote_field_updated` is used to define field in remote system document data where timestamp of last update is stored - timestamp may be formatted by ISO format or number representing millis from 1.1.1970. Dot notation may be used for deeper nesting in document data. 
@@ -92,11 +85,11 @@ The example above lists all the main options controlling the creation and behavi
 * `index/preprocessors` optional parameter. Defines chain of preprocessors applied to document data read from remote system before stored into index. See related notes later!
 * `activity_log` part defines where information about remote river index update activity are stored. If omitted then no activity information are stored.
 * `activity_log/index` defines name of index where information about remote river activity are stored.
-* `activity_log/type` defines [type](http://www.elasticsearch.org/guide/appendix/glossary.html#type) used to store information about remote river activity. Parameter is optional, `remote_river_indexupdate` is used if omitted.
+* `activity_log/type` defines [type](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/glossary.html#glossary-type) used to store information about remote river activity. Parameter is optional, `remote_river_indexupdate` is used if omitted.
 
 Time value in configuration is number representing milliseconds, but you can use these postfixes appended to the number to define units: `s` for seconds, `m` for minutes, `h` for hours, `d` for days and `w` for weeks. So for example value `5h` means five fours, `2w` means two weeks.
  
-To get rid of some unwanted WARN log messages add next line to the [logging configuration file](http://www.elasticsearch.org/guide/reference/setup/configuration.html) of your ElasticSearch instance which is `config/logging.yml`:
+To get rid of some unwanted WARN log messages add next line to the [logging configuration file](http://www.elasticsearch.org/guide/reference/setup/configuration.html) of your Elasticsearch instance which is `config/logging.yml`:
 
 	org.apache.commons.httpclient: ERROR
 
@@ -107,15 +100,15 @@ And to get rid of extensive INFO messages from index update runs use:
 
 Notes for Index and Document type mapping creation
 --------------------------------------------------
-Configured Search [index](http://www.elasticsearch.org/guide/appendix/glossary.html#index) 
-is NOT explicitly created by river code. You have to [create it manually](http://www.elasticsearch.org/guide/reference/api/admin-indices-create-index.html) 
+Configured Search [index](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/glossary.html#glossary-index) 
+is NOT explicitly created by river code. You have to [create it manually](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-create-index.html) 
 BEFORE river creation.
 
 	curl -XPUT 'http://localhost:9200/my_remote_index/'
 
-Type [Mapping](http://www.elasticsearch.org/guide/reference/mapping/) for document 
+Type [Mapping](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/mapping.html) for document 
 is not explicitly created by river code for configured document type. The river 
-REQUIRES [Automatic Timestamp Field](http://www.elasticsearch.org/guide/reference/mapping/timestamp-field.html) 
+REQUIRES [Automatic Timestamp Field](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/mapping-timestamp-field.html) 
 and `keyword` analyzer for `space_key` and `source` fields to be able to 
 correctly remove documents deleted in remote system from index during full update! 
 So you have to create document type mapping manually BEFORE river creation, with next content at least:
@@ -146,7 +139,7 @@ Same apply for 'comment' mapping if you use `child` or `standalone` mode!
 	}
 	'
 
-You can store [mappings in ElasticSearch node configuration](http://www.elasticsearch.org/guide/reference/mapping/conf-mappings.html) alternatively.
+You can store [mappings in Elasticsearch node configuration](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/mapping-conf-mappings.html) alternatively.
 
 See next chapter for description of indexed document structure to create better mappings meeting your needs. 
 
@@ -249,7 +242,7 @@ file for example of river configuration, which is used to create default configu
 
 Remote River writes JSON document with following structure to the search index
 for document. Remote document structure must provide unique identifier to be used
-as document [id](http://www.elasticsearch.org/guide/appendix/glossary.html#id) in 
+as document [id](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/glossary.html#glossary-id) in 
 search index. You can configure this field name over `index/remote_field_document_id` setting.
 You can use dot notation for deeper nesting of
 
@@ -270,7 +263,8 @@ You can use dot notation for deeper nesting of
 Array of comments is taken from document structure from field defined in `index/remote_field_comments` configuration. 
 Remote River uses following structure to store comment information into search index.
 Comment id is taken from field configured in `index/remote_field_comment_id` and is used as document 
-[id](http://www.elasticsearch.org/guide/appendix/glossary.html#id) in search index in `child` or `standalone` mode.
+[id](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/glossary.html#glossary-id) 
+in search index in `child` or `standalone` mode.
 
     -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     | **index field** | **indexed field value notes**                                        | **river configuration for index field** | **river configuration for source field** |

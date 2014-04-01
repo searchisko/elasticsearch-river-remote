@@ -55,8 +55,6 @@ public class GetJSONClientTest {
 			GetJSONClient tested = new GetJSONClient();
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
-			config.put(GetJSONClient.CFG_URL_GET_SPACES, "http://test.org/spaces");
-			config.put(GetJSONClient.CFG_GET_SPACES_RESPONSE_FIELD, "field");
 			tested.init(config, false, null);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertNull(tested.urlGetSpaces);
@@ -137,6 +135,19 @@ public class GetJSONClientTest {
 			Assert.assertNull(tested.getSpacesResField);
 			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headerAccept);
 			Assert.assertFalse(tested.isAuthConfigured);
+		}
+
+		// case - error when both detail UIRLa nd detail field are provided
+		try {
+			GetJSONClient tested = new GetJSONClient();
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/documents");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS_FIELD, "detailfield");
+			tested.init(config, false, null);
+			Assert.fail("SettingsException not thrown");
+		} catch (SettingsException e) {
+			// OK
 		}
 
 	}
@@ -320,14 +331,14 @@ public class GetJSONClientTest {
 
 	@SuppressWarnings("unchecked")
 	@Test
-	public void getChangedDocumentDetails() throws Exception {
+	public void getChangedDocumentDetails_urlConfigured() throws Exception {
 		// case - test REST not called if URL is not configured
 		{
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
 					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
 			IRemoteSystemClient tested = createTestedInstance(config, "invalid json", "not called");
-			Assert.assertNull(tested.getChangedDocumentDetails("myspace", "myid"));
+			Assert.assertNull(tested.getChangedDocumentDetails("myspace", "myid", null));
 		}
 
 		// case - test bad JSON returned
@@ -338,7 +349,7 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/document?docSpace={space}&id={id}");
 			IRemoteSystemClient tested = createTestedInstance(config, "invalid json",
 					"http://test.org/document?docSpace=myspace&id=myid");
-			tested.getChangedDocumentDetails("myspace", "myid");
+			tested.getChangedDocumentDetails("myspace", "myid", null);
 			Assert.fail("JsonParseException expected");
 		} catch (JsonParseException e) {
 			// OK
@@ -352,7 +363,7 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/document?docSpace={space}&id={id}");
 			IRemoteSystemClient tested = createTestedInstance(config, "{\"item1\":\"val1\"}",
 					"http://test.org/document?docSpace=myspace&id=myid");
-			Object ret = tested.getChangedDocumentDetails("myspace", "myid");
+			Object ret = tested.getChangedDocumentDetails("myspace", "myid", null);
 			Assert.assertNotNull(ret);
 			Assert.assertTrue(ret instanceof Map);
 			Map<String, Object> rm = (Map<String, Object>) ret;
@@ -367,7 +378,7 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/document?docSpace={space}&id={id}");
 			IRemoteSystemClient tested = createTestedInstance(config, "[{\"item1\":\"val1\"}]",
 					"http://test.org/document?docSpace=myspace&id=myid");
-			Object ret = tested.getChangedDocumentDetails("myspace", "myid");
+			Object ret = tested.getChangedDocumentDetails("myspace", "myid", null);
 			Assert.assertNotNull(ret);
 			Assert.assertTrue(ret instanceof List);
 			List<Map<String, Object>> rm = (List<Map<String, Object>>) ret;
@@ -382,7 +393,7 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/document?docSpace={space}&id={id}");
 			IRemoteSystemClient tested = createTestedInstanceWithRestCallHttpException(config, HttpStatus.SC_NOT_FOUND);
 			try {
-				tested.getChangedDocumentDetails("myspace", "myid");
+				tested.getChangedDocumentDetails("myspace", "myid", null);
 				Assert.fail("RemoteDocumentNotFoundException expected");
 			} catch (RemoteDocumentNotFoundException e) {
 				// OK
@@ -397,7 +408,126 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/document?docSpace={space}&id={id}");
 			IRemoteSystemClient tested = createTestedInstanceWithRestCallHttpException(config, HttpStatus.SC_FORBIDDEN);
 			try {
-				tested.getChangedDocumentDetails("myspace", "myid");
+				tested.getChangedDocumentDetails("myspace", "myid", null);
+				Assert.fail("RestCallHttpException expected");
+			} catch (RestCallHttpException e) {
+				// OK
+			}
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void getChangedDocumentDetails_urlFieldConfigured() throws Exception {
+
+		// case - no item data available
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS_FIELD, "detailUrlField");
+			IRemoteSystemClient tested = createTestedInstance(config, "invalid json", "http://test.org/document/5656525");
+			Assert.assertNull(tested.getChangedDocumentDetails("myspace", "myid", null));
+		}
+
+		// case - no URL available in item data
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS_FIELD, "detailUrlField");
+			IRemoteSystemClient tested = createTestedInstance(config, "invalid json", "http://test.org/document/5656525");
+			Map<String, Object> itemData = new HashMap<>();
+			Assert.assertNull(tested.getChangedDocumentDetails("myspace", "myid", itemData));
+		}
+
+		// case - invalid object available in item data instead of String with URL
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS_FIELD, "detailUrlField");
+			IRemoteSystemClient tested = createTestedInstance(config, "invalid json", "http://test.org/document/5656525");
+			Map<String, Object> itemData = new HashMap<>();
+			itemData.put("detailUrlField", new HashMap<>());
+			Assert.assertNull(tested.getChangedDocumentDetails("myspace", "myid", itemData));
+		}
+
+		// case - invalid URL format in item data
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS_FIELD, "detailUrlField");
+			IRemoteSystemClient tested = createTestedInstance(config, "invalid json", "http://test.org/document/5656525");
+			Map<String, Object> itemData = new HashMap<>();
+			itemData.put("detailUrlField", "invalid url format");
+			Assert.assertNull(tested.getChangedDocumentDetails("myspace", "myid", itemData));
+		}
+
+		// case - test bad JSON returned
+		try {
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS_FIELD, "detailUrlField");
+			IRemoteSystemClient tested = createTestedInstance(config, "invalid json", "http://test.org/document/5656525");
+			Map<String, Object> itemData = new HashMap<>();
+			itemData.put("detailUrlField", "http://test.org/document/5656525");
+			tested.getChangedDocumentDetails("myspace", "myid", itemData);
+			Assert.fail("JsonParseException expected");
+		} catch (JsonParseException e) {
+			// OK
+		}
+
+		// case - test JSON object returned, dot notation for field configuration
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS_FIELD, "nested.detailUrlField");
+			IRemoteSystemClient tested = createTestedInstance(config, "{\"item1\":\"val1\"}",
+					"http://test.org/document/5656525");
+			Map<String, Object> itemData = new HashMap<>();
+			itemData.put("detailUrlField", "http://test.org/document/5656525");
+			Map<String, Object> itemData2 = new HashMap<>();
+			itemData2.put("nested", itemData);
+			Object ret = tested.getChangedDocumentDetails("myspace", "myid", itemData2);
+			Assert.assertNotNull(ret);
+			Assert.assertTrue(ret instanceof Map);
+			Map<String, Object> rm = (Map<String, Object>) ret;
+			Assert.assertEquals(1, rm.size());
+			Assert.assertEquals("val1", rm.get("item1"));
+		}
+
+		// case - HTTP code 404 must throw special exception not to fail indexing completely- issue #11
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS_FIELD, "detailUrlField");
+			IRemoteSystemClient tested = createTestedInstanceWithRestCallHttpException(config, HttpStatus.SC_NOT_FOUND);
+			try {
+				Map<String, Object> itemData = new HashMap<>();
+				itemData.put("detailUrlField", "http://test.org/document/5656525");
+				tested.getChangedDocumentDetails("myspace", "myid", itemData);
+				Assert.fail("RemoteDocumentNotFoundException expected");
+			} catch (RemoteDocumentNotFoundException e) {
+				// OK
+			}
+		}
+
+		// case - other HTTP codes must throw RestCallHttpException to fail indexing completely
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS_FIELD, "detailUrlField");
+			IRemoteSystemClient tested = createTestedInstanceWithRestCallHttpException(config, HttpStatus.SC_FORBIDDEN);
+			try {
+				Map<String, Object> itemData = new HashMap<>();
+				itemData.put("detailUrlField", "http://test.org/document/5656525");
+				tested.getChangedDocumentDetails("myspace", "myid", itemData);
 				Assert.fail("RestCallHttpException expected");
 			} catch (RestCallHttpException e) {
 				// OK

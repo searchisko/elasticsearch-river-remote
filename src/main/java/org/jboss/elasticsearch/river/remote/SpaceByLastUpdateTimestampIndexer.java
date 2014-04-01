@@ -158,7 +158,7 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 								+ " within data: " + document);
 					}
 					try {
-						Object detail = remoteSystemClient.getChangedDocumentDetails(spaceKey, documentId);
+						Object detail = remoteSystemClient.getChangedDocumentDetails(spaceKey, documentId, document);
 						if (detail != null) {
 							document.put("detail", detail);
 						}

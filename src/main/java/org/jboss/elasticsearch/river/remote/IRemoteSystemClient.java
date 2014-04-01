@@ -59,16 +59,17 @@ public interface IRemoteSystemClient {
 			throws Exception;
 
 	/**
-	 * Get detailed data for document from remote system and parse them into <code>Map of Maps</code> structure.
+	 * Get detailed data for document from remote system.
 	 * 
-	 * @param spaceKey mandatory key of Space to get document for
-	 * @param documentId mandatory document id to return document for
+	 * @param spaceKey mandatory key of Space to get document details for
+	 * @param documentId mandatory document id to return document details for
+	 * @param document whole document data returned from list operation
 	 * @return detailed document informations parsed from remote system reply (may be Map, or List, or simple value). May
 	 *         be null.
 	 * @throws RemoteDocumentNotFoundException if document is not found on remote server
 	 * @throws Exception in case of other problems
 	 */
-	public abstract Object getChangedDocumentDetails(String spaceKey, String documentId)
+	public abstract Object getChangedDocumentDetails(String spaceKey, String documentId, Map<String, Object> document)
 			throws RemoteDocumentNotFoundException, Exception;
 
 	/**

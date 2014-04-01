@@ -192,15 +192,12 @@ Operation MUST return these results:
 * `total count` - total number of documents matching request search criteria (but response may contain only part of them). Use of this feature is optional, some bulk updates in remote system may be missed if not used (because pooling is based only on updated timestamp in this case). If used then remote system MUST handle `startAtIndex` request parameter. 
 
 ####Get Document Details
-This operation may be used by indexer to obtain details for one document. 
+This operation may be optionally used by indexer to obtain details for one document. 
 Is used when "List Documents" operation do not provide all information necessary for indexing.
-This operation is called once for each item in list returned from "List Documents" call.
+This operation is called once for each item from list returned from "List Documents" call.
 Note that this type of indexing requires lots of remote system calls, so for performance it is better to return all necessary data directly in List Documents" response.  
- 
-Operation MUST accept and correctly handle these request parameters provided by indexer: 
 
-* `documentId` - identifier of document obtained from item in list of documents from field named in `index/remote_field_document_id` (always provided by indexer)
-* `spaceKey` - space key document belongs to (always provided by indexer)
+URL for each item must be provided in data returned from "List Documents" operation, or have to be constructed from identifier provided there.
 
 Data returned from this call are stored into document structure under `detail` key, so you can map them into search index then.
 
@@ -219,10 +216,11 @@ Configuration parameters for this client type:
   * `{startAtIndex}` - remote system must return only documents matching previous two criteria, and starting at this index in result set.  
 * `remote/getDocsResFieldDocuments` defines field in JSON data returned from `remote/urlGetDocuments` call, where array of documents is stored. If not defined then the array is expected directly in the root of returned data. Dot notation may be used for deeper nesting in the JSON structure.
 * `remote/getDocsResFieldTotalcount` defines field in JSON data returned from `remote/urlGetDocuments` call, where total number of documents matching passed search criteria is stored. Dot notation may be used for deeper nesting in the JSON structure. 
-* `remote/urlGetDocumentDetails` is URL used to call *Get Document Details* operation from remote system. If not defined then call is not performed (in case if list operation returns all data for indexing). 
-   You may use two placeholders in this URL to be replaced by parameters required by indexing process as described above:
-  * `{id}` - identifier of document we need details for 
+* `remote/urlGetDocumentDetails` is URL used to call *Get Document Details* operation from remote system.
+   You may use these placeholders in this URL to be replaced by parameters required by indexing process as described above:
+  * `{id}` - identifier of document we need details for. Value is obtained from field named in `index/remote_field_document_id` in data item returned by *List documents* operation. 
   * `{space}` - identifier of space document is for 
+* `remote/urlGetDocumentDetailsField` allows to name field in item's data returned from *List documents* operation to get URL used to call *Get Document Details* operation from.
 * `remote/username` and `remote/pwd` are optional login credentials to access documents in remote system. HTTP BASIC authentication is supported. Alternatively you can store password into separate JSON document called `_pwd` stored in the rived index beside `_meta` document, into field called `pwd`, see example later.
 * `remote/timeout` time value, defines timeout for http/s request to the remote system. Optional, 5s is default if not provided.
 * `remote/urlGetSpaces` is URL used to call *List Spaces* operation from remote system. Necessary if `remote/spacesIndexed` is not provided.

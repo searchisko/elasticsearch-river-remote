@@ -67,6 +67,7 @@ public class GetJSONClient implements IRemoteSystemClient {
 	protected static final String CFG_URL_GET_DOCUMENTS = "urlGetDocuments";
 
 	protected static final String CFG_URL_GET_DOCUMENT_DETAILS = "urlGetDocumentDetails";
+	protected static final String CFG_URL_GET_DOCUMENT_DETAILS_FIELD = "urlGetDocumentDetailsField";
 
 	protected static final String CFG_HEADER_ACCEPT = "headerAccept";
 
@@ -85,6 +86,8 @@ public class GetJSONClient implements IRemoteSystemClient {
 	protected String urlGetDocuments;
 
 	protected String urlGetDocumentDetails;
+
+	protected String urlGetDocumentDetailsField;
 
 	protected static final String HEADER_ACCEPT_DEFAULT = "application/json";
 
@@ -105,6 +108,14 @@ public class GetJSONClient implements IRemoteSystemClient {
 	public void init(Map<String, Object> config, boolean spaceListLoadingEnabled, IPwdLoader pwdLoader) {
 		urlGetDocuments = getUrlFromConfig(config, CFG_URL_GET_DOCUMENTS, true);
 		urlGetDocumentDetails = getUrlFromConfig(config, CFG_URL_GET_DOCUMENT_DETAILS, false);
+		urlGetDocumentDetailsField = Utils.trimToNull(XContentMapValues.nodeStringValue(
+				config.get(CFG_URL_GET_DOCUMENT_DETAILS_FIELD), null));
+
+		if (urlGetDocumentDetails != null && urlGetDocumentDetailsField != null) {
+			throw new SettingsException("You can use only one of remote/" + CFG_URL_GET_DOCUMENT_DETAILS + " and remote/"
+					+ CFG_URL_GET_DOCUMENT_DETAILS_FIELD + " configuration parametr.");
+		}
+
 		getDocsResFieldDocuments = Utils.trimToNull(XContentMapValues.nodeStringValue(
 				config.get(CFG_GET_DOCS_RES_FIELD_DOCUMENTS), null));
 		getDocsResFieldTotalcount = Utils.trimToNull(XContentMapValues.nodeStringValue(
@@ -160,10 +171,11 @@ public class GetJSONClient implements IRemoteSystemClient {
 
 		logger
 				.info(
-						"Configured GET JSON remote client. Spaces listing URL '{}', documents listing url '{}', document detail url '{}', remote system user '{}'.",
+						"Configured GET JSON remote client. Spaces listing URL '{}', documents listing url '{}', document detail url '{}', document detail url field '{}', remote system user '{}'.",
 						urlGetSpaces != null ? urlGetSpaces : "unused", urlGetDocuments,
-						urlGetDocumentDetails != null ? urlGetDocumentDetails : "", remoteUsername != null ? remoteUsername
-								: "Anonymous access");
+						urlGetDocumentDetails != null ? urlGetDocumentDetails : "",
+						urlGetDocumentDetailsField != null ? urlGetDocumentDetailsField : "",
+						remoteUsername != null ? remoteUsername : "Anonymous access");
 
 	}
 
@@ -247,12 +259,35 @@ public class GetJSONClient implements IRemoteSystemClient {
 	}
 
 	@Override
-	public Object getChangedDocumentDetails(String spaceKey, String documentId) throws Exception,
-			RemoteDocumentNotFoundException {
+	public Object getChangedDocumentDetails(String spaceKey, String documentId, Map<String, Object> document)
+			throws Exception, RemoteDocumentNotFoundException {
 		try {
-			if (urlGetDocumentDetails == null)
+			String url = null;
+			if (urlGetDocumentDetailsField != null) {
+				if (document != null) {
+					try {
+						url = Utils.trimToNull((String) XContentMapValues.extractValue(urlGetDocumentDetailsField, document));
+					} catch (Exception e) {
+						// warning logged later
+					}
+				}
+				if (url == null) {
+					logger.warn("Document detail URL not found in field '{}' for space '" + spaceKey + "' and document id="
+							+ documentId, urlGetDocumentDetailsField);
+				} else {
+					try {
+						new URL(url);
+					} catch (MalformedURLException e) {
+						logger.warn("Invalid document detail URL '{}' obtained from field '{}' for space '" + spaceKey
+								+ "' and document id=" + documentId, new Object[] { url, urlGetDocumentDetailsField });
+						url = null;
+					}
+				}
+			} else if (urlGetDocumentDetails != null) {
+				url = enhanceUrlGetDocumentDetails(urlGetDocumentDetails, spaceKey, documentId);
+			}
+			if (url == null)
 				return null;
-			String url = enhanceUrlGetDocumentDetails(urlGetDocumentDetails, spaceKey, documentId);
 			byte[] responseData = performGetRESTCall(url);
 			return parseJSONResponse(responseData);
 		} catch (RestCallHttpException e) {

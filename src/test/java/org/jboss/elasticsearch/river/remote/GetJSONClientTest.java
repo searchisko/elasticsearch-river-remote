@@ -62,6 +62,7 @@ public class GetJSONClientTest {
 			Assert.assertNull(tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
 			Assert.assertFalse(tested.isAuthConfigured);
+			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headerAccept);
 		}
 
 		// case - error - getSpaces is required but not configured!
@@ -85,7 +86,7 @@ public class GetJSONClientTest {
 			// OK
 		}
 
-		// case - basic config, getSpaces required, authentication with pwd in config
+		// case - basic config, getSpaces required, authentication with pwd in config, accept header changed
 		{
 			GetJSONClient tested = new GetJSONClient();
 			Map<String, Object> config = new HashMap<String, Object>();
@@ -94,11 +95,13 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_GET_SPACES_RESPONSE_FIELD, "");
 			config.put(GetJSONClient.CFG_USERNAME, "myuser");
 			config.put(GetJSONClient.CFG_PASSWORD, "paaswd");
+			config.put(GetJSONClient.CFG_HEADER_ACCEPT, "app/json");
 			IPwdLoader pwdLoaderMock = Mockito.mock(IPwdLoader.class);
 			tested.init(config, true, pwdLoaderMock);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
+			Assert.assertEquals("app/json", tested.headerAccept);
 			Assert.assertTrue(tested.isAuthConfigured);
 			Mockito.verifyZeroInteractions(pwdLoaderMock);
 		}
@@ -116,6 +119,7 @@ public class GetJSONClientTest {
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
+			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headerAccept);
 			Assert.assertTrue(tested.isAuthConfigured);
 			Mockito.verify(pwdLoaderMock).loadPassword("myuser");
 		}
@@ -131,6 +135,7 @@ public class GetJSONClientTest {
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
+			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headerAccept);
 			Assert.assertFalse(tested.isAuthConfigured);
 		}
 

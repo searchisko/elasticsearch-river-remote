@@ -168,7 +168,7 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 						continue;
 					}
 					lastDocumentUpdatedDate = documentIndexStructureBuilder.extractDocumentUpdated(document);
-					logger.debug("Go to update index for document {} with updated {}", documentId, lastDocumentUpdatedDate);
+					logger.debug("Go to update index for document '{}' with updated {}", documentId, lastDocumentUpdatedDate);
 					if (lastDocumentUpdatedDate == null) {
 						throw new IllegalArgumentException("Last update timestamp not found in data for document " + documentId);
 					}

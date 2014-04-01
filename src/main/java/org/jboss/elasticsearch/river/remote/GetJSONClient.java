@@ -68,6 +68,8 @@ public class GetJSONClient implements IRemoteSystemClient {
 
 	protected static final String CFG_URL_GET_DOCUMENT_DETAILS = "urlGetDocumentDetails";
 
+	protected static final String CFG_HEADER_ACCEPT = "headerAccept";
+
 	private static final ESLogger logger = Loggers.getLogger(GetJSONClient.class);
 
 	private DefaultHttpClient httpclient;
@@ -83,6 +85,10 @@ public class GetJSONClient implements IRemoteSystemClient {
 	protected String urlGetDocuments;
 
 	protected String urlGetDocumentDetails;
+
+	protected static final String HEADER_ACCEPT_DEFAULT = "application/json";
+
+	protected String headerAccept;
 
 	protected boolean isAuthConfigured = false;
 
@@ -103,6 +109,11 @@ public class GetJSONClient implements IRemoteSystemClient {
 				config.get(CFG_GET_DOCS_RES_FIELD_DOCUMENTS), null));
 		getDocsResFieldTotalcount = Utils.trimToNull(XContentMapValues.nodeStringValue(
 				config.get(CFG_GET_DOCS_RES_FIELD_TOTALCOUNT), null));
+
+		headerAccept = Utils.trimToNull(XContentMapValues.nodeStringValue(config.get(CFG_HEADER_ACCEPT),
+				HEADER_ACCEPT_DEFAULT));
+		if (headerAccept == null)
+			headerAccept = HEADER_ACCEPT_DEFAULT;
 
 		if (spaceListLoadingEnabled) {
 			urlGetSpaces = getUrlFromConfig(config, CFG_URL_GET_SPACES, true);
@@ -315,7 +326,7 @@ public class GetJSONClient implements IRemoteSystemClient {
 	 * 
 	 * @param url to perform GET request for
 	 * @return response from server if successful
-	 * @throws RestCallHttpException incase of failed http rest call
+	 * @throws RestCallHttpException in case of failed http rest call
 	 * @throws Exception in case of unsuccessful call
 	 */
 	protected byte[] performGetRESTCall(String url) throws Exception, RestCallHttpException {
@@ -324,7 +335,7 @@ public class GetJSONClient implements IRemoteSystemClient {
 
 		URIBuilder builder = new URIBuilder(url);
 		HttpGet method = new HttpGet(builder.build());
-		method.addHeader("Accept", "application/json");
+		method.addHeader("Accept", headerAccept);
 		try {
 
 			// Preemptive authentication enabled - see

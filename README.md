@@ -227,6 +227,7 @@ Configuration parameters for this client type:
 * `remote/timeout` time value, defines timeout for http/s request to the remote system. Optional, 5s is default if not provided.
 * `remote/urlGetSpaces` is URL used to call *List Spaces* operation from remote system. Necessary if `remote/spacesIndexed` is not provided.
 * `remote/getSpacesResField` defines field in JSON data returned from `remote/urlGetSpaces` call, where array of space keys is stored. If not defined then the array is expected directly in root of returned data. Dot notation may be used for deeper nesting in the JSON structure.
+* `remote/headerAccept` defines value for `Accept` http request header used for REST calls. Optional, default value is `application/json`. 
 
 Password can be created using:
 

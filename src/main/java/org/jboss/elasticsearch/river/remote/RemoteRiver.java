@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteResponse;
@@ -526,7 +526,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 			try {
 				refreshSearchIndex(activityLogIndexName);
 				SearchResponse sr = client.prepareSearch(activityLogIndexName).setTypes(activityLogTypeName)
-						.setPostFilter(FilterBuilders.termFilter(SpaceIndexingInfo.DOCFIELD_SPACE_KEY, spaceKey))
+						.setFilter(FilterBuilders.termFilter(SpaceIndexingInfo.DOCFIELD_SPACE_KEY, spaceKey))
 						.setQuery(QueryBuilders.matchAllQuery()).addSort(SpaceIndexingInfo.DOCFIELD_START_DATE, SortOrder.DESC)
 						.addField("_source").setSize(1).execute().actionGet();
 				if (sr.getHits().getTotalHits() > 0) {
@@ -718,7 +718,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 		DeleteResponse lastSeqGetResponse = client.prepareDelete(getRiverIndexName(), riverName.name(), documentName)
 				.execute().actionGet();
-		if (!lastSeqGetResponse.isFound()) {
+		if (lastSeqGetResponse.isNotFound()) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("{} document doesn't exist in remote river persistent store", documentName);
 			}
@@ -763,7 +763,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	public void executeESBulkRequest(BulkRequestBuilder esBulk) throws Exception {
 		BulkResponse response = esBulk.execute().actionGet();
 		if (response.hasFailures()) {
-			throw new ElasticsearchException("Failed to execute ES index bulk update: " + response.buildFailureMessage());
+			throw new ElasticSearchException("Failed to execute ES index bulk update: " + response.buildFailureMessage());
 		}
 	}
 

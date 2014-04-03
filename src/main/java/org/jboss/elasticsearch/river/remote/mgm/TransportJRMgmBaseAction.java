@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
-import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.action.support.nodes.TransportNodesOperationAction;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
@@ -69,7 +69,7 @@ public abstract class TransportJRMgmBaseAction<Request extends JRMgmBaseRequest,
 	}
 
 	@Override
-	protected NodeResponse nodeOperation(NodeRequest nodeRequest) throws ElasticsearchException {
+	protected NodeResponse nodeOperation(NodeRequest nodeRequest) throws ElasticSearchException {
 		Request req = nodeRequest.getRequest();
 		logger.debug("Go to look for river '{}' on this node", req.getRiverName());
 		IRiverMgm river = RemoteRiver.getRunningInstance(req.getRiverName());
@@ -81,7 +81,7 @@ public abstract class TransportJRMgmBaseAction<Request extends JRMgmBaseRequest,
 			try {
 				return performOperationOnRiver(river, req, clusterService.localNode());
 			} catch (Exception e) {
-				throw new ElasticsearchException(e.getMessage(), e);
+				throw new ElasticSearchException(e.getMessage(), e);
 			}
 		}
 	}

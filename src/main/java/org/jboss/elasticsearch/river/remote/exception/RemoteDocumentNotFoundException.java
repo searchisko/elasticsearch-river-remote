@@ -22,9 +22,4 @@ public class RemoteDocumentNotFoundException extends Exception {
 		super(message, cause);
 	}
 
-	public RemoteDocumentNotFoundException(String message, Throwable cause, boolean enableSuppression,
-			boolean writableStackTrace) {
-		super(message, cause, enableSuppression, writableStackTrace);
-	}
-
 }

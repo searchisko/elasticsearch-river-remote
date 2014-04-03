@@ -81,6 +81,11 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	protected long indexFullUpdatePeriod = -1;
 
 	/**
+	 * <code>true</code> to run simple indexing mode - "List Documents" is called only once in this run
+	 */
+	protected boolean simpleGetDocuments;
+
+	/**
 	 * Queue of Space keys which needs to be reindexed in near future.
 	 * 
 	 * @see SpaceIndexerCoordinator
@@ -107,10 +112,11 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	 * @param indexUpdatePeriod index update period [ms]
 	 * @param maxIndexingThreads maximal number of parallel JIRA indexing threads started by this coordinator
 	 * @param indexFullUpdatePeriod period of index automatic full update from remote system [ms]. value <= 0 means never.
+	 * @param simpleGetDocuments true to run simple indexing mode - "List Documents" is called only once in this run
 	 */
 	public SpaceIndexerCoordinator(IRemoteSystemClient remoteSystemClient, IESIntegration esIntegrationComponent,
 			IDocumentIndexStructureBuilder documentIndexStructureBuilder, long indexUpdatePeriod, int maxIndexingThreads,
-			long indexFullUpdatePeriod) {
+			long indexFullUpdatePeriod, boolean simpleGetDocuments) {
 		super();
 		this.remoteSystemClient = remoteSystemClient;
 		this.esIntegrationComponent = esIntegrationComponent;
@@ -118,6 +124,7 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 		this.maxIndexingThreads = maxIndexingThreads;
 		this.documentIndexStructureBuilder = documentIndexStructureBuilder;
 		this.indexFullUpdatePeriod = indexFullUpdatePeriod;
+		this.simpleGetDocuments = simpleGetDocuments;
 	}
 
 	@Override
@@ -236,7 +243,7 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 			}
 
 			SpaceByLastUpdateTimestampIndexer indexer = new SpaceByLastUpdateTimestampIndexer(spaceKey, fullUpdateNecessary,
-					remoteSystemClient, esIntegrationComponent, documentIndexStructureBuilder);
+					simpleGetDocuments, remoteSystemClient, esIntegrationComponent, documentIndexStructureBuilder);
 			Thread it = esIntegrationComponent.acquireIndexingThread("remote_river_indexer_" + spaceKey, indexer);
 			esIntegrationComponent.storeDatetimeValue(spaceKey, STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE, new Date(),
 					null);

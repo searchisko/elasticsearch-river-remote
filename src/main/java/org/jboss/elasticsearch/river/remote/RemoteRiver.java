@@ -94,6 +94,11 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	protected long indexUpdatePeriod;
 
 	/**
+	 * Config - <code>true</code> to run simple indexing mode - "List Documents" is called only once in this run
+	 */
+	protected boolean simpleGetDocuments = false;
+
+	/**
 	 * Config - index full update period [ms]
 	 */
 	protected long indexFullUpdatePeriod = -1;
@@ -200,6 +205,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 			maxIndexingThreads = XContentMapValues.nodeIntegerValue(remoteSettings.get("maxIndexingThreads"), 1);
 			indexUpdatePeriod = Utils.parseTimeValue(remoteSettings, "indexUpdatePeriod", 5, TimeUnit.MINUTES);
 			indexFullUpdatePeriod = Utils.parseTimeValue(remoteSettings, "indexFullUpdatePeriod", 12, TimeUnit.HOURS);
+			simpleGetDocuments = XContentMapValues.nodeBooleanValue(remoteSettings.get("simpleGetDocuments"), false);
 			if (remoteSettings.containsKey("spacesIndexed")) {
 				allIndexedSpacesKeys = Utils.parseCsvString(XContentMapValues.nodeStringValue(
 						remoteSettings.get("spacesIndexed"), null));
@@ -318,7 +324,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 		closed = false;
 		lastRestartDate = new Date();
 		coordinatorInstance = new SpaceIndexerCoordinator(remoteSystemClient, this, documentIndexStructureBuilder,
-				indexUpdatePeriod, maxIndexingThreads, indexFullUpdatePeriod);
+				indexUpdatePeriod, maxIndexingThreads, indexFullUpdatePeriod, simpleGetDocuments);
 		coordinatorThread = acquireIndexingThread("remote_river_coordinator", coordinatorInstance);
 		coordinatorThread.start();
 	}

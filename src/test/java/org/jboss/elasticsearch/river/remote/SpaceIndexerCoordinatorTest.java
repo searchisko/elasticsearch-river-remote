@@ -5,12 +5,6 @@
  */
 package org.jboss.elasticsearch.river.remote;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -20,6 +14,12 @@ import org.jboss.elasticsearch.river.remote.testtools.MockThread;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit test for {@link SpaceIndexerCoordinator}.
@@ -34,7 +34,7 @@ public class SpaceIndexerCoordinatorTest {
 
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
 		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2,
-				-1);
+				-1, false);
 
 		// case - update necessary- no date of last update stored
 		{
@@ -70,7 +70,9 @@ public class SpaceIndexerCoordinatorTest {
 		int indexFullUpdatePeriod = 60 * 1000;
 
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 1000, 2, -1);
+		// simpleGetDocument is on true to check tested operation is not affected by this (as it is used in indexer later)
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 1000, 2, -1, true);
+		Assert.assertTrue(tested.simpleGetDocuments);
 		tested.setIndexFullUpdatePeriod(0);
 
 		// case - full update disabled, no force
@@ -153,7 +155,7 @@ public class SpaceIndexerCoordinatorTest {
 		int indexFullUpdatePeriod = 60 * 1000;
 
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 1000, 2, -1);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 1000, 2, -1, false);
 		tested.setIndexFullUpdatePeriod(0);
 
 		// case - full update disabled, but forced
@@ -230,7 +232,7 @@ public class SpaceIndexerCoordinatorTest {
 		int indexUpdatePeriod = 60 * 1000;
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
 		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2,
-				-1);
+				-1, false);
 		Assert.assertTrue(tested.spaceKeysToIndexQueue.isEmpty());
 
 		// case - no any space available (both null or empty list)
@@ -284,7 +286,7 @@ public class SpaceIndexerCoordinatorTest {
 		// now
 		{
 			reset(esIntegrationMock);
-			tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2, -1);
+			tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2, -1, true);
 			tested.spaceIndexerThreads.put("ORG", new Thread());
 			when(
 					esIntegrationMock.readDatetimeValue(Mockito.eq(Mockito.anyString()),
@@ -304,7 +306,7 @@ public class SpaceIndexerCoordinatorTest {
 		// case - some space available for index update, but in queue already, so do not schedule it for processing now
 		{
 			reset(esIntegrationMock);
-			tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2, -1);
+			tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2, -1, false);
 			tested.spaceKeysToIndexQueue.add("ORG");
 			when(
 					esIntegrationMock.readDatetimeValue(Mockito.eq(Mockito.anyString()),
@@ -339,7 +341,7 @@ public class SpaceIndexerCoordinatorTest {
 	public void startIndexers() throws Exception {
 
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1, true);
 		Assert.assertTrue(tested.spaceKeysToIndexQueue.isEmpty());
 
 		// case - nothing to start
@@ -369,7 +371,8 @@ public class SpaceIndexerCoordinatorTest {
 			tested.spaceIndexerThreads.clear();
 			tested.spaceIndexerThreads.put("II", new Thread());
 			tested.spaceIndexers.clear();
-			tested.spaceIndexers.put("II", new SpaceByLastUpdateTimestampIndexer("II", true, null, esIntegrationMock, null));
+			tested.spaceIndexers.put("II", new SpaceByLastUpdateTimestampIndexer("II", true, true, null, esIntegrationMock,
+					null));
 			tested.spaceKeysToIndexQueue.clear();
 			tested.spaceKeysToIndexQueue.addAll(Utils.parseCsvString("ORG,AAA,BBB,CCC,DDD"));
 			when(esIntegrationMock.acquireIndexingThread(Mockito.eq("remote_river_indexer_ORG"), Mockito.any(Runnable.class)))
@@ -379,6 +382,7 @@ public class SpaceIndexerCoordinatorTest {
 			Assert.assertTrue(tested.spaceIndexerThreads.containsKey("ORG"));
 			Assert.assertEquals(2, tested.spaceIndexers.size());
 			Assert.assertTrue(tested.spaceIndexers.containsKey("ORG"));
+			Assert.assertTrue(tested.spaceIndexers.get("ORG").simpleGetDocuments);
 			Assert.assertTrue(((MockThread) tested.spaceIndexerThreads.get("ORG")).wasStarted);
 			Assert.assertEquals(4, tested.spaceKeysToIndexQueue.size());
 			Assert.assertFalse(tested.spaceKeysToIndexQueue.contains("ORG"));
@@ -472,7 +476,7 @@ public class SpaceIndexerCoordinatorTest {
 	public void startIndexers_reserveIndexingThreadSlotForIncremental() throws Exception {
 
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1, true);
 		Assert.assertTrue(tested.spaceKeysToIndexQueue.isEmpty());
 
 		// case - only one thread configured, so use it for full reindex too!!
@@ -596,7 +600,7 @@ public class SpaceIndexerCoordinatorTest {
 	@Test
 	public void run() throws Exception {
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1, true);
 		when(esIntegrationMock.acquireIndexingThread(Mockito.any(String.class), Mockito.any(Runnable.class))).thenReturn(
 				new MockThread());
 
@@ -647,7 +651,7 @@ public class SpaceIndexerCoordinatorTest {
 	@Test
 	public void processLoopTask() throws Exception {
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1, true);
 		when(esIntegrationMock.acquireIndexingThread(Mockito.any(String.class), Mockito.any(Runnable.class))).thenReturn(
 				new MockThread());
 
@@ -734,11 +738,13 @@ public class SpaceIndexerCoordinatorTest {
 	@Test
 	public void reportIndexingFinished() throws Exception {
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 10, 2, -1);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 10, 2, -1, false);
 		tested.spaceIndexerThreads.put("ORG", new Thread());
 		tested.spaceIndexerThreads.put("AAA", new Thread());
-		tested.spaceIndexers.put("ORG", new SpaceByLastUpdateTimestampIndexer("ORG", false, null, esIntegrationMock, null));
-		tested.spaceIndexers.put("AAA", new SpaceByLastUpdateTimestampIndexer("AAA", false, null, esIntegrationMock, null));
+		tested.spaceIndexers.put("ORG", new SpaceByLastUpdateTimestampIndexer("ORG", false, false, null, esIntegrationMock,
+				null));
+		tested.spaceIndexers.put("AAA", new SpaceByLastUpdateTimestampIndexer("AAA", false, false, null, esIntegrationMock,
+				null));
 
 		// case - incremental indexing with success
 		{
@@ -777,8 +783,8 @@ public class SpaceIndexerCoordinatorTest {
 		// case - full indexing with success
 		{
 			tested.spaceIndexerThreads.put("AAA", new Thread());
-			tested.spaceIndexers.put("AAA",
-					new SpaceByLastUpdateTimestampIndexer("AAA", false, null, esIntegrationMock, null));
+			tested.spaceIndexers.put("AAA", new SpaceByLastUpdateTimestampIndexer("AAA", false, false, null,
+					esIntegrationMock, null));
 			tested.reportIndexingFinished("AAA", true, true);
 			Assert.assertEquals(0, tested.spaceIndexerThreads.size());
 			Assert.assertEquals(0, tested.spaceIndexers.size());
@@ -795,7 +801,7 @@ public class SpaceIndexerCoordinatorTest {
 	public void getCurrentSpaceIndexingInfo() {
 
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 10, 2, -1);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 10, 2, -1, false);
 
 		{
 			List<SpaceIndexingInfo> l = tested.getCurrentSpaceIndexingInfo();
@@ -804,9 +810,10 @@ public class SpaceIndexerCoordinatorTest {
 		}
 
 		{
-			tested.spaceIndexers.put("II", new SpaceByLastUpdateTimestampIndexer("II", true, null, esIntegrationMock, null));
-			tested.spaceIndexers.put("III",
-					new SpaceByLastUpdateTimestampIndexer("III", false, null, esIntegrationMock, null));
+			tested.spaceIndexers.put("II", new SpaceByLastUpdateTimestampIndexer("II", true, false, null, esIntegrationMock,
+					null));
+			tested.spaceIndexers.put("III", new SpaceByLastUpdateTimestampIndexer("III", false, false, null,
+					esIntegrationMock, null));
 			List<SpaceIndexingInfo> l = tested.getCurrentSpaceIndexingInfo();
 			Assert.assertNotNull(l);
 			Assert.assertEquals(2, l.size());

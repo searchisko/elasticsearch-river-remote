@@ -54,6 +54,12 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 	 */
 	protected final String spaceKey;
 
+	// TODO #14 Implement "simple" indexing mode
+	/**
+	 * <code>true</code> to run simple indexing mode - "List Documents" is called only once in this run
+	 */
+	protected boolean simpleGetDocuments;
+
 	/**
 	 * Time when indexing started.
 	 */
@@ -69,18 +75,24 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 	 * 
 	 * @param spaceKey to be indexed by this indexer.
 	 * @param fullUpdate true to request full index update
+	 * @param simpleGetDocuments true to run simple indexing mode - "List Documents" is called only once in this run
 	 * @param remoteSystemClient configured client to be used to obtain informations from remote system.
 	 * @param esIntegrationComponent to be used to call River component and ElasticSearch functions
 	 * @param documentIndexStructureBuilder to be used during indexing
 	 */
-	public SpaceByLastUpdateTimestampIndexer(String spaceKey, boolean fullUpdate, IRemoteSystemClient remoteSystemClient,
-			IESIntegration esIntegrationComponent, IDocumentIndexStructureBuilder documentIndexStructureBuilder) {
+	public SpaceByLastUpdateTimestampIndexer(String spaceKey, boolean fullUpdate, boolean simpleGetDocuments,
+			IRemoteSystemClient remoteSystemClient, IESIntegration esIntegrationComponent,
+			IDocumentIndexStructureBuilder documentIndexStructureBuilder) {
 		if (spaceKey == null || spaceKey.trim().length() == 0)
 			throw new IllegalArgumentException("spaceKey must be defined");
 		this.remoteSystemClient = remoteSystemClient;
 		this.spaceKey = spaceKey;
 		this.esIntegrationComponent = esIntegrationComponent;
 		this.documentIndexStructureBuilder = documentIndexStructureBuilder;
+		this.simpleGetDocuments = simpleGetDocuments;
+		// simple mode means fullUpdate automatically
+		if (simpleGetDocuments)
+			fullUpdate = true;
 		indexingInfo = new SpaceIndexingInfo(spaceKey, fullUpdate);
 	}
 
@@ -169,7 +181,7 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 					}
 					lastDocumentUpdatedDate = documentIndexStructureBuilder.extractDocumentUpdated(document);
 					logger.debug("Go to update index for document '{}' with updated {}", documentId, lastDocumentUpdatedDate);
-					if (lastDocumentUpdatedDate == null) {
+					if (!simpleGetDocuments && lastDocumentUpdatedDate == null) {
 						throw new IllegalArgumentException("Last update timestamp not found in data for document " + documentId);
 					}
 					if (firstDocumentUpdatedDate == null) {
@@ -182,39 +194,46 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 						throw new InterruptedException("Interrupted because River is closed");
 				}
 
-				storeLastDocumentUpdatedDate(esBulk, spaceKey, lastDocumentUpdatedDate);
+				if (!simpleGetDocuments && lastDocumentUpdatedDate != null)
+					storeLastDocumentUpdatedDate(esBulk, spaceKey, lastDocumentUpdatedDate);
+
 				esIntegrationComponent.executeESBulkRequest(esBulk);
 
-				// next logic depends on documents sorted by update timestamp ascending when returned from remote system
-				if (!lastDocumentUpdatedDate.equals(firstDocumentUpdatedDate)) {
-					// processed documents updated in different times, so we can continue by document filtering based on latest
-					// time
-					// of update which is more safe for concurrent changes in the remote system
-					updatedAfter = lastDocumentUpdatedDate;
-					if (res.getTotal() != null)
-						cont = res.getTotal() > (res.getStartAt() + res.getDocumentsCount());
-					startAt = 0;
+				if (simpleGetDocuments) {
+					cont = false;
 				} else {
-					// more documents updated in same time, we must go over them using pagination only, which may sometimes lead
-					// to some document update lost due concurrent changes in the remote system. But we can do it only if Total is
-					// available from response!
-					if (res.getTotal() != null) {
-						startAt = res.getStartAt() + res.getDocumentsCount();
-						cont = res.getTotal() > startAt;
-					} else {
-						updatedAfter = new Date(lastDocumentUpdatedDate.getTime() + 1000);
-						logger
-								.warn(
-										"All documents loaded from remote system for space '{}' contain same update timestamp {}, but we have no total count from response, so we may miss some documents because we shift timestamp for new request by one second to {}!",
-										spaceKey, lastDocumentUpdatedDate, updatedAfter);
+					// next logic depends on documents sorted by update timestamp ascending when returned from remote system
+					if (!lastDocumentUpdatedDate.equals(firstDocumentUpdatedDate)) {
+						// processed documents updated in different times, so we can continue by document filtering based on latest
+						// time
+						// of update which is more safe for concurrent changes in the remote system
+						updatedAfter = lastDocumentUpdatedDate;
+						if (res.getTotal() != null)
+							cont = res.getTotal() > (res.getStartAt() + res.getDocumentsCount());
 						startAt = 0;
+					} else {
+						// more documents updated in same time, we must go over them using pagination only, which may sometimes lead
+						// to some document update lost due concurrent changes in the remote system. But we can do it only if Total
+						// is
+						// available from response!
+						if (res.getTotal() != null) {
+							startAt = res.getStartAt() + res.getDocumentsCount();
+							cont = res.getTotal() > startAt;
+						} else {
+							updatedAfter = new Date(lastDocumentUpdatedDate.getTime() + 1000);
+							logger
+									.warn(
+											"All documents loaded from remote system for space '{}' contain same update timestamp {}, but we have no total count from response, so we may miss some documents because we shift timestamp for new request by one second to {}!",
+											spaceKey, lastDocumentUpdatedDate, updatedAfter);
+							startAt = 0;
+						}
 					}
 				}
 			}
 		}
 
-		if (indexingInfo.documentsUpdated > 0 && lastDocumentUpdatedDate != null && updatedAfterStarting != null
-				&& updatedAfterStarting.equals(lastDocumentUpdatedDate)) {
+		if (!simpleGetDocuments && indexingInfo.documentsUpdated > 0 && lastDocumentUpdatedDate != null
+				&& updatedAfterStarting != null && updatedAfterStarting.equals(lastDocumentUpdatedDate)) {
 			// no any new document during this update cycle, go to increment lastDocumentUpdatedDate in store by one second
 			// not to index last document again and again in next cycle
 			storeLastDocumentUpdatedDate(null, spaceKey, new Date(lastDocumentUpdatedDate.getTime() + 1000));

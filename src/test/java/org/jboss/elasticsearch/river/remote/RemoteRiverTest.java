@@ -77,6 +77,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		Assert.assertEquals("my_remote_river", tested.indexName);
 		Assert.assertEquals(RemoteRiver.INDEX_DOCUMENT_TYPE_NAME_DEFAULT, tested.typeName);
 		Assert.assertEquals(tested.documentIndexStructureBuilder, tested.remoteSystemClient.getIndexStructureBuilder());
+		Assert.assertFalse(tested.simpleGetDocuments);
 
 		// case - test river configuration reading
 		remoteSettingsAdd.put("maxIndexingThreads", "5");
@@ -85,6 +86,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		remoteSettingsAdd.put("maxIssuesPerRequest", 20);
 		remoteSettingsAdd.put("timeout", "5s");
 		remoteSettingsAdd.put("jqlTimeZone", "Europe/Prague");
+		remoteSettingsAdd.put("simpleGetDocuments", "true");
 		Map<String, Object> indexSettings = (Map<String, Object>) toplevelSettingsAdd.get("index");
 		indexSettings.put("index", "my_index_name");
 		indexSettings.put("type", "type_test");
@@ -95,6 +97,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		Assert.assertEquals(5 * 60 * 60 * 1000, tested.indexFullUpdatePeriod);
 		Assert.assertEquals("my_index_name", tested.indexName);
 		Assert.assertEquals("type_test", tested.typeName);
+		Assert.assertTrue(tested.simpleGetDocuments);
 		// assert index structure builder initialization
 		Assert.assertEquals(tested.documentIndexStructureBuilder, tested.remoteSystemClient.getIndexStructureBuilder());
 		Assert.assertEquals(tested.indexName,

@@ -1,5 +1,62 @@
 [
-{ "url": "https://api.access.redhat.com/rs/articles/478343"},
-{ "url": "https://api.access.redhat.com/rs/articles/113373"},
-{ "url": "https://api.access.redhat.com/rs/articles/111663"}
+    {
+        "url": "https://api.access.redhat.com/rs/articles/216263"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/112673"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/119933"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/545183"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/20490"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/524633"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/625703"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/115883"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/113373"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/225023"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/704703"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/770323"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/112543"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/427493"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/15786"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/310603"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/626493"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/706263"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/626513"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/articles/703153"
+    }
 ]

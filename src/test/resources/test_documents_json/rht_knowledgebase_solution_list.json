@@ -1,5 +1,62 @@
 [
-{ "url": "https://api.access.redhat.com/rs/solutions/747663"},
-{ "url": "https://api.access.redhat.com/rs/solutions/427303"},
-{ "url": "https://api.access.redhat.com/rs/solutions/18678"}
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/36926"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/44626"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/323033"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/229963"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/60888"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/161733"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/31400"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/309913"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/32744"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/199493"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/107983"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/199493"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/414953"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/361343"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/18678"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/68614"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/341683"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/209023"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/41097"
+    },
+    {
+        "url": "https://api.access.redhat.com/rs/solutions/237933"
+    }
 ]

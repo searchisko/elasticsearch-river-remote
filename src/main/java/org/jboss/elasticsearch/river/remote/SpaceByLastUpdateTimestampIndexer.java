@@ -162,6 +162,7 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 					throw new InterruptedException("Interrupted because River is closed");
 
 				Date firstDocumentUpdatedDate = null;
+				int updatedInThisBulk = 0;
 				BulkRequestBuilder esBulk = esIntegrationComponent.prepareESBulkRequestBuilder();
 				for (Map<String, Object> document : res.getDocuments()) {
 					String documentId = documentIndexStructureBuilder.extractDocumentId(document);
@@ -190,6 +191,7 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 
 					documentIndexStructureBuilder.indexDocument(esBulk, spaceKey, document);
 					indexingInfo.documentsUpdated++;
+					updatedInThisBulk++;
 					if (isClosed())
 						throw new InterruptedException("Interrupted because River is closed");
 				}
@@ -197,13 +199,15 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 				if (!simpleGetDocuments && lastDocumentUpdatedDate != null)
 					storeLastDocumentUpdatedDate(esBulk, spaceKey, lastDocumentUpdatedDate);
 
-				esIntegrationComponent.executeESBulkRequest(esBulk);
+				if (updatedInThisBulk > 0)
+					esIntegrationComponent.executeESBulkRequest(esBulk);
 
 				if (simpleGetDocuments) {
 					cont = false;
 				} else {
 					// next logic depends on documents sorted by update timestamp ascending when returned from remote system
-					if (!lastDocumentUpdatedDate.equals(firstDocumentUpdatedDate)) {
+					if (lastDocumentUpdatedDate != null && firstDocumentUpdatedDate != null
+							&& !lastDocumentUpdatedDate.equals(firstDocumentUpdatedDate)) {
 						// processed documents updated in different times, so we can continue by document filtering based on latest
 						// time
 						// of update which is more safe for concurrent changes in the remote system
@@ -212,20 +216,36 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 							cont = res.getTotal() > (res.getStartAt() + res.getDocumentsCount());
 						startAt = 0;
 					} else {
+						// no any documents found in batch 
+						// OR 
 						// more documents updated in same time, we must go over them using pagination only, which may sometimes lead
 						// to some document update lost due concurrent changes in the remote system. But we can do it only if Total
-						// is
-						// available from response!
+						// is available from response!
 						if (res.getTotal() != null) {
 							startAt = res.getStartAt() + res.getDocumentsCount();
 							cont = res.getTotal() > startAt;
 						} else {
-							updatedAfter = new Date(lastDocumentUpdatedDate.getTime() + 1000);
-							logger
-									.warn(
-											"All documents loaded from remote system for space '{}' contain same update timestamp {}, but we have no total count from response, so we may miss some documents because we shift timestamp for new request by one second to {}!",
-											spaceKey, lastDocumentUpdatedDate, updatedAfter);
-							startAt = 0;
+							long t = 0;
+							if (lastDocumentUpdatedDate != null) {
+								t = lastDocumentUpdatedDate.getTime();
+							} else if (firstDocumentUpdatedDate != null) {
+								t = firstDocumentUpdatedDate.getTime();
+							}
+
+							if (t > 0) {
+								updatedAfter = new Date(t + 1000);
+								logger
+										.warn(
+												"All documents loaded from remote system for space '{}' contain same update timestamp {}, but we have no total count from response, so we may miss some documents because we shift timestamp for new request by one second to {}!",
+												spaceKey, lastDocumentUpdatedDate, updatedAfter);
+								startAt = 0;
+							} else {
+								logger
+										.warn(
+												"All documents loaded from remote system for space '{}' are unreachable and we have no total count of records, so we have to finish indexing for now.",
+												spaceKey);
+								cont = false;
+							}
 						}
 					}
 				}

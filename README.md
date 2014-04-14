@@ -9,12 +9,14 @@ and uses remote APIs (REST with JSON for now, but should be REST with XML, SOAP 
 from remote systems.
 
 In order to install the plugin into Elasticsearch, simply run: 
-`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.3.2/elasticsearch-river-remote-1.3.2.zip -install elasticsearch-river-remote`.
+`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.3.3/elasticsearch-river-remote-1.3.3.zip -install elasticsearch-river-remote`.
 
     --------------------------------------------------
     | Remote River | Elasticsearch    | Release date |
     --------------------------------------------------
     | master       | 1.0.0            |              |
+    --------------------------------------------------
+    | 1.3.3        | 1.0.0            | 14.4.2014    |
     --------------------------------------------------
     | 1.3.2        | 1.0.0            | 3.4.2014     |
     --------------------------------------------------

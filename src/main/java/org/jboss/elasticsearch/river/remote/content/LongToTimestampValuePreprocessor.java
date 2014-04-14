@@ -5,17 +5,16 @@
  */
 package org.jboss.elasticsearch.river.remote.content;
 
-import java.util.Collection;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.jboss.elasticsearch.river.remote.DateTimeUtils;
+import org.jboss.elasticsearch.tools.content.PreprocessChainContext;
 import org.jboss.elasticsearch.tools.content.StructureUtils;
-import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessorBase;
 import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessorFactory;
+import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessorWithSourceBasesBase;
 
 /**
  * Content preprocessor which allows to transform {@link Long} value from source field to the ISO formatted timestamp
@@ -46,62 +45,26 @@ import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessorFactor
  * @author Vlastimil Elias (velias at redhat dot com)
  * @see StructuredContentPreprocessorFactory
  */
-public class LongToTimestampValuePreprocessor extends StructuredContentPreprocessorBase {
+public class LongToTimestampValuePreprocessor extends StructuredContentPreprocessorWithSourceBasesBase<Object> {
 
 	protected static final String CFG_SOURCE_FIELD = "source_field";
 	protected static final String CFG_TARGET_FIELD = "target_field";
-	protected static final String CFG_source_bases = "source_bases";
 
 	protected String fieldSource;
 	protected String fieldTarget;
-	protected List<String> sourceBases;
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void init(Map<String, Object> settings) throws SettingsException {
-		if (settings == null) {
-			throw new SettingsException("'settings' section is not defined for preprocessor " + name);
-		}
+		super.init(settings);
 		fieldSource = XContentMapValues.nodeStringValue(settings.get(CFG_SOURCE_FIELD), null);
 		validateConfigurationStringNotEmpty(fieldSource, CFG_SOURCE_FIELD);
 		fieldTarget = XContentMapValues.nodeStringValue(settings.get(CFG_TARGET_FIELD), null);
 		validateConfigurationStringNotEmpty(fieldTarget, CFG_TARGET_FIELD);
-		sourceBases = (List<String>) settings.get(CFG_source_bases);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public Map<String, Object> preprocessData(Map<String, Object> data) {
-		if (data == null)
-			return null;
-
-		if (sourceBases == null) {
-			processOneSourceValue(data);
-		} else {
-			for (String base : sourceBases) {
-				Object obj = XContentMapValues.extractValue(base, data);
-				if (obj != null) {
-					if (obj instanceof Map) {
-						processOneSourceValue((Map<String, Object>) obj);
-					} else if (obj instanceof Collection) {
-						for (Object o : (Collection<Object>) obj) {
-							if (o instanceof Map) {
-								processOneSourceValue((Map<String, Object>) o);
-							} else {
-								logger.warn("Source base {} contains collection with invalid value to be processed {}", base, obj);
-							}
-						}
-					} else {
-						logger.warn("Source base {} contains invalid value to be processed {}", base, obj);
-					}
-				}
-			}
-		}
-
-		return data;
-	}
-
-	private void processOneSourceValue(Map<String, Object> data) {
+	protected void processOneSourceValue(Map<String, Object> data, Object context, String base,
+			PreprocessChainContext chainContext) {
 		Object v = null;
 		if (fieldSource.contains(".")) {
 			v = XContentMapValues.extractValue(fieldSource, data);
@@ -115,10 +78,17 @@ public class LongToTimestampValuePreprocessor extends StructuredContentPreproces
 			} else if (v instanceof String) {
 				putTargetValue(data, DateTimeUtils.formatISODateTime(new Date(new Long((String) v))));
 			} else {
-				logger.warn("value for field '" + fieldSource + "' is not Long but is " + v.getClass().getName()
-						+ ", so can't be processed by '" + name + "' preprocessor");
+				String warningMessage = "value for field '" + fieldSource + "' is not Long but is " + v.getClass().getName()
+						+ ", so can't be processed";
+				addDataWarning(chainContext, warningMessage);
+				logger.debug(warningMessage);
 			}
 		}
+	}
+
+	@Override
+	protected Object createContext() {
+		return null;
 	}
 
 	protected void putTargetValue(Map<String, Object> data, Object value) {
@@ -131,10 +101,6 @@ public class LongToTimestampValuePreprocessor extends StructuredContentPreproces
 
 	public String getFieldTarget() {
 		return fieldTarget;
-	}
-
-	public List<String> getSourceBases() {
-		return sourceBases;
 	}
 
 }

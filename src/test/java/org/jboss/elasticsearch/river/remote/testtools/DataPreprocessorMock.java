@@ -8,6 +8,7 @@ package org.jboss.elasticsearch.river.remote.testtools;
 import java.util.Map;
 
 import org.elasticsearch.common.settings.SettingsException;
+import org.jboss.elasticsearch.tools.content.PreprocessChainContext;
 import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessorBase;
 
 /**
@@ -25,7 +26,7 @@ public class DataPreprocessorMock extends StructuredContentPreprocessorBase {
 	}
 
 	@Override
-	public Map<String, Object> preprocessData(Map<String, Object> issueData) {
+	public Map<String, Object> preprocessData(Map<String, Object> issueData, PreprocessChainContext chainContext) {
 		return issueData;
 	}
 

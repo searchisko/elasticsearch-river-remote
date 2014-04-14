@@ -54,7 +54,6 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 	 */
 	protected final String spaceKey;
 
-	// TODO #14 Implement "simple" indexing mode
 	/**
 	 * <code>true</code> to run simple indexing mode - "List Documents" is called only once in this run
 	 */
@@ -216,8 +215,8 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 							cont = res.getTotal() > (res.getStartAt() + res.getDocumentsCount());
 						startAt = 0;
 					} else {
-						// no any documents found in batch 
-						// OR 
+						// no any documents found in batch
+						// OR
 						// more documents updated in same time, we must go over them using pagination only, which may sometimes lead
 						// to some document update lost due concurrent changes in the remote system. But we can do it only if Total
 						// is available from response!

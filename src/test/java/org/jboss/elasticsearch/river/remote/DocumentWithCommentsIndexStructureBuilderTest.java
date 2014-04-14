@@ -70,12 +70,56 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	public void configuration_read_ok() {
 
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_name",
-				"index_name", "type_name", loadTestSettings("/index_structure_configuration_test_ok.json"));
+				"index_name", "type_name", loadTestSettings("/index_structure_configuration_test_ok.json"), true);
 		Assert.assertEquals("river_name", tested.riverName);
 		Assert.assertEquals("index_name", tested.indexName);
 		Assert.assertEquals("type_name", tested.issueTypeName);
 		Assert.assertEquals("document_id", tested.remoteDataFieldForDocumentId);
 		Assert.assertEquals("updated", tested.remoteDataFieldForUpdated);
+		Assert.assertEquals("river_name", tested.indexFieldForRiverName);
+		Assert.assertEquals("space_key_field", tested.indexFieldForSpaceKey);
+		Assert.assertEquals("document_id_field", tested.indexFieldForRemoteDocumentId);
+		Assert.assertEquals(CommentIndexingMode.CHILD, tested.commentIndexingMode);
+		Assert.assertEquals("all_comments", tested.indexFieldForComments);
+		Assert.assertEquals("jira_issue_comment_type", tested.commentTypeName);
+
+		Assert.assertEquals(5, tested.fieldsConfig.size());
+		assertFieldConfiguration(tested.fieldsConfig, "created", "fields.created", null);
+		assertFieldConfiguration(tested.fieldsConfig, "reporter", "fields.reporter", "user2");
+		assertFieldConfiguration(tested.fieldsConfig, "assignee", "fields.assignee", "user2");
+		assertFieldConfiguration(tested.fieldsConfig, "fix_versions", "fields.fixVersions", "name2");
+		assertFieldConfiguration(tested.fieldsConfig, "components", "fields.components", "name2");
+
+		Assert.assertEquals(2, tested.filtersConfig.size());
+		Assert.assertTrue(tested.filtersConfig.containsKey("user2"));
+		Assert.assertTrue(tested.filtersConfig.containsKey("name2"));
+
+		Map<String, String> userFilter = tested.filtersConfig.get("user2");
+		Assert.assertEquals(2, userFilter.size());
+		Assert.assertEquals("username2", userFilter.get("name"));
+		Assert.assertEquals("display_name2", userFilter.get("displayName"));
+
+		Assert.assertEquals(4, tested.commentFieldsConfig.size());
+		assertFieldConfiguration(tested.commentFieldsConfig, "comment_body", "body", null);
+		assertFieldConfiguration(tested.commentFieldsConfig, "comment_author2", "author", "user2");
+		assertFieldConfiguration(tested.commentFieldsConfig, "comment_updater", "updateAuthor", "user2");
+		assertFieldConfiguration(tested.commentFieldsConfig, "comment_created", "created", null);
+
+	}
+
+	@Test
+	public void configuration_read_ok_noupdatedmandatory() {
+
+		Map<String, Object> settings = loadTestSettings("/index_structure_configuration_test_ok.json");
+		settings.remove(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_UPDATED);
+
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_name",
+				"index_name", "type_name", settings, false);
+		Assert.assertEquals("river_name", tested.riverName);
+		Assert.assertEquals("index_name", tested.indexName);
+		Assert.assertEquals("type_name", tested.issueTypeName);
+		Assert.assertEquals("document_id", tested.remoteDataFieldForDocumentId);
+		Assert.assertEquals(null, tested.remoteDataFieldForUpdated);
 		Assert.assertEquals("river_name", tested.indexFieldForRiverName);
 		Assert.assertEquals("space_key_field", tested.indexFieldForSpaceKey);
 		Assert.assertEquals("document_id_field", tested.indexFieldForRemoteDocumentId);
@@ -118,7 +162,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		try {
 			Map<String, Object> config = loadTestSettings("/index_structure_configuration_test_ok.json");
 			config.remove(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_DOCUMENTID);
-			new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name", "type_name", config);
+			new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name", "type_name", config, true);
 			Assert.fail("SettingsException must be thrown");
 		} catch (SettingsException e) {
 			System.out.println(e.getMessage());
@@ -129,7 +173,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		try {
 			Map<String, Object> config = loadTestSettings("/index_structure_configuration_test_ok.json");
 			config.put(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_DOCUMENTID, " ");
-			new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name", "type_name", config);
+			new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name", "type_name", config, true);
 			Assert.fail("SettingsException must be thrown");
 		} catch (SettingsException e) {
 			System.out.println(e.getMessage());
@@ -145,7 +189,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	public void configuration_defaultLoading() {
 		Map<String, Object> settings = createSettingsWithMandatoryFilled();
 		assertDefaultConfigurationLoaded(new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name",
-				"type_name", settings));
+				"type_name", settings, true));
 
 	}
 
@@ -185,7 +229,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void addIssueDataPreprocessor() {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(null, null, null,
-				createSettingsWithMandatoryFilled());
+				createSettingsWithMandatoryFilled(), true);
 
 		// case - not NPE
 		tested.addDataPreprocessor(null);
@@ -204,7 +248,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void preprocessIssueData() {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(null, null, null,
-				createSettingsWithMandatoryFilled());
+				createSettingsWithMandatoryFilled(), true);
 
 		Map<String, Object> issue = null;
 		// case - no NPE and change when no preprocessors defined and issue data are null
@@ -262,7 +306,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		Map<String, Object> settings = (Map<String, Object>) Utils.loadJSONFromJarPackagedFile(
 				"/index_structure_configuration_test_ok.json").get("index");
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
-				"search_index", "issue_type", settings);
+				"search_index", "issue_type", settings, true);
 		tested.commentTypeName = "comment_type";
 
 		// case - comments NONE
@@ -327,7 +371,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void prepareIssueIndexedDocument() throws Exception {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
-				"search_index", "issue_type", loadTestSettings("/index_structure_configuration_test_ok.json"));
+				"search_index", "issue_type", loadTestSettings("/index_structure_configuration_test_ok.json"), true);
 
 		// case - no comments
 		{
@@ -401,7 +445,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void prepareCommentIndexedDocument() throws Exception {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
-				"search_index", "issue_type", loadTestSettings("/index_structure_configuration_test_ok.json"));
+				"search_index", "issue_type", loadTestSettings("/index_structure_configuration_test_ok.json"), true);
 		tested.remoteDataFieldForComments = "fields.comment.comments";
 		Map<String, Object> issue = TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501");
 		List<Map<String, Object>> comments = tested.extractComments(issue);
@@ -418,7 +462,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void extractDocumentId() {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_remote",
-				"search_index", "doc_type", createSettingsWithMandatoryFilled());
+				"search_index", "doc_type", createSettingsWithMandatoryFilled(), true);
 		tested.remoteDataFieldForDocumentId = null;
 
 		Map<String, Object> document = new HashMap<String, Object>();
@@ -455,7 +499,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void extractDocumentUpdated() {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_remote",
-				"search_index", "doc_type", createSettingsWithMandatoryFilled());
+				"search_index", "doc_type", createSettingsWithMandatoryFilled(), true);
 		tested.remoteDataFieldForUpdated = null;
 
 		Map<String, Object> document = new HashMap<String, Object>();
@@ -510,7 +554,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void indexDocument() throws Exception {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
-				"search_index", "issue_type", loadTestSettings("/index_structure_configuration_test_ok.json"));
+				"search_index", "issue_type", loadTestSettings("/index_structure_configuration_test_ok.json"), true);
 		tested.remoteDataFieldForComments = "fields.comment.comments";
 
 		// case - comments NONE
@@ -578,7 +622,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void addValueToTheIndex() throws Exception {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(null, null, null,
-				createSettingsWithMandatoryFilled());
+				createSettingsWithMandatoryFilled(), true);
 
 		XContentGenerator xContentGeneratorMock = mock(XContentGenerator.class);
 		XContentBuilder out = XContentBuilder.builder(preparexContentMock(xContentGeneratorMock));
@@ -692,7 +736,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void addValueToTheIndexField() throws Exception {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(null, null, null,
-				createSettingsWithMandatoryFilled());
+				createSettingsWithMandatoryFilled(), true);
 
 		XContentGenerator xContentGeneratorMock = mock(XContentGenerator.class);
 		XContentBuilder out = XContentBuilder.builder(preparexContentMock(xContentGeneratorMock));

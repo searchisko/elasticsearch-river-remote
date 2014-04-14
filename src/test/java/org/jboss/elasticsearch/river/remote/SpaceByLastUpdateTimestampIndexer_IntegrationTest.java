@@ -132,7 +132,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 	private DocumentWithCommentsIndexStructureBuilder prepareStructureBuilder() {
 		DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
 				CFG_RIVER_NAME, CFG_INDEX_NAME, CFG_TYPE_DOCUMENT,
-				DocumentWithCommentsIndexStructureBuilderTest.createSettingsWithMandatoryFilled());
+				DocumentWithCommentsIndexStructureBuilderTest.createSettingsWithMandatoryFilled(), true);
 		structureBuilder.remoteDataFieldForDocumentId = "key";
 		structureBuilder.remoteDataFieldForUpdated = "fields.updated";
 		structureBuilder.remoteDataFieldForComments = "fields.comment.comments";

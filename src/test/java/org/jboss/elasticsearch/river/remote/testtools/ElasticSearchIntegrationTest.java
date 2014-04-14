@@ -5,8 +5,6 @@
  */
 package org.jboss.elasticsearch.river.remote.testtools;
 
-import static org.mockito.Mockito.mock;
-
 import java.net.MalformedURLException;
 import java.util.Date;
 import java.util.HashMap;
@@ -23,6 +21,8 @@ import org.elasticsearch.river.RiverSettings;
 import org.jboss.elasticsearch.river.remote.DateTimeUtils;
 import org.jboss.elasticsearch.river.remote.DocumentWithCommentsIndexStructureBuilder;
 import org.jboss.elasticsearch.river.remote.RemoteRiver;
+
+import static org.mockito.Mockito.mock;
 
 /**
  * Class for ElasticSearch integration tests against some running ES cluster. This is not Unit test but helper for tests
@@ -46,7 +46,7 @@ public abstract class ElasticSearchIntegrationTest {
 
 			RemoteRiver jr = new RemoteRiver(new RiverName("rt", "my_jira_river"), rs, client);
 			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
-					"my_jira_river", "my_jira_index", "jira_issue", null);
+					"my_jira_river", "my_jira_index", "jira_issue", null, true);
 
 			String spaceKey = "ORG";
 			// Date date = new Date();

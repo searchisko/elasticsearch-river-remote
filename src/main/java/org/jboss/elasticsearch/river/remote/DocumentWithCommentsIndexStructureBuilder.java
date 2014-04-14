@@ -161,11 +161,13 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	 * @param indexName name of ElasticSearch index used to store issues
 	 * @param issueTypeName name of ElasticSearch type used to store issues into index
 	 * @param settings map to load other structure builder settings from
+	 * @param dateOfUpdateFieldMandatory defines if {@link #CONFIG_REMOTEFIELD_UPDATED} config field is mandatory or not
+	 *          (depends on used indexing process)
 	 * @throws SettingsException
 	 */
 	@SuppressWarnings("unchecked")
 	public DocumentWithCommentsIndexStructureBuilder(String riverName, String indexName, String issueTypeName,
-			Map<String, Object> settings) throws SettingsException {
+			Map<String, Object> settings, boolean dateOfUpdateFieldMandatory) throws SettingsException {
 		super();
 		this.riverName = riverName;
 		this.indexName = indexName;
@@ -194,7 +196,7 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 			commentFieldsConfig = (Map<String, Map<String, String>>) settings.get(CONFIG_COMMENTFILEDS);
 		}
 		loadDefaultsIfNecessary();
-		validateConfiguration();
+		validateConfiguration(dateOfUpdateFieldMandatory);
 	}
 
 	private void loadDefaultsIfNecessary() {
@@ -215,10 +217,11 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 		}
 	}
 
-	private void validateConfiguration() {
+	private void validateConfiguration(boolean dateOfUpdateMandatory) {
 
 		validateConfigurationString(remoteDataFieldForDocumentId, "index/" + CONFIG_REMOTEFIELD_DOCUMENTID);
-		validateConfigurationString(remoteDataFieldForUpdated, "index/" + CONFIG_REMOTEFIELD_UPDATED);
+		if (dateOfUpdateMandatory)
+			validateConfigurationString(remoteDataFieldForUpdated, "index/" + CONFIG_REMOTEFIELD_UPDATED);
 
 		validateConfigurationObject(filtersConfig, "index/value_filters");
 		validateConfigurationObject(fieldsConfig, "index/fields");

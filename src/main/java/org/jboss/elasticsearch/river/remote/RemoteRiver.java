@@ -259,7 +259,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 		}
 
 		documentIndexStructureBuilder = new DocumentWithCommentsIndexStructureBuilder(riverName.getName(), indexName,
-				typeName, indexSettings);
+				typeName, indexSettings, !simpleGetDocuments);
 		preparePreprocessors(indexSettings, documentIndexStructureBuilder);
 
 		remoteSystemClient.setIndexStructureBuilder(documentIndexStructureBuilder);

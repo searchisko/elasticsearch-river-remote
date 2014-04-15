@@ -50,7 +50,7 @@ River can be created using:
 	        "urlGetDocuments"       : "https://system.org/rest/document?docSpace={space}&docUpdatedAfter={updatedAfter}",
 	        "getDocsResFieldDocuments"  : "items"
 	        "username"              : "remote_username",
-          "pwd"                   : "remote_user_password",
+	        "pwd"                   : "remote_user_password",
 	        "timeout"               : "5s",
 	        "spacesIndexed"         : "ORG,AS7",
 	        "spaceKeysExcluded"     : "",
@@ -59,10 +59,16 @@ River can be created using:
 	        "maxIndexingThreads"    : 2,
 	    },
 	    "index" : {
-	        "index" : "my_remote_index",
-	        "type"  : "remote_document",
+	        "index"                    : "my_remote_index",
+	        "type"                     : "remote_document",
 	        "remote_field_document_id" : "id",
-	        "remote_field_updated" : "updated",
+	        "remote_field_updated"     : "updated",
+	        "fields" : {
+	            "title"   : {"remote_field" : "fields.title"},
+	            "created" : {"remote_field" : "fields.created"},
+	            "updated" : {"remote_field" : "fields.updated"},
+	            "content" : {"remote_field" : "fields.body"}
+	        }
 	    },
 	    "activity_log": {
 	        "index" : "remote_river_activity",
@@ -245,16 +251,19 @@ Password can be created using:
 
 Indexed document structure
 --------------------------
-You can configure which fields from document obtained from remote system will be available in search
-index and under which names. See [`remote_river_configuration_default.json`](/src/main/resources/templates/remote_river_configuration_default.json) 
+You **HAVE TO** explicitly configure which fields from document obtained from remote system will be available in search
+index and under which names. `index/fields` configuration structure is used for this. 
+You can also use `index/value_filters` to change structure of more complicated data before stored into search index (remove or rename some nested data elements).
+See [`remote_river_configuration_default.json`](/src/main/resources/templates/remote_river_configuration_default.json) 
 and [`river_configuration_example.json`](/src/main/resources/examples/river_configuration_example.json)
-file for example of river configuration, which is used to create default configuration.
+file for example of river configuration, and dedicated chapter later.
 
 Remote River writes JSON document with following structure to the search index
-for document. Remote document structure must provide unique identifier to be used
+for remote document. Remote document structure **MUST** provide unique identifier to be used
 as document [id](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/glossary.html#glossary-id) in 
-search index. You can configure this field name over `index/remote_field_document_id` setting.
-You can use dot notation for deeper nesting of
+search index, so river can update data during subsequent indexing runs. You can configure field name in remote data, 
+where id is stored, using `index/remote_field_document_id` configuration.
+You can use dot notation to obtain deeper nested data from remote document.
 
     --------------------------------------------------------------------------------------------------------------------------------------------------------
     | **index field** | **indexed field value notes**                 | **river configuration for index field** | **river configuration for source field** |
@@ -288,17 +297,102 @@ in search index in `child` or `standalone` mode.
     | all others      | all other values for the comment are mapped by river configuration   | index/comment_fields/*                  | index/comment_fields/*/remote_field      | 
     -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+### How to map data into index by `index/fields`, `index/comment_fields` and use `index/value_filters` there
+
+Example configuration is available [here](/src/main/resources/examples/river_configuration_example.json).
+
+`index/fields` and `index/comment_fields` configuration shares same structure which is:
+
+````
+{
+    "name_of_field_in_search_index" : {"remote_field" : "name_of_data_field_in_remote_document", "value_filter" : "name_of_value_filter"},
+    ... other fields
+}
+````
+
+Dot notation may be used in `remote_field` value to obtain deeper nested value from remote data. 
+
+`value_filter` is useful when value from remote data is not simple, but is more complicated structure, and you want to change it a bit (remove or rename some items). 
+It is optional and can be used only if necessary. It contains name of value filter defined in `index/value_filters` configuration (it allows reuse of same filter for more fields in data).
+
+`index/value_filters` structure contains definitions of distinct value filters. It is:
+
+````
+{
+    "name_of_filter" : {
+        "name_of_field_in_remote_data"        : "name_of_field_in_search_index",
+        "name_of_second_field_in_remote_data" : "name_of_second_field_in_search_index",
+        ... mapping of other remote data fields to be included in search index
+    },
+  ... other filters
+}
+````
+
+Example of mappings of remote data into search index with use of value filter:
+
+Remote data:
+
+````
+{
+  "meta" : {
+    "name" : "my document",
+    "qualification" : "public"
+  }, 
+  "created_by" : {
+    "user" : "jdoe",
+    "full_name" : "John Doe",
+    "age" : "21"
+  }
+}
+````
+
+River configuration:
+
+````
+{
+  ...
+  "index" : {
+    "fields" : {
+      "title"  : {"remote_field" : "meta.name"},
+      "author" : {"remote_field" : "created_by", "value_filter" : "user_filter"}
+    },
+    "value_filters" : {
+      "user_filter" : {
+        "user"      : "username",
+        "full_name" : "full_name"
+      }
+    }
+  }
+}
+
+````
+
+Data in search index:
+
+````
+{
+  "title" : "my document",
+  "author" : {
+      "username" : "jdoe",
+      "full_name" : "John Doe" 
+  } 
+}
+````
+
+### Use of data preprocessors
+
 You can also implement and configure some preprocessors, which allows you to 
 change/extend document information loaded from remote system and store
-these changes/extensions to the search index.
-This allows you for example value normalizations, or creation of some index 
-fields with values aggregated from more document fields.
+these changes/extensions to the search index. 
+Preprocessors are executed just after data are loaded from remote system, before they are mapped into search index. 
+This allows you for example to perform value normalizations by lookup into other search indices, to create some index 
+fields with values aggregated from more document fields, to add some constant values into data etc.
 
-Framework called [structured-content-tools](https://github.com/jbossorg/structured-content-tools) 
+Framework called [structured-content-tools](https://github.com/searchisko/structured-content-tools) 
 is used to implement these preprocessors. Example how to configure preprocessors is available 
 [here](/src/main/resources/examples/river_configuration_example.json).
 Some generic configurable preprocessor implementations are available as part of 
-the [structured-content-tools framework](https://github.com/jbossorg/structured-content-tools).
+the [structured-content-tools framework](https://github.com/searchisko/structured-content-tools).
 
 Index structure creation is implemented by [org.jboss.elasticsearch.river.remote.DocumentWithCommentsIndexStructureBuilder](/src/main/java/org/jboss/elasticsearch/river/remote/DocumentWithCommentsIndexStructureBuilder.java)
 

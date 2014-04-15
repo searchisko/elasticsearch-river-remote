@@ -11,10 +11,10 @@
         "maxIndexingThreads"    : 2
     },
     "index" : {
-        "index" : "my_remote_index",
-        "type"  : "remote_document",
+        "index"                    : "my_remote_index",
+        "type"                     : "remote_document",
         "remote_field_document_id" : "id",
-	      "remote_field_updated"     : "fields.updated",
+        "remote_field_updated"     : "fields.updated",
         "preprocessors" : [
             { 
                 "name"     : "Status Normalizer",
@@ -38,23 +38,23 @@
           "updated" : {"remote_field" : "fields.updated"},
           "author"  : {"remote_field" : "fields.author", "value_filter" : "user"},
           "content" : {"remote_field" : "fields.body"}
-		    },
-		    "value_filters" : {
-	        "user" : {
-	            "name" : "username",
-	            "displayName" : "display_name"
-	        }
-		    },
-		    "comment_mode" : "child",
-		    "remote_field_comments" : "comments",
-		    "remote_field_comment_id" : "id",
-		    "comment_type" : "remote_document_comment",
-		    "field_comments" : "comments",
-		    "comment_fields" : {
-		        "comment_body"    : {"remote_field" : "body"},
-		        "comment_author"  : {"remote_field" : "author", "value_filter" : "user"},
-		        "comment_created" : {"remote_field" : "created"}
-		    }
+        },
+        "value_filters" : {
+          "user" : {
+              "name"        : "username",
+              "displayName" : "display_name"
+          }
+        },
+        "comment_mode" : "child",
+        "remote_field_comments" : "comments",
+        "remote_field_comment_id" : "id",
+        "comment_type" : "remote_document_comment",
+        "field_comments" : "comments",
+        "comment_fields" : {
+            "comment_body"    : {"remote_field" : "body"},
+            "comment_author"  : {"remote_field" : "author", "value_filter" : "user"},
+            "comment_created" : {"remote_field" : "created"}
+        }
     },
     "activity_log": {
         "index" : "remote_river_activity",

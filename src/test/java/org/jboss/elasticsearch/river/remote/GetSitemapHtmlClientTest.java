@@ -11,8 +11,10 @@ import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.common.settings.SettingsException;
 import org.jboss.elasticsearch.river.remote.HttpRemoteSystemClientBase.HttpCallException;
+import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
 import org.jboss.elasticsearch.river.remote.sitemap.SiteMapParserTest;
 import org.jboss.elasticsearch.river.remote.sitemap.UnknownFormatException;
+import org.jsoup.Jsoup;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -129,6 +131,18 @@ public class GetSitemapHtmlClientTest {
 							e.getMessage());
 		}
 
+		// case - bad html mapping configuration
+		try {
+			GetSitemapHtmlClient tested = new GetSitemapHtmlClient();
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/documents");
+			config.put(GetSitemapHtmlClient.CFG_HTML_MAPPING, "no map");
+			tested.init(config, false, null);
+			Assert.fail("SettingsException not thrown");
+		} catch (SettingsException e) {
+			Assert.assertEquals("'remote/htmlMapping' configuration section is invalid", e.getMessage());
+		}
+
 	}
 
 	@Test(expected = UnsupportedOperationException.class)
@@ -156,7 +170,7 @@ public class GetSitemapHtmlClientTest {
 		try {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
-			IRemoteSystemClient tested = createTestedInstance(config, "invalid json", "http://test.org/sitemap.xml");
+			GetSitemapHtmlClient tested = createTestedInstance(config, "invalid sitemap xml", "http://test.org/sitemap.xml");
 			tested.getChangedDocuments("myspace", 0, null);
 			Assert.fail("UnknownFormatException expected");
 		} catch (UnknownFormatException e) {
@@ -167,7 +181,7 @@ public class GetSitemapHtmlClientTest {
 		try {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
-			IRemoteSystemClient tested = createTestedInstanceWithHttpCallException(config, HttpStatus.SC_NOT_FOUND);
+			GetSitemapHtmlClient tested = createTestedInstanceWithHttpCallException(config, HttpStatus.SC_NOT_FOUND);
 			tested.getChangedDocuments("myspace", 0, null);
 			Assert.fail("HttpCallException expected");
 		} catch (HttpCallException e) {
@@ -210,7 +224,7 @@ public class GetSitemapHtmlClientTest {
 		try {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, SiteMapParserTest.URL_SITEMAP_XML);
-			IRemoteSystemClient tested = createTestedInstance(config, SiteMapParserTest.SITEMAP_XML_INDEX,
+			GetSitemapHtmlClient tested = createTestedInstance(config, SiteMapParserTest.SITEMAP_XML_INDEX,
 					SiteMapParserTest.URL_SITEMAP_XML);
 			tested.getChangedDocuments("myspace", 0, null);
 			Assert.fail("Exception expected");
@@ -229,8 +243,115 @@ public class GetSitemapHtmlClientTest {
 	}
 
 	@Test
-	public void getChangedDocumentDetails() {
-		// TODO Unit test
+	public void getChangedDocumentDetails_httpError() throws Exception {
+		try {
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
+			GetSitemapHtmlClient tested = createTestedInstanceWithHttpCallException(config, HttpStatus.SC_NOT_FOUND);
+
+			Map<String, Object> document = new HashMap<>();
+			document.put(GetSitemapHtmlClient.DOC_FIELD_URL, "http://test.org/doc");
+			tested.getChangedDocumentDetails("myspace", "myid", document);
+			Assert.fail("RemoteDocumentNotFoundException expected");
+		} catch (RemoteDocumentNotFoundException e) {
+			// OK
+		}
+	}
+
+	@Test
+	public void getChangedDocumentDetails_noHtmlMappingDefined() throws Exception {
+
+		Map<String, Object> config = new HashMap<String, Object>();
+		config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
+		GetSitemapHtmlClient tested = createTestedInstance(config, "<body>my html body</body>", "http://test.org/doc");
+
+		Map<String, Object> document = new HashMap<>();
+		document.put(GetSitemapHtmlClient.DOC_FIELD_URL, "http://test.org/doc");
+
+		Object o = tested.getChangedDocumentDetails("myspace", "myid", document);
+		Assert.assertEquals("<html>\n <head></head>\n <body>\n  my html body\n </body>\n</html>", o);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void getChangedDocumentDetails_htmlMappingDefined() throws Exception {
+
+		Map<String, Object> config = new HashMap<String, Object>();
+		config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
+		Map<String, Object> htmlMapping = new HashMap<>();
+		createMappingField(htmlMapping, "field_full_nostripe", null, null);
+		createMappingField(htmlMapping, "field_full_stripe", null, true);
+		createMappingField(htmlMapping, "field_css_nostripe", ".myclass", false);
+		createMappingField(htmlMapping, "field_css_stripe", ".myclass", true);
+		createMappingField(htmlMapping, "field_css1_nostripe", ".myclass:eq(1)", false);
+		createMappingField(htmlMapping, "field_css1_stripe", ".myclass:eq(1)", true);
+		createMappingField(htmlMapping, "field_unknown_css_stripe", ".myclassunknown", true);
+		createMappingField(htmlMapping, "field_unknown_css_nostripe", ".myclassunknown", true);
+		config.put(GetSitemapHtmlClient.CFG_HTML_MAPPING, htmlMapping);
+
+		GetSitemapHtmlClient tested = createTestedInstance(
+				config,
+				"<html><body>my html body\n<div class='myclass'>my class content</div>\n<div class='myclass'>my <b>class</b> content 2</div></body><html>",
+				"http://test.org/doc");
+
+		Map<String, Object> document = new HashMap<>();
+		document.put(GetSitemapHtmlClient.DOC_FIELD_URL, "http://test.org/doc");
+
+		Map<String, String> o = (Map<String, String>) tested.getChangedDocumentDetails("myspace", "myid", document);
+
+		Assert.assertEquals("<html>\n <head></head>\n <body>\n  my html body \n"
+				+ "  <div class=\"myclass\">\n   my class content\n  </div> \n  <div class=\"myclass\">\n   my \n"
+				+ "   <b>class</b> content 2\n  </div>\n </body>\n</html>", o.get("field_full_nostripe"));
+		Assert.assertEquals("my html body my class content my class content 2", o.get("field_full_stripe"));
+		Assert.assertEquals("<div class=\"myclass\">\n my class content\n</div>\n<div class=\"myclass\">\n"
+				+ " my \n <b>class</b> content 2\n" + "</div>", o.get("field_css_nostripe"));
+		Assert.assertEquals("my class content my class content 2", o.get("field_css_stripe"));
+		Assert.assertEquals("my \n<b>class</b> content 2", o.get("field_css1_nostripe"));
+		Assert.assertEquals("my class content 2", o.get("field_css1_stripe"));
+		Assert.assertEquals(null, o.get("field_unknown_css_stripe"));
+		Assert.assertEquals(null, o.get("field_unknown_css_nostripe"));
+	}
+
+	private void createMappingField(Map<String, Object> htmlMapping, String field, Object cssSelector, Boolean stripeHtml) {
+		Map<String, Object> hm = new HashMap<String, Object>();
+		if (cssSelector != null)
+			hm.put(GetSitemapHtmlClient.CFG_HM_CSS_SELECTOR, cssSelector);
+		if (stripeHtml != null)
+			hm.put(GetSitemapHtmlClient.CFG_HM_STRIP_HTML, stripeHtml);
+		htmlMapping.put(field, hm);
+	}
+
+	@Test
+	public void convertNodeToText() {
+		Assert.assertEquals("", GetSitemapHtmlClient.convertNodeToText(Jsoup.parse("")));
+		Assert.assertEquals("ahoj", GetSitemapHtmlClient.convertNodeToText(Jsoup.parse("ahoj")));
+		Assert.assertEquals("ahoj", GetSitemapHtmlClient.convertNodeToText(Jsoup.parse("<p>ahoj</p>")));
+		Assert.assertEquals("ahoj home fohe",
+				GetSitemapHtmlClient.convertNodeToText(Jsoup.parse("<p>ahoj</p><p>home fohe</p>")));
+		Assert.assertEquals("ahoj home fohe my link", GetSitemapHtmlClient.convertNodeToText(Jsoup
+				.parse("<p>ahoj</p><p class=\"class\">home fohe</p>\n<div><a href='http://mylink.com'>my link</a></div>")));
+
+	}
+
+	@Test
+	public void convertElementsToText() {
+		Assert
+				.assertEquals(
+						"my link",
+						GetSitemapHtmlClient
+								.convertElementsToText(Jsoup
+										.parse(
+												"<p>ahoj</p><p class=\"class\">home fohe</p>\n<div class='myclass'><a href='http://mylink.com'>my link</a></div>")
+										.select(".myclass")));
+		Assert
+				.assertEquals(
+						"my link my link 2",
+						GetSitemapHtmlClient
+								.convertElementsToText(Jsoup
+										.parse(
+												"<p>ahoj</p><p class=\"class\">home fohe</p>\n<div class='myclass'><a href='http://mylink.com'>my link</a></div>\\n<div class='myclass'><a href='http://mylink.com'>my link 2</a></div>")
+										.select(".myclass")));
+
 	}
 
 	private GetSitemapHtmlClient createTestedInstance(Map<String, Object> config, final String returnSitemapData,

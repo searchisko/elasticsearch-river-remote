@@ -1,3 +1,8 @@
+/*
+ * JBoss, Home of Professional Open Source
+ * Copyright 2014 Red Hat Inc. and/or its affiliates and other contributors
+ * as indicated by the @authors tag. All rights reserved.
+ */
 package org.jboss.elasticsearch.river.remote.exception;
 
 /**
@@ -20,11 +25,6 @@ public class RemoteDocumentNotFoundException extends Exception {
 
 	public RemoteDocumentNotFoundException(String message, Throwable cause) {
 		super(message, cause);
-	}
-
-	public RemoteDocumentNotFoundException(String message, Throwable cause, boolean enableSuppression,
-			boolean writableStackTrace) {
-		super(message, cause, enableSuppression, writableStackTrace);
 	}
 
 }

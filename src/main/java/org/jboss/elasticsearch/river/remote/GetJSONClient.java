@@ -12,28 +12,11 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.AuthCache;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.BasicAuthCache;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.PoolingClientConnectionManager;
-import org.apache.http.params.CoreConnectionPNames;
-import org.apache.http.params.CoreProtocolPNames;
-import org.apache.http.params.HttpParams;
-import org.apache.http.protocol.BasicHttpContext;
-import org.apache.http.util.EntityUtils;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.SettingsException;
@@ -48,17 +31,11 @@ import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundExce
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
-public class GetJSONClient implements IRemoteSystemClient {
+public class GetJSONClient extends HttpRemoteSystemClientBase {
 
 	protected static final String CFG_GET_DOCS_RES_FIELD_TOTALCOUNT = "getDocsResFieldTotalcount";
 
 	protected static final String CFG_GET_DOCS_RES_FIELD_DOCUMENTS = "getDocsResFieldDocuments";
-
-	protected static final String CFG_PASSWORD = "pwd";
-
-	protected static final String CFG_USERNAME = "username";
-
-	protected static final String CFG_TIMEOUT = "timeout";
 
 	protected static final String CFG_GET_SPACES_RESPONSE_FIELD = "getSpacesResField";
 
@@ -72,8 +49,6 @@ public class GetJSONClient implements IRemoteSystemClient {
 	protected static final String CFG_HEADER_ACCEPT = "headerAccept";
 
 	private static final ESLogger logger = Loggers.getLogger(GetJSONClient.class);
-
-	private DefaultHttpClient httpclient;
 
 	protected String urlGetSpaces;
 
@@ -91,18 +66,7 @@ public class GetJSONClient implements IRemoteSystemClient {
 
 	protected static final String HEADER_ACCEPT_DEFAULT = "application/json";
 
-	protected String headerAccept;
-
-	protected boolean isAuthConfigured = false;
-
-	protected IDocumentIndexStructureBuilder indexStructureBuilder;
-
-	/**
-	 * Default constructor.
-	 */
-	public GetJSONClient() {
-
-	}
+	protected Map<String, String> headers = new HashMap<String, String>();
 
 	@Override
 	public void init(Map<String, Object> config, boolean spaceListLoadingEnabled, IPwdLoader pwdLoader) {
@@ -121,10 +85,12 @@ public class GetJSONClient implements IRemoteSystemClient {
 		getDocsResFieldTotalcount = Utils.trimToNull(XContentMapValues.nodeStringValue(
 				config.get(CFG_GET_DOCS_RES_FIELD_TOTALCOUNT), null));
 
-		headerAccept = Utils.trimToNull(XContentMapValues.nodeStringValue(config.get(CFG_HEADER_ACCEPT),
+		String headerAccept = Utils.trimToNull(XContentMapValues.nodeStringValue(config.get(CFG_HEADER_ACCEPT),
 				HEADER_ACCEPT_DEFAULT));
 		if (headerAccept == null)
 			headerAccept = HEADER_ACCEPT_DEFAULT;
+
+		headers.put("Accept", headerAccept);
 
 		if (spaceListLoadingEnabled) {
 			urlGetSpaces = getUrlFromConfig(config, CFG_URL_GET_SPACES, true);
@@ -132,42 +98,7 @@ public class GetJSONClient implements IRemoteSystemClient {
 					null));
 		}
 
-		PoolingClientConnectionManager connectionManager = new PoolingClientConnectionManager();
-		connectionManager.setDefaultMaxPerRoute(20);
-		connectionManager.setMaxTotal(20);
-
-		httpclient = new DefaultHttpClient(connectionManager);
-		HttpParams params = httpclient.getParams();
-		params.setParameter(CoreProtocolPNames.HTTP_CONTENT_CHARSET, "UTF-8");
-
-		Integer timeout = new Long(Utils.parseTimeValue(config, CFG_TIMEOUT, 5, TimeUnit.SECONDS)).intValue();
-		if (timeout != null) {
-			params.setParameter(CoreConnectionPNames.SO_TIMEOUT, timeout);
-			params.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, timeout);
-		}
-
-		String remoteUsername = Utils.trimToNull(XContentMapValues.nodeStringValue(config.get(CFG_USERNAME), null));
-		String remotePassword = XContentMapValues.nodeStringValue(config.get(CFG_PASSWORD), null);
-		if (remoteUsername != null) {
-			if (remotePassword == null && pwdLoader != null)
-				remotePassword = pwdLoader.loadPassword(remoteUsername);
-			if (remotePassword != null) {
-				try {
-					URL urlGetDocumentsUrl = new URL(urlGetDocuments);
-					String host = urlGetDocumentsUrl.getHost();
-					httpclient.getCredentialsProvider().setCredentials(new AuthScope(host, AuthScope.ANY_PORT),
-							new UsernamePasswordCredentials(remoteUsername, remotePassword));
-					isAuthConfigured = true;
-				} catch (MalformedURLException e) {
-					// this should never happen due validation before
-				}
-			} else {
-				logger.warn("Password not found so authentication is not used!");
-				remoteUsername = null;
-			}
-		} else {
-			remoteUsername = null;
-		}
+		String remoteUsername = initHttpClient(logger, config, pwdLoader, urlGetDocuments);
 
 		logger
 				.info(
@@ -179,26 +110,10 @@ public class GetJSONClient implements IRemoteSystemClient {
 
 	}
 
-	private String getUrlFromConfig(Map<String, Object> config, String cfgProperyName, boolean mandatory) {
-		String url = XContentMapValues.nodeStringValue(config.get(cfgProperyName), null);
-		if (mandatory && Utils.isEmpty(url)) {
-			throw new SettingsException("remote/" + cfgProperyName + " element of configuration structure not found or empty");
-		}
-		url = Utils.trimToNull(url);
-		if (url != null) {
-			try {
-				new URL(url);
-			} catch (MalformedURLException e) {
-				throw new SettingsException("Parameter remote/" + cfgProperyName + " is malformed URL " + e.getMessage());
-			}
-		}
-		return url;
-	}
-
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<String> getAllSpaces() throws Exception {
-		byte[] responseData = performGetRESTCall(urlGetSpaces);
+		byte[] responseData = performHttpGetCall(urlGetSpaces, headers);
 		logger.debug("Get Spaces REST response data: {}", new String(responseData));
 
 		Object responseParsed = parseJSONResponse(responseData);
@@ -288,9 +203,9 @@ public class GetJSONClient implements IRemoteSystemClient {
 			}
 			if (url == null)
 				return null;
-			byte[] responseData = performGetRESTCall(url);
+			byte[] responseData = performHttpGetCall(url, headers);
 			return parseJSONResponse(responseData);
-		} catch (RestCallHttpException e) {
+		} catch (HttpCallException e) {
 			if (e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
 				throw new RemoteDocumentNotFoundException(e);
 			} else {
@@ -310,7 +225,7 @@ public class GetJSONClient implements IRemoteSystemClient {
 	@Override
 	public ChangedDocumentsResults getChangedDocuments(String spaceKey, int startAt, Date updatedAfter) throws Exception {
 		String url = enhanceUrlGetDocuments(urlGetDocuments, spaceKey, updatedAfter, startAt);
-		byte[] responseData = performGetRESTCall(url);
+		byte[] responseData = performHttpGetCall(url, headers);
 
 		logger.debug("Get Documents REST response data: {}", new String(responseData));
 
@@ -354,62 +269,6 @@ public class GetJSONClient implements IRemoteSystemClient {
 		url = url.replaceAll("\\{updatedAfter\\}", updatedAfter != null ? updatedAfter.getTime() + "" : "");
 		url = url.replaceAll("\\{startAtIndex\\}", startAt + "");
 		return url;
-	}
-
-	/**
-	 * Perform defined REST call to remote REST API.
-	 * 
-	 * @param url to perform GET request for
-	 * @return response from server if successful
-	 * @throws RestCallHttpException in case of failed http rest call
-	 * @throws Exception in case of unsuccessful call
-	 */
-	protected byte[] performGetRESTCall(String url) throws Exception, RestCallHttpException {
-
-		logger.debug("Going to perform remote system HTTP GET REST API call to the the {}", url);
-
-		URIBuilder builder = new URIBuilder(url);
-		HttpGet method = new HttpGet(builder.build());
-		method.addHeader("Accept", headerAccept);
-		try {
-
-			// Preemptive authentication enabled - see
-			// http://hc.apache.org/httpcomponents-client-ga/tutorial/html/authentication.html#d5e1032
-			HttpHost targetHost = new HttpHost(builder.getHost(), builder.getPort(), builder.getScheme());
-			AuthCache authCache = new BasicAuthCache();
-			BasicScheme basicAuth = new BasicScheme();
-			authCache.put(targetHost, basicAuth);
-			BasicHttpContext localcontext = new BasicHttpContext();
-			localcontext.setAttribute(ClientContext.AUTH_CACHE, authCache);
-
-			HttpResponse response = httpclient.execute(method, localcontext);
-			int statusCode = response.getStatusLine().getStatusCode();
-			byte[] responseContent = null;
-			if (response.getEntity() != null) {
-				responseContent = EntityUtils.toByteArray(response.getEntity());
-			}
-			if (statusCode != HttpStatus.SC_OK) {
-				throw new RestCallHttpException(url, statusCode, new String(responseContent));
-			}
-			return responseContent;
-		} finally {
-			method.releaseConnection();
-		}
-	}
-
-	public static final class RestCallHttpException extends Exception {
-		int statusCode;
-
-		public RestCallHttpException(String url, int statusCode, String responseContent) {
-			super("Failed remote system REST API call to the url '" + url + "'. HTTP error code: " + statusCode
-					+ " Response body: " + responseContent);
-			this.statusCode = statusCode;
-		}
-
-		public int getStatusCode() {
-			return statusCode;
-		}
-
 	}
 
 	@Override

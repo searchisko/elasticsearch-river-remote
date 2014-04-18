@@ -16,7 +16,7 @@ import junit.framework.Assert;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.common.jackson.core.JsonParseException;
 import org.elasticsearch.common.settings.SettingsException;
-import org.jboss.elasticsearch.river.remote.GetJSONClient.RestCallHttpException;
+import org.jboss.elasticsearch.river.remote.HttpRemoteSystemClientBase.HttpCallException;
 import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -60,7 +60,7 @@ public class GetJSONClientTest {
 			Assert.assertNull(tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
 			Assert.assertFalse(tested.isAuthConfigured);
-			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headerAccept);
+			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headers.get("Accept"));
 		}
 
 		// case - error - getSpaces is required but not configured!
@@ -99,7 +99,7 @@ public class GetJSONClientTest {
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
-			Assert.assertEquals("app/json", tested.headerAccept);
+			Assert.assertEquals("app/json", tested.headers.get("Accept"));
 			Assert.assertTrue(tested.isAuthConfigured);
 			Mockito.verifyZeroInteractions(pwdLoaderMock);
 		}
@@ -117,7 +117,7 @@ public class GetJSONClientTest {
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
-			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headerAccept);
+			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headers.get("Accept"));
 			Assert.assertTrue(tested.isAuthConfigured);
 			Mockito.verify(pwdLoaderMock).loadPassword("myuser");
 		}
@@ -133,7 +133,7 @@ public class GetJSONClientTest {
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
-			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headerAccept);
+			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headers.get("Accept"));
 			Assert.assertFalse(tested.isAuthConfigured);
 		}
 
@@ -242,7 +242,7 @@ public class GetJSONClientTest {
 		config.put(GetJSONClient.CFG_GET_SPACES_RESPONSE_FIELD, configSpacesResponseField);
 		IRemoteSystemClient tested = new GetJSONClient() {
 			@Override
-			protected byte[] performGetRESTCall(String url) throws Exception {
+			protected byte[] performHttpGetCall(String url, Map<String, String> headers) throws Exception, HttpCallException {
 				Assert.assertEquals("http://test.org/spaces", url);
 				return returnJson.getBytes("UTF-8");
 			};
@@ -306,7 +306,7 @@ public class GetJSONClientTest {
 			final String expectadCallUrl) {
 		IRemoteSystemClient tested = new GetJSONClient() {
 			@Override
-			protected byte[] performGetRESTCall(String url) throws Exception {
+			protected byte[] performHttpGetCall(String url, Map<String, String> headers) throws Exception, HttpCallException {
 				Assert.assertEquals(expectadCallUrl, url);
 				return returnJson.getBytes("UTF-8");
 			};
@@ -316,12 +316,12 @@ public class GetJSONClientTest {
 		return tested;
 	}
 
-	private IRemoteSystemClient createTestedInstanceWithRestCallHttpException(Map<String, Object> config,
+	private IRemoteSystemClient createTestedInstanceWithHttpCallException(Map<String, Object> config,
 			final int returnHttpCode) {
 		IRemoteSystemClient tested = new GetJSONClient() {
 			@Override
-			protected byte[] performGetRESTCall(String url) throws Exception {
-				throw new RestCallHttpException(url, returnHttpCode, "response content");
+			protected byte[] performHttpGetCall(String url, Map<String, String> headers) throws Exception, HttpCallException {
+				throw new HttpCallException(url, returnHttpCode, "response content");
 			};
 
 		};
@@ -391,7 +391,7 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
 					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/document?docSpace={space}&id={id}");
-			IRemoteSystemClient tested = createTestedInstanceWithRestCallHttpException(config, HttpStatus.SC_NOT_FOUND);
+			IRemoteSystemClient tested = createTestedInstanceWithHttpCallException(config, HttpStatus.SC_NOT_FOUND);
 			try {
 				tested.getChangedDocumentDetails("myspace", "myid", null);
 				Assert.fail("RemoteDocumentNotFoundException expected");
@@ -406,11 +406,11 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
 					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/document?docSpace={space}&id={id}");
-			IRemoteSystemClient tested = createTestedInstanceWithRestCallHttpException(config, HttpStatus.SC_FORBIDDEN);
+			IRemoteSystemClient tested = createTestedInstanceWithHttpCallException(config, HttpStatus.SC_FORBIDDEN);
 			try {
 				tested.getChangedDocumentDetails("myspace", "myid", null);
 				Assert.fail("RestCallHttpException expected");
-			} catch (RestCallHttpException e) {
+			} catch (HttpCallException e) {
 				// OK
 			}
 		}
@@ -506,7 +506,7 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
 					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS_FIELD, "detailUrlField");
-			IRemoteSystemClient tested = createTestedInstanceWithRestCallHttpException(config, HttpStatus.SC_NOT_FOUND);
+			IRemoteSystemClient tested = createTestedInstanceWithHttpCallException(config, HttpStatus.SC_NOT_FOUND);
 			try {
 				Map<String, Object> itemData = new HashMap<>();
 				itemData.put("detailUrlField", "http://test.org/document/5656525");
@@ -523,13 +523,13 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
 					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS_FIELD, "detailUrlField");
-			IRemoteSystemClient tested = createTestedInstanceWithRestCallHttpException(config, HttpStatus.SC_FORBIDDEN);
+			IRemoteSystemClient tested = createTestedInstanceWithHttpCallException(config, HttpStatus.SC_FORBIDDEN);
 			try {
 				Map<String, Object> itemData = new HashMap<>();
 				itemData.put("detailUrlField", "http://test.org/document/5656525");
 				tested.getChangedDocumentDetails("myspace", "myid", itemData);
 				Assert.fail("RestCallHttpException expected");
-			} catch (RestCallHttpException e) {
+			} catch (HttpCallException e) {
 				// OK
 			}
 		}

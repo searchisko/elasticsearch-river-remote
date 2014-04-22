@@ -36,7 +36,7 @@ public class SpaceIndexerCoordinatorTest {
 		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2,
 				-1, false);
 
-		// case - update necessary- no date of last update stored
+		// case - update necessary - no date of last update stored
 		{
 			when(
 					esIntegrationMock.readDatetimeValue("ORG",
@@ -63,6 +63,22 @@ public class SpaceIndexerCoordinatorTest {
 					new Date(System.currentTimeMillis() - indexUpdatePeriod + 1000));
 			Assert.assertFalse(tested.spaceIndexUpdateNecessary("ORG"));
 		}
+
+		// case - update necessary - date of last update stored and is newer than index update period, but full reindex is
+		// forced now, so we have to start it ASAP
+		{
+			reset(esIntegrationMock);
+			when(
+					esIntegrationMock.readDatetimeValue("ORG",
+							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE)).thenReturn(
+					new Date(System.currentTimeMillis() - indexUpdatePeriod + 1000));
+			when(
+					esIntegrationMock.readDatetimeValue("ORG",
+							SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE)).thenReturn(
+					new Date(System.currentTimeMillis() - 1000));
+			Assert.assertTrue(tested.spaceIndexUpdateNecessary("ORG"));
+		}
+
 	}
 
 	@Test

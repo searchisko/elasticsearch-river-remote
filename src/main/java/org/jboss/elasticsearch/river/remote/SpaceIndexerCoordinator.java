@@ -263,6 +263,9 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	 * @throws IOException
 	 */
 	protected boolean spaceIndexUpdateNecessary(String spaceKey) throws Exception {
+		if (esIntegrationComponent.readDatetimeValue(spaceKey, STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE) != null)
+			return true;
+
 		Date lastIndexing = esIntegrationComponent.readDatetimeValue(spaceKey,
 				STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE);
 		if (logger.isDebugEnabled())

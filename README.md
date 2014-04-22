@@ -6,15 +6,17 @@ remotely accessible systems into [Elasticsearch](http://www.elasticsearch.org).
 It's implemented as Elasticsearch [river](http://www.elasticsearch.org/guide/en/elasticsearch/rivers/current/index.html) 
 [plugin](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/modules-plugins.html) 
 and uses remote APIs (REST with JSON for now, but should be REST with XML, SOAP etc.) to obtain documents 
-from remote systems.
+from remote systems. You can use it to index web pages from website also.
 
 In order to install the plugin into Elasticsearch, simply run: 
-`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.3.3/elasticsearch-river-remote-1.3.3.zip -install elasticsearch-river-remote`.
+`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.3.4/elasticsearch-river-remote-1.3.4.zip -install elasticsearch-river-remote`.
 
     --------------------------------------------------
     | Remote River | Elasticsearch    | Release date |
     --------------------------------------------------
     | master       | 1.0.0            |              |
+    --------------------------------------------------
+    | 1.3.4        | 1.0.0            | 23.4.2014    |
     --------------------------------------------------
     | 1.3.3        | 1.0.0            | 14.4.2014    |
     --------------------------------------------------
@@ -185,7 +187,7 @@ Each Space is then indexed independently, and partially in parallel, by the rive
 Space key is passed to the "List documents" operation so remote system can return documents for given space. 
 
 This operation is optional, `remote/spacesIndexed` configuration parameter can be used to define fixed set of space keys if you do not want to read them dynamically.
-If your remote system do not support Space concept you can define `remote/spacesIndexed` with one value only representing all documents.    
+If your remote system do not support Space concept, you can define `remote/spacesIndexed` with one value only representing all documents.    
 
 ####List Documents
 This operation is used by indexer to obtain documents from remote system and store them into search index.
@@ -244,9 +246,117 @@ Configuration parameters for this client type:
 * `remote/getSpacesResField` defines field in JSON data returned from `remote/urlGetSpaces` call, where array of space keys is stored. If not defined then the array is expected directly in root of returned data. Dot notation may be used for deeper nesting in the JSON structure.
 * `remote/headerAccept` defines value for `Accept` http request header used for REST calls. Optional, default value is `application/json`. 
 
-Password can be created using:
+Password can be stored outside of river configuration by using:
 
 	curl -XPUT localhost:9200/_river/my_remote_river/_pwd -d '{"pwd" : "mypassword"}'
+
+
+#####Website indexing remote system API client
+This remote client allows you to index content of html website pages. 
+List of url's for webpages to be indexed is obtained from [sitemap](http://www.sitemaps.org) file. 
+HTML content of webpages can be indexed 'as is', or you can configure advanced mapping with use of css 
+selectors and html tags stripping. Class of this client is `org.jboss.elasticsearch.river.remote.GetSitemapHtmlClient`.
+ 
+Configuration parameters for this client type:
+
+* `remote/urlGetSitemap` is URL used to obtain sitemap from. Sitemap can be in [`sitemap.xml`](http://www.sitemaps.org/protocol.html) 
+  format (plain xml with `.xml` or gzip compressed with `.gz` file extension), or it can be text file (`.txt` extension) with one url 
+  at each line. [crawler-commons](http://code.google.com/p/crawler-commons) `SiteMapParser` code is used as base there. 
+  Note that this parser validates URL's provided in sitemap, and keeps only URL's from same domain where sitemap.xml is served from!
+  Only documents with `Content-Type` `text/html` are processed.  
+* `remote/username` and `remote/pwd` are optional login credentials to access webpages. HTTP BASIC authentication is supported. 
+  Alternatively you can store password into separate JSON document called `_pwd` stored in the rived index beside `_meta` document, 
+  into field called `pwd`, see example later.
+* `remote/timeout` time value, defines timeout for http/s request to the remote system. Optional, 5s is default if not provided.
+* `remote/htmlMapping` is optional mapping of html content into data, where you can use css selectors and html stripping. See examples later.
+
+Password can be stored outside of river configuration by using:
+
+	curl -XPUT localhost:9200/_river/my_remote_river/_pwd -d '{"pwd" : "mypassword"}'
+
+When you use this remote client, you must set some configurations of the river to defined values: 
+
+* `remote/spacesIndexed` always set to one string as this client doesn't support document spaces, eg. `MAIN` 
+* `remote/remoteClientClass` always set to `org.jboss.elasticsearch.river.remote.GetSitemapHtmlClient`
+* `remote/simpleGetDocuments` always set to `true` as this client support simple indexing mode only 
+  (full update is done each time when indexing runs).
+* `index/remote_field_document_id` always set to `id` as this field is provided by the remote client 
+* `index/fields` must be used to store informations about webpage into search index. Information about 
+  webpage provided by this remote client contains fields:
+	* `url` - url of webpage loaded from sitemap
+	* `id` - unique id of webpage (created from `url`)
+	* `last_modified` - timestamp of page last modification if provided in `sitemap.xml`
+	* `priority` - priority from `sitemap.xml` if provided there
+	* `detail` - text with full HTML of the page (not sanitized any way!) or structure with more fields if `remote/htmlMapping` config is used. See examples later.
+
+Note that you can still apply preprocessors to the data provided by the client, before they are stored into search index. 
+
+Example river configuration to index whole HTML content only:
+
+````
+{
+    "type" : "remote",
+    "remote" : {
+        "remoteClientClass"     : "org.jboss.elasticsearch.river.remote.GetSitemapHtmlClient",
+        "urlGetSitemap"         : "http://test.org/sitemap.xml",
+        "timeout"               : "5s",
+        "spacesIndexed"         : "MAIN",
+        "simpleGetDocuments"    : true,
+        "indexUpdatePeriod"     : "1h",
+        "maxIndexingThreads"    : 1
+    },
+    "index" : {
+        "index"                    : "test_website_index",
+        "type"                     : "web_page",
+        "remote_field_document_id" : "id",
+        "fields" : {
+            "url"     : {"remote_field" : "url"},
+            "content" : {"remote_field" : "detail"}
+        }
+    }
+}
+````
+
+Example river configuration to index parts of HTML as separate fields:
+
+````
+{
+    "type" : "remote",
+    "remote" : {
+        "remoteClientClass"     : "org.jboss.elasticsearch.river.remote.GetSitemapHtmlClient",
+        "urlGetSitemap"         : "http://test.org/sitemap.xml",
+        "timeout"               : "5s",
+        "spacesIndexed"         : "MAIN",
+        "simpleGetDocuments"    : true,
+        "indexUpdatePeriod"     : "1h",
+        "maxIndexingThreads"    : 1,
+        "htmlMapping"           : {
+            "title"       : {"cssSelector" : "head title"},
+            "description" : {"cssSelector" : "head meta[name=description]", "valueAttribute" : "content"},
+            "content"     : {"cssSelector" : "body #content-wrapper", "stripHtml" : true},
+            "html"        : {}
+        } 
+    },
+    "index" : {
+        "index"                    : "test_website_index",
+        "type"                     : "web_page",
+        "remote_field_document_id" : "id",
+        "fields" : {
+            "url"           : {"remote_field" : "url"},
+            "title"         : {"remote_field" : "detail.title"},
+            "description"   : {"remote_field" : "detail.description"},
+            "content"       : {"remote_field" : "detail.content"},
+            "complete_html" : {"remote_field" : "detail.html"}
+        }
+    }
+}
+````
+
+`remote/htmlMapping` configuration section contains structure where key is name of field in detail, and value is another structure with two fields:
+
+* `remote/htmlMapping/*/cssSelector` optional field which allows to define [css selector](http://jsoup.org/cookbook/extracting-data/selector-syntax) to extract defined part from the HTML content and store it into detail field. Whole HTML content is stored if not defined.
+* `remote/htmlMapping/*/valueAttribute` you can use this optional config field to define name of attribute to take value from if html element is selected by`cssSelector`.
+* `remote/htmlMapping/*/stripHtml` optional boolean field (default `false`). If set to `true` then all html tags are removed from value before it is stored into detail field, so only plain text is preserved there.
 
 
 Indexed document structure

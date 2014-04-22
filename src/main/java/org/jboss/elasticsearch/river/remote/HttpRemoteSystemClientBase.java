@@ -10,6 +10,7 @@ import java.net.URL;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -142,7 +143,8 @@ public abstract class HttpRemoteSystemClientBase implements IRemoteSystemClient 
 	 * @throws HttpCallException in case of failed http call
 	 * @throws Exception in case of unsuccessful call
 	 */
-	protected byte[] performHttpGetCall(String url, Map<String, String> headers) throws Exception, HttpCallException {
+	protected HttpResponseContent performHttpGetCall(String url, Map<String, String> headers) throws Exception,
+			HttpCallException {
 
 		myLogger.debug("Going to perform remote system HTTP GET request to the the {}", url);
 
@@ -174,10 +176,30 @@ public abstract class HttpRemoteSystemClientBase implements IRemoteSystemClient 
 			if (statusCode != HttpStatus.SC_OK) {
 				throw new HttpCallException(url, statusCode, responseContent != null ? new String(responseContent) : "");
 			}
-			return responseContent;
+			Header h = response.getFirstHeader("Content-Type");
+
+			return new HttpResponseContent(h != null ? h.getValue() : null, responseContent);
 		} finally {
 			method.releaseConnection();
 		}
+	}
+
+	public static final class HttpResponseContent {
+		public String contentType;
+		public byte[] content;
+
+		public HttpResponseContent(String contentType, byte[] content) {
+			super();
+			this.contentType = contentType;
+			this.content = content;
+		}
+
+		@Override
+		public String toString() {
+			return "HttpResponseContent [contentType=" + contentType + ", content=" + content != null ? new String(content)
+					: "" + "]";
+		}
+
 	}
 
 	public static final class HttpCallException extends Exception {

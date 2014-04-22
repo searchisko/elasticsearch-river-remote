@@ -12,9 +12,12 @@ import java.util.Map;
 
 import junit.framework.Assert;
 
+import org.apache.http.Header;
+import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.apache.http.ParseException;
 import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
@@ -31,6 +34,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.SettingsException;
 import org.jboss.elasticsearch.river.remote.HttpRemoteSystemClientBase.HttpCallException;
+import org.jboss.elasticsearch.river.remote.HttpRemoteSystemClientBase.HttpResponseContent;
 import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -226,10 +230,11 @@ public class HttpRemoteSystemClientBaseTest {
 		tested.httpclient = Mockito.mock(HttpClient.class);
 
 		Mockito.when(tested.httpclient.execute(Mockito.any(HttpGet.class), Mockito.any(BasicHttpContext.class)))
-				.thenAnswer(prepereHttpResponseAnswer(HttpStatus.SC_OK, "response", null, false));
+				.thenAnswer(prepereHttpResponseAnswer(HttpStatus.SC_OK, "response", "text/plain", null, false));
 
-		byte[] ret = tested.performHttpGetCall("http://test.org", null);
-		Assert.assertEquals("response", new String(ret));
+		HttpResponseContent ret = tested.performHttpGetCall("http://test.org", null);
+		Assert.assertEquals("response", new String(ret.content));
+		Assert.assertEquals("text/plain", new String(ret.contentType));
 		Mockito.verify(tested.httpclient).execute(Mockito.any(HttpGet.class), Mockito.any(BasicHttpContext.class));
 		Mockito.verifyNoMoreInteractions(tested.httpclient);
 	}
@@ -245,10 +250,11 @@ public class HttpRemoteSystemClientBaseTest {
 		headers.put("Accept", "application/json");
 
 		Mockito.when(tested.httpclient.execute(Mockito.any(HttpGet.class), Mockito.any(BasicHttpContext.class)))
-				.thenAnswer(prepereHttpResponseAnswer(HttpStatus.SC_OK, "response", headers, true));
+				.thenAnswer(prepereHttpResponseAnswer(HttpStatus.SC_OK, "response", "text/any", headers, true));
 
-		byte[] ret = tested.performHttpGetCall("http://test.org", headers);
-		Assert.assertEquals("response", new String(ret));
+		HttpResponseContent ret = tested.performHttpGetCall("http://test.org", headers);
+		Assert.assertEquals("response", new String(ret.content));
+		Assert.assertEquals("text/any", new String(ret.contentType));
 		Mockito.verify(tested.httpclient).execute(Mockito.any(HttpGet.class), Mockito.any(BasicHttpContext.class));
 		Mockito.verifyNoMoreInteractions(tested.httpclient);
 	}
@@ -260,7 +266,7 @@ public class HttpRemoteSystemClientBaseTest {
 		tested.httpclient = Mockito.mock(HttpClient.class);
 
 		Mockito.when(tested.httpclient.execute(Mockito.any(HttpGet.class), Mockito.any(BasicHttpContext.class)))
-				.thenAnswer(prepereHttpResponseAnswer(HttpStatus.SC_NOT_FOUND, "response", null, false));
+				.thenAnswer(prepereHttpResponseAnswer(HttpStatus.SC_NOT_FOUND, "response", "text/plain", null, false));
 
 		try {
 			tested.performHttpGetCall("http://test.org", null);
@@ -282,7 +288,7 @@ public class HttpRemoteSystemClientBaseTest {
 		tested.httpclient = Mockito.mock(HttpClient.class);
 
 		Mockito.when(tested.httpclient.execute(Mockito.any(HttpGet.class), Mockito.any(BasicHttpContext.class)))
-				.thenAnswer(prepereHttpResponseAnswer(HttpStatus.SC_NOT_FOUND, null, null, false));
+				.thenAnswer(prepereHttpResponseAnswer(HttpStatus.SC_NOT_FOUND, null, null, null, false));
 
 		try {
 			tested.performHttpGetCall("http://test.org", null);
@@ -298,7 +304,7 @@ public class HttpRemoteSystemClientBaseTest {
 	}
 
 	private Answer<HttpResponse> prepereHttpResponseAnswer(final int statusCode, final String responseContent,
-			final Map<String, String> headersExpected, final boolean authExpected) {
+			final String responseContentType, final Map<String, String> headersExpected, final boolean authExpected) {
 		return new Answer<HttpResponse>() {
 
 			@Override
@@ -330,6 +336,26 @@ public class HttpRemoteSystemClientBaseTest {
 				if (responseContent != null)
 					entity = new StringEntity(responseContent);
 				Mockito.when(ret.getEntity()).thenReturn(entity);
+
+				if (responseContentType != null) {
+					Mockito.when(ret.getFirstHeader("Content-Type")).thenReturn(new Header() {
+
+						@Override
+						public String getValue() {
+							return responseContentType;
+						}
+
+						@Override
+						public String getName() {
+							return "Content-Type";
+						}
+
+						@Override
+						public HeaderElement[] getElements() throws ParseException {
+							return null;
+						}
+					});
+				}
 
 				return ret;
 			}

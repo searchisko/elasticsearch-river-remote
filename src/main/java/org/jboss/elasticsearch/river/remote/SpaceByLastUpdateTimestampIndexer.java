@@ -30,6 +30,8 @@ import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundExce
  */
 public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 
+	private static final int MAX_BULK_SIZE_IN_SIMPLE_GET = 50;
+
 	private static final ESLogger logger = Loggers.getLogger(SpaceByLastUpdateTimestampIndexer.class);
 
 	/**
@@ -191,6 +193,13 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 					documentIndexStructureBuilder.indexDocument(esBulk, spaceKey, document);
 					indexingInfo.documentsUpdated++;
 					updatedInThisBulk++;
+
+					if (simpleGetDocuments && updatedInThisBulk > MAX_BULK_SIZE_IN_SIMPLE_GET) {
+						esIntegrationComponent.executeESBulkRequest(esBulk);
+						esBulk = esIntegrationComponent.prepareESBulkRequestBuilder();
+						updatedInThisBulk = 0;
+					}
+
 					if (isClosed())
 						throw new InterruptedException("Interrupted because River is closed");
 				}

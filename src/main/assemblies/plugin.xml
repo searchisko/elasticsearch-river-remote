@@ -16,6 +16,7 @@
                 <include>org.apache.httpcomponents:*</include>
                 <include>commons-logging:commons-logging</include>
                 <include>commons-codec:commons-codec</include>
+                <include>commons-io:commons-io</include>
                 <include>org.jboss.elasticsearch:structured-content-tools</include>
                 <include>org.jsoup:*</include>
             </includes>

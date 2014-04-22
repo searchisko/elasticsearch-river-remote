@@ -307,4 +307,25 @@ public class UtilsTest {
 		}
 	}
 
+	@Test
+	public void getFileExtensionLowercase() {
+		Assert.assertNull(Utils.getFileExtensionLowercase(null));
+		Assert.assertNull(Utils.getFileExtensionLowercase(""));
+		Assert.assertNull(Utils.getFileExtensionLowercase("   "));
+		Assert.assertNull(Utils.getFileExtensionLowercase("file"));
+		Assert.assertNull(Utils.getFileExtensionLowercase("/file"));
+		Assert.assertNull(Utils.getFileExtensionLowercase(".trtr/file"));
+		Assert.assertNull(Utils.getFileExtensionLowercase("http://test.org/.trtr/file"));
+		Assert.assertNull(Utils.getFileExtensionLowercase("file."));
+		Assert.assertNull(Utils.getFileExtensionLowercase("http://test.org/.trtr/file."));
+		Assert.assertNull(Utils.getFileExtensionLowercase("."));
+		Assert.assertNull(Utils.getFileExtensionLowercase("/."));
+		Assert.assertNull(Utils.getFileExtensionLowercase(".a"));
+
+		Assert.assertEquals("a", Utils.getFileExtensionLowercase("file.a"));
+		Assert.assertEquals("jpeg", Utils.getFileExtensionLowercase("file.JPEG"));
+		Assert.assertEquals("opolu", Utils.getFileExtensionLowercase("/file.opolU"));
+		Assert.assertEquals("jpg", Utils.getFileExtensionLowercase("http://test.org/.trtr/file.JPG"));
+	}
+
 }

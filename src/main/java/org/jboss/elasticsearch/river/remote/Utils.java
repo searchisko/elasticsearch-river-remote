@@ -289,4 +289,24 @@ public class Utils {
 		}
 	}
 
+	/**
+	 * Get file extension from URL conwerted to lower case. Null if extension is not defined.
+	 * 
+	 * @param url to get extension from
+	 * @return extension (without dot) or null
+	 */
+	public static String getFileExtensionLowercase(String url) {
+		if (url == null || url.isEmpty())
+			return null;
+
+		url = url.trim();
+
+		int il = url.lastIndexOf("/");
+		int id = url.lastIndexOf(".");
+		if (id > il && id > 0 && id < url.length() - 1) {
+			return url.substring(id + 1).toLowerCase();
+		}
+		return null;
+	}
+
 }

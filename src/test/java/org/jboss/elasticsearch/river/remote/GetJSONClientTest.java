@@ -242,9 +242,10 @@ public class GetJSONClientTest {
 		config.put(GetJSONClient.CFG_GET_SPACES_RESPONSE_FIELD, configSpacesResponseField);
 		IRemoteSystemClient tested = new GetJSONClient() {
 			@Override
-			protected byte[] performHttpGetCall(String url, Map<String, String> headers) throws Exception, HttpCallException {
+			protected HttpResponseContent performHttpGetCall(String url, Map<String, String> headers) throws Exception,
+					HttpCallException {
 				Assert.assertEquals("http://test.org/spaces", url);
-				return returnJson.getBytes("UTF-8");
+				return new HttpResponseContent("application/json", returnJson.getBytes("UTF-8"));
 			};
 
 		};
@@ -306,9 +307,10 @@ public class GetJSONClientTest {
 			final String expectadCallUrl) {
 		IRemoteSystemClient tested = new GetJSONClient() {
 			@Override
-			protected byte[] performHttpGetCall(String url, Map<String, String> headers) throws Exception, HttpCallException {
+			protected HttpResponseContent performHttpGetCall(String url, Map<String, String> headers) throws Exception,
+					HttpCallException {
 				Assert.assertEquals(expectadCallUrl, url);
-				return returnJson.getBytes("UTF-8");
+				return new HttpResponseContent("application/json", returnJson.getBytes("UTF-8"));
 			};
 
 		};
@@ -320,7 +322,8 @@ public class GetJSONClientTest {
 			final int returnHttpCode) {
 		IRemoteSystemClient tested = new GetJSONClient() {
 			@Override
-			protected byte[] performHttpGetCall(String url, Map<String, String> headers) throws Exception, HttpCallException {
+			protected HttpResponseContent performHttpGetCall(String url, Map<String, String> headers) throws Exception,
+					HttpCallException {
 				throw new HttpCallException(url, returnHttpCode, "response content");
 			};
 

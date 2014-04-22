@@ -113,7 +113,7 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<String> getAllSpaces() throws Exception {
-		byte[] responseData = performHttpGetCall(urlGetSpaces, headers);
+		byte[] responseData = performHttpGetCall(urlGetSpaces, headers).content;
 		logger.debug("Get Spaces REST response data: {}", new String(responseData));
 
 		Object responseParsed = parseJSONResponse(responseData);
@@ -203,7 +203,7 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 			}
 			if (url == null)
 				return null;
-			byte[] responseData = performHttpGetCall(url, headers);
+			byte[] responseData = performHttpGetCall(url, headers).content;
 			return parseJSONResponse(responseData);
 		} catch (HttpCallException e) {
 			if (e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
@@ -225,7 +225,7 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	@Override
 	public ChangedDocumentsResults getChangedDocuments(String spaceKey, int startAt, Date updatedAfter) throws Exception {
 		String url = enhanceUrlGetDocuments(urlGetDocuments, spaceKey, updatedAfter, startAt);
-		byte[] responseData = performHttpGetCall(url, headers);
+		byte[] responseData = performHttpGetCall(url, headers).content;
 
 		logger.debug("Get Documents REST response data: {}", new String(responseData));
 

@@ -163,6 +163,18 @@ public class GetSitemapHtmlClientTest {
 				GetSitemapHtmlClient.createIdFromUrl("https://www.test.org:8080/test.html?aa=gg&jj=mm"));
 	}
 
+	private static final String CT_XML = "text/xml";
+	private static final String CT_HTML = "text/html";
+
+	public static final String SITEMAP_XML_NO_DECLARATIONS_IGNORED_EXTENSIONS = "<urlset>" + "  <url>"
+			+ "<loc>http://www.example.com/</loc>" + "<lastmod>2005-01-01</lastmod>" + "<changefreq>monthly</changefreq>"
+			+ "<priority>0.8</priority>" + "</url>" + "<url>" + "<loc>http://www.example.com/catalog.zip</loc>"
+			+ "<changefreq>weekly</changefreq>" + "</url>" + "<url>" + "<loc>http://www.example.com/catalog.jpeg</loc>"
+			+ "<lastmod>2004-12-23</lastmod>" + "<changefreq>weekly</changefreq>" + "</url>" + "<url>"
+			+ "<loc>http://www.example.com/catalog.html</loc>" + "<lastmod>2004-12-23T18:00:15+00:00</lastmod>"
+			+ "<priority>0.3</priority>" + "</url>" + "<url>" + "<loc>http://www.example.com/catalog.htm</loc>"
+			+ "<lastmod>2004-11-23</lastmod>" + "</url>" + "</urlset>";
+
 	@Test
 	public void getChangedDocuments() throws Exception {
 
@@ -170,7 +182,8 @@ public class GetSitemapHtmlClientTest {
 		try {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
-			GetSitemapHtmlClient tested = createTestedInstance(config, "invalid sitemap xml", "http://test.org/sitemap.xml");
+			GetSitemapHtmlClient tested = createTestedInstance(config, "invalid sitemap xml", CT_XML,
+					"http://test.org/sitemap.xml");
 			tested.getChangedDocuments("myspace", 0, null);
 			Assert.fail("UnknownFormatException expected");
 		} catch (UnknownFormatException e) {
@@ -192,7 +205,7 @@ public class GetSitemapHtmlClientTest {
 		{
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, SiteMapParserTest.URL_SITEMAP_XML);
-			GetSitemapHtmlClient tested = createTestedInstance(config, SiteMapParserTest.SITEMAP_XML_NO_DECLARATIONS,
+			GetSitemapHtmlClient tested = createTestedInstance(config, SiteMapParserTest.SITEMAP_XML_NO_DECLARATIONS, CT_XML,
 					SiteMapParserTest.URL_SITEMAP_XML);
 			ChangedDocumentsResults chr = tested.getChangedDocuments("myspace", 0, null);
 			Assert.assertEquals(5, chr.getDocumentsCount());
@@ -208,11 +221,26 @@ public class GetSitemapHtmlClientTest {
 					"2004-11-23T00:00:00.0+0000", 0.5);
 		}
 
+		// case - sitemap correct with some ignored extensions
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, SiteMapParserTest.URL_SITEMAP_XML);
+			GetSitemapHtmlClient tested = createTestedInstance(config, SITEMAP_XML_NO_DECLARATIONS_IGNORED_EXTENSIONS,
+					CT_XML, SiteMapParserTest.URL_SITEMAP_XML);
+			ChangedDocumentsResults chr = tested.getChangedDocuments("myspace", 0, null);
+			Assert.assertEquals(3, chr.getDocumentsCount());
+			Assert.assertEquals(new Integer(3), chr.getTotal());
+			Assert.assertEquals(0, chr.getStartAt());
+			assertDoc(chr.getDocuments().get(0), "http://www.example.com/", "2005-01-01T00:00:00.0+0000", 0.8);
+			assertDoc(chr.getDocuments().get(1), "http://www.example.com/catalog.html", "2004-12-23T18:00:15.0+0000", 0.3);
+			assertDoc(chr.getDocuments().get(2), "http://www.example.com/catalog.htm", "2004-11-23T00:00:00.0+0000", 0.5);
+		}
+
 		// case - sitemap with incorrect url's (not from base)
 		{
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
-			GetSitemapHtmlClient tested = createTestedInstance(config, SiteMapParserTest.SITEMAP_XML_NO_DECLARATIONS,
+			GetSitemapHtmlClient tested = createTestedInstance(config, SiteMapParserTest.SITEMAP_XML_NO_DECLARATIONS, CT_XML,
 					"http://test.org/sitemap.xml");
 			ChangedDocumentsResults chr = tested.getChangedDocuments("myspace", 0, null);
 			Assert.assertEquals(0, chr.getDocumentsCount());
@@ -224,7 +252,7 @@ public class GetSitemapHtmlClientTest {
 		try {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, SiteMapParserTest.URL_SITEMAP_XML);
-			GetSitemapHtmlClient tested = createTestedInstance(config, SiteMapParserTest.SITEMAP_XML_INDEX,
+			GetSitemapHtmlClient tested = createTestedInstance(config, SiteMapParserTest.SITEMAP_XML_INDEX, CT_XML,
 					SiteMapParserTest.URL_SITEMAP_XML);
 			tested.getChangedDocuments("myspace", 0, null);
 			Assert.fail("Exception expected");
@@ -258,12 +286,26 @@ public class GetSitemapHtmlClientTest {
 		}
 	}
 
+	@Test(expected = RemoteDocumentNotFoundException.class)
+	public void getChangedDocumentDetails_noHtmlFormat() throws Exception {
+
+		Map<String, Object> config = new HashMap<String, Object>();
+		config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
+		GetSitemapHtmlClient tested = createTestedInstance(config, "dfgsdfg", "application/font", "http://test.org/doc");
+
+		Map<String, Object> document = new HashMap<>();
+		document.put(GetSitemapHtmlClient.DOC_FIELD_URL, "http://test.org/doc");
+
+		tested.getChangedDocumentDetails("myspace", "myid", document);
+	}
+
 	@Test
 	public void getChangedDocumentDetails_noHtmlMappingDefined() throws Exception {
 
 		Map<String, Object> config = new HashMap<String, Object>();
 		config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
-		GetSitemapHtmlClient tested = createTestedInstance(config, "<body>my html body</body>", "http://test.org/doc");
+		GetSitemapHtmlClient tested = createTestedInstance(config, "<body>my html body</body>", CT_HTML,
+				"http://test.org/doc");
 
 		Map<String, Object> document = new HashMap<>();
 		document.put(GetSitemapHtmlClient.DOC_FIELD_URL, "http://test.org/doc");
@@ -287,12 +329,13 @@ public class GetSitemapHtmlClientTest {
 		createMappingField(htmlMapping, "field_css1_stripe", ".myclass:eq(1)", true);
 		createMappingField(htmlMapping, "field_unknown_css_stripe", ".myclassunknown", true);
 		createMappingField(htmlMapping, "field_unknown_css_nostripe", ".myclassunknown", true);
+		createMappingField(htmlMapping, "field_unknown_css_attribute", ".myclass", "unknownAtt", true);
 		config.put(GetSitemapHtmlClient.CFG_HTML_MAPPING, htmlMapping);
 
 		GetSitemapHtmlClient tested = createTestedInstance(
 				config,
 				"<html><body>my html body\n<div class='myclass'>my class content</div>\n<div class='myclass'>my <b>class</b> content 2</div></body><html>",
-				"http://test.org/doc");
+				CT_HTML, "http://test.org/doc");
 
 		Map<String, Object> document = new HashMap<>();
 		document.put(GetSitemapHtmlClient.DOC_FIELD_URL, "http://test.org/doc");
@@ -310,14 +353,49 @@ public class GetSitemapHtmlClientTest {
 		Assert.assertEquals("my class content 2", o.get("field_css1_stripe"));
 		Assert.assertEquals(null, o.get("field_unknown_css_stripe"));
 		Assert.assertEquals(null, o.get("field_unknown_css_nostripe"));
+		Assert.assertNull(o.get("field_unknown_css_attribute"));
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void getChangedDocumentDetails_htmlMappingDefined_attributes() throws Exception {
+
+		Map<String, Object> config = new HashMap<String, Object>();
+		config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
+		Map<String, Object> htmlMapping = new HashMap<>();
+		createMappingField(htmlMapping, "field_css_attribute_one", "meta[name=description]", "content", true);
+		createMappingField(htmlMapping, "field_css_attribute_more", ".list", "content", true);
+		createMappingField(htmlMapping, "field_unknown_css_attribute", ".myclass", "unknownAtt", true);
+		config.put(GetSitemapHtmlClient.CFG_HTML_MAPPING, htmlMapping);
+
+		GetSitemapHtmlClient tested = createTestedInstance(
+				config,
+				"<html><head><meta name=\"description\" content=\"my description\"></head><body><span class='list' content='one'/><span class='list' content='two'/><span class='list' content=''/><span class='list' content='three'/></body><html>",
+				CT_HTML, "http://test.org/doc");
+
+		Map<String, Object> document = new HashMap<>();
+		document.put(GetSitemapHtmlClient.DOC_FIELD_URL, "http://test.org/doc");
+
+		Map<String, String> o = (Map<String, String>) tested.getChangedDocumentDetails("myspace", "myid", document);
+
+		Assert.assertEquals("my description", o.get("field_css_attribute_one"));
+		Assert.assertEquals("one two three", o.get("field_css_attribute_more"));
+		Assert.assertNull(o.get("field_unknown_css_attribute"));
 	}
 
 	private void createMappingField(Map<String, Object> htmlMapping, String field, Object cssSelector, Boolean stripeHtml) {
+		createMappingField(htmlMapping, field, cssSelector, null, stripeHtml);
+	}
+
+	private void createMappingField(Map<String, Object> htmlMapping, String field, Object cssSelector,
+			String valueAttribute, Boolean stripeHtml) {
 		Map<String, Object> hm = new HashMap<String, Object>();
 		if (cssSelector != null)
 			hm.put(GetSitemapHtmlClient.CFG_HM_CSS_SELECTOR, cssSelector);
 		if (stripeHtml != null)
 			hm.put(GetSitemapHtmlClient.CFG_HM_STRIP_HTML, stripeHtml);
+		if (valueAttribute != null)
+			hm.put(GetSitemapHtmlClient.CFG_HM_VALUE_ATTRIBUTE, valueAttribute);
 		htmlMapping.put(field, hm);
 	}
 
@@ -355,12 +433,13 @@ public class GetSitemapHtmlClientTest {
 	}
 
 	private GetSitemapHtmlClient createTestedInstance(Map<String, Object> config, final String returnSitemapData,
-			final String expectadCallUrl) {
+			final String returnContentType, final String expectadCallUrl) {
 		GetSitemapHtmlClient tested = new GetSitemapHtmlClient() {
 			@Override
-			protected byte[] performHttpGetCall(String url, Map<String, String> headers) throws Exception, HttpCallException {
+			protected HttpResponseContent performHttpGetCall(String url, Map<String, String> headers) throws Exception,
+					HttpCallException {
 				Assert.assertEquals(expectadCallUrl, url);
-				return returnSitemapData.getBytes("UTF-8");
+				return new HttpResponseContent(returnContentType, returnSitemapData.getBytes("UTF-8"));
 			};
 
 		};
@@ -372,7 +451,8 @@ public class GetSitemapHtmlClientTest {
 			final int returnHttpCode) {
 		GetSitemapHtmlClient tested = new GetSitemapHtmlClient() {
 			@Override
-			protected byte[] performHttpGetCall(String url, Map<String, String> headers) throws Exception, HttpCallException {
+			protected HttpResponseContent performHttpGetCall(String url, Map<String, String> headers) throws Exception,
+					HttpCallException {
 				throw new HttpCallException(url, returnHttpCode, "response content");
 			};
 

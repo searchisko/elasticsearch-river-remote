@@ -44,6 +44,7 @@ import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessorWithSo
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  * @see StructuredContentPreprocessorFactory
+ * @deprecated as it is part of structured-content-tools now
  */
 public class LongToTimestampValuePreprocessor extends StructuredContentPreprocessorWithSourceBasesBase<Object> {
 

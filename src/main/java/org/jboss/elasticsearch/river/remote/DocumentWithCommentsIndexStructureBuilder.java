@@ -362,7 +362,7 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 		FilterBuilder filterProject = FilterBuilders.termFilter(indexFieldForSpaceKey, spaceKey);
 		FilterBuilder filterSource = FilterBuilders.termFilter(indexFieldForRiverName, riverName);
 		FilterBuilder filter = FilterBuilders.boolFilter().must(filterTime).must(filterProject).must(filterSource);
-		srb.setQuery(QueryBuilders.matchAllQuery()).addField("_id").setPostFilter(filter);
+		srb.setQuery(QueryBuilders.matchAllQuery()).addField("_id").setFilter(filter);
 		if (commentIndexingMode.isExtraDocumentIndexed())
 			srb.setTypes(issueTypeName, commentTypeName);
 		else

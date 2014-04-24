@@ -485,7 +485,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 		SearchRequestBuilder srb = client.prepareSearch(CFG_INDEX_NAME).setTypes(documentType)
 				.setQuery(QueryBuilders.matchAllQuery());
-		srb.setPostFilter(FilterBuilders.termFilter("_parent", parentDocumentId));
+		srb.setFilter(FilterBuilders.termFilter("_parent", parentDocumentId));
 
 		assertImplSearchResults(client, srb, childDocumentIds);
 	}
@@ -560,7 +560,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			filterTime = FilterBuilders.rangeFilter("_timestamp").gte(boundDate);
 		}
 		SearchRequestBuilder srb = client.prepareSearch(CFG_INDEX_NAME).setTypes(documentType)
-				.setQuery(QueryBuilders.matchAllQuery()).setPostFilter(filterTime);
+				.setQuery(QueryBuilders.matchAllQuery()).setFilter(filterTime);
 
 		assertImplSearchResults(client, srb, documentIds);
 	}

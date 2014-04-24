@@ -50,8 +50,8 @@ public class RestListRiversAction extends RestJRMgmBaseAction {
 						try {
 							Set<String> allRivers = new HashSet<String>();
 							for (NodeListRiversResponse node : response.getNodes()) {
-								if (node.riverNames != null) {
-									allRivers.addAll(node.riverNames);
+								if (node.getRiverNames() != null) {
+									allRivers.addAll(node.getRiverNames());
 								}
 							}
 

@@ -14,7 +14,7 @@ import org.jboss.elasticsearch.river.remote.mgm.NodeJRMgmBaseResponse;
  */
 public class NodeJRStateResponse extends NodeJRMgmBaseResponse {
 
-	String stateInformation;
+	protected String stateInformation;
 
 	protected NodeJRStateResponse() {
 	}
@@ -45,6 +45,10 @@ public class NodeJRStateResponse extends NodeJRMgmBaseResponse {
 	public void writeTo(StreamOutput out) throws IOException {
 		super.writeTo(out);
 		out.writeOptionalString(stateInformation);
+	}
+
+	public String getStateInformation() {
+		return stateInformation;
 	}
 
 }

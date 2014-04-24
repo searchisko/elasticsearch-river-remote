@@ -24,73 +24,73 @@ import org.junit.Test;
  */
 public class NodeListRiversResponseTest {
 
-  DiscoveryNode dn = new DiscoveryNode("aa", DummyTransportAddress.INSTANCE, Version.CURRENT);
+	DiscoveryNode dn = new DiscoveryNode("aa", DummyTransportAddress.INSTANCE, Version.CURRENT);
 
-  @Test
-  public void constructor() {
-    {
-      NodeListRiversResponse tested = new NodeListRiversResponse();
-      Assert.assertNull(tested.getNode());
-      Assert.assertFalse(tested.isRiverFound());
-    }
+	@Test
+	public void constructor() {
+		{
+			NodeListRiversResponse tested = new NodeListRiversResponse();
+			Assert.assertNull(tested.getNode());
+			Assert.assertFalse(tested.isRiverFound());
+		}
 
-    {
-      NodeListRiversResponse tested = new NodeListRiversResponse(dn);
-      Assert.assertEquals(dn, tested.getNode());
-      Assert.assertFalse(tested.isRiverFound());
-    }
+		{
+			NodeListRiversResponse tested = new NodeListRiversResponse(dn);
+			Assert.assertEquals(dn, tested.getNode());
+			Assert.assertFalse(tested.isRiverFound());
+		}
 
-    {
-      NodeListRiversResponse tested = new NodeListRiversResponse(dn, null);
-      Assert.assertEquals(dn, tested.getNode());
-      Assert.assertNull(tested.riverNames);
-    }
-    {
-      NodeListRiversResponse tested = new NodeListRiversResponse(dn, new HashSet<String>());
-      Assert.assertEquals(dn, tested.getNode());
-      Assert.assertNotNull(tested.riverNames);
-    }
-  }
+		{
+			NodeListRiversResponse tested = new NodeListRiversResponse(dn, null);
+			Assert.assertEquals(dn, tested.getNode());
+			Assert.assertNull(tested.getRiverNames());
+		}
+		{
+			NodeListRiversResponse tested = new NodeListRiversResponse(dn, new HashSet<String>());
+			Assert.assertEquals(dn, tested.getNode());
+			Assert.assertNotNull(tested.getRiverNames());
+		}
+	}
 
-  @SuppressWarnings("unused")
-  @Test
-  public void serialization() throws IOException {
+	@SuppressWarnings("unused")
+	@Test
+	public void serialization() throws IOException {
 
-    {
-      NodeListRiversResponse testedSrc = new NodeListRiversResponse(dn, null);
-      NodeListRiversResponse testedTarget = performSerializationAndBasicAsserts(testedSrc);
-    }
-    {
-      Set<String> rn = new HashSet<String>();
-      NodeListRiversResponse testedSrc = new NodeListRiversResponse(dn, rn);
-      NodeListRiversResponse testedTarget = performSerializationAndBasicAsserts(testedSrc);
-    }
-    {
-      Set<String> rn = new HashSet<String>();
-      rn.add("muriver");
-      NodeListRiversResponse testedSrc = new NodeListRiversResponse(dn, rn);
-      NodeListRiversResponse testedTarget = performSerializationAndBasicAsserts(testedSrc);
-    }
-    {
-      Set<String> rn = new HashSet<String>();
-      rn.add("muriver");
-      rn.add("muriver2");
-      rn.add("muriver3");
-      NodeListRiversResponse testedSrc = new NodeListRiversResponse(dn, rn);
-      NodeListRiversResponse testedTarget = performSerializationAndBasicAsserts(testedSrc);
-    }
-  }
+		{
+			NodeListRiversResponse testedSrc = new NodeListRiversResponse(dn, null);
+			NodeListRiversResponse testedTarget = performSerializationAndBasicAsserts(testedSrc);
+		}
+		{
+			Set<String> rn = new HashSet<String>();
+			NodeListRiversResponse testedSrc = new NodeListRiversResponse(dn, rn);
+			NodeListRiversResponse testedTarget = performSerializationAndBasicAsserts(testedSrc);
+		}
+		{
+			Set<String> rn = new HashSet<String>();
+			rn.add("muriver");
+			NodeListRiversResponse testedSrc = new NodeListRiversResponse(dn, rn);
+			NodeListRiversResponse testedTarget = performSerializationAndBasicAsserts(testedSrc);
+		}
+		{
+			Set<String> rn = new HashSet<String>();
+			rn.add("muriver");
+			rn.add("muriver2");
+			rn.add("muriver3");
+			NodeListRiversResponse testedSrc = new NodeListRiversResponse(dn, rn);
+			NodeListRiversResponse testedTarget = performSerializationAndBasicAsserts(testedSrc);
+		}
+	}
 
-  private NodeListRiversResponse performSerializationAndBasicAsserts(NodeListRiversResponse testedSrc)
-      throws IOException {
-    BytesStreamOutput out = new BytesStreamOutput();
-    testedSrc.writeTo(out);
-    NodeListRiversResponse testedTarget = new NodeListRiversResponse();
-    testedTarget.readFrom(new BytesStreamInput(out.bytes()));
-    Assert.assertEquals(testedSrc.getNode().getId(), testedTarget.getNode().getId());
-    Assert.assertEquals(testedSrc.riverNames, testedTarget.riverNames);
+	private NodeListRiversResponse performSerializationAndBasicAsserts(NodeListRiversResponse testedSrc)
+			throws IOException {
+		BytesStreamOutput out = new BytesStreamOutput();
+		testedSrc.writeTo(out);
+		NodeListRiversResponse testedTarget = new NodeListRiversResponse();
+		testedTarget.readFrom(new BytesStreamInput(out.bytes()));
+		Assert.assertEquals(testedSrc.getNode().getId(), testedTarget.getNode().getId());
+		Assert.assertEquals(testedSrc.getRiverNames(), testedTarget.getRiverNames());
 
-    return testedTarget;
-  }
+		return testedTarget;
+	}
 
 }

@@ -14,9 +14,9 @@ import org.jboss.elasticsearch.river.remote.mgm.NodeJRMgmBaseResponse;
  */
 public class NodeFullUpdateResponse extends NodeJRMgmBaseResponse {
 
-	boolean spaceFound;
+	protected boolean spaceFound;
 
-	String reindexedSpaces;
+	protected String reindexedSpaces;
 
 	protected NodeFullUpdateResponse() {
 	}
@@ -51,6 +51,14 @@ public class NodeFullUpdateResponse extends NodeJRMgmBaseResponse {
 		super.writeTo(out);
 		out.writeBoolean(spaceFound);
 		out.writeOptionalString(reindexedSpaces);
+	}
+
+	public boolean isSpaceFound() {
+		return spaceFound;
+	}
+
+	public String getReindexedSpaces() {
+		return reindexedSpaces;
 	}
 
 }

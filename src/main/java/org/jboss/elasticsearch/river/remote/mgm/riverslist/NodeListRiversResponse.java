@@ -16,7 +16,7 @@ import org.jboss.elasticsearch.river.remote.mgm.NodeJRMgmBaseResponse;
  */
 public class NodeListRiversResponse extends NodeJRMgmBaseResponse {
 
-	Set<String> riverNames;
+	protected Set<String> riverNames;
 
 	protected NodeListRiversResponse() {
 	}
@@ -61,6 +61,10 @@ public class NodeListRiversResponse extends NodeJRMgmBaseResponse {
 				}
 			}
 		}
+	}
+
+	public Set<String> getRiverNames() {
+		return riverNames;
 	}
 
 }

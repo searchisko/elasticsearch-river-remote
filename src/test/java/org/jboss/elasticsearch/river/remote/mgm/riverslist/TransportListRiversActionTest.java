@@ -82,8 +82,8 @@ public class TransportListRiversActionTest {
 				NodeListRiversRequest req = Mockito.mock(NodeListRiversRequest.class);
 				NodeListRiversResponse resp = tested.nodeOperation(req);
 				Assert.assertNotNull(resp);
-				Assert.assertNotNull(resp.riverNames);
-				Assert.assertEquals(0, resp.riverNames.size());
+				Assert.assertNotNull(resp.getRiverNames());
+				Assert.assertEquals(0, resp.getRiverNames().size());
 			}
 
 			{
@@ -94,9 +94,9 @@ public class TransportListRiversActionTest {
 				NodeListRiversRequest req = Mockito.mock(NodeListRiversRequest.class);
 				NodeListRiversResponse resp = tested.nodeOperation(req);
 				Assert.assertNotNull(resp);
-				Assert.assertNotNull(resp.riverNames);
-				Assert.assertEquals(1, resp.riverNames.size());
-				Assert.assertTrue(resp.riverNames.contains(myRiverName1));
+				Assert.assertNotNull(resp.getRiverNames());
+				Assert.assertEquals(1, resp.getRiverNames().size());
+				Assert.assertTrue(resp.getRiverNames().contains(myRiverName1));
 			}
 
 			{
@@ -107,10 +107,10 @@ public class TransportListRiversActionTest {
 				NodeListRiversRequest req = Mockito.mock(NodeListRiversRequest.class);
 				NodeListRiversResponse resp = tested.nodeOperation(req);
 				Assert.assertNotNull(resp);
-				Assert.assertNotNull(resp.riverNames);
-				Assert.assertEquals(2, resp.riverNames.size());
-				Assert.assertTrue(resp.riverNames.contains(myRiverName1));
-				Assert.assertTrue(resp.riverNames.contains(myRiverName2));
+				Assert.assertNotNull(resp.getRiverNames());
+				Assert.assertEquals(2, resp.getRiverNames().size());
+				Assert.assertTrue(resp.getRiverNames().contains(myRiverName1));
+				Assert.assertTrue(resp.getRiverNames().contains(myRiverName2));
 			}
 
 		} finally {

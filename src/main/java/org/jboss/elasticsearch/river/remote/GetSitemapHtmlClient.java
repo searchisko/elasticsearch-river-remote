@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.http.HttpStatus;
+import org.apache.http.client.ClientProtocolException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.SettingsException;
@@ -255,6 +256,11 @@ public class GetSitemapHtmlClient extends HttpRemoteSystemClientBase {
 				throw new RemoteDocumentNotFoundException("HTML document can't be processed as it is not html but: "
 						+ response.contentType);
 			}
+		} catch (ClientProtocolException e) {
+			if (e.getCause() != null)
+				throw new RemoteDocumentNotFoundException(e.getCause());
+			else
+				throw new RemoteDocumentNotFoundException(e);
 		} catch (HttpCallException e) {
 			if (e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
 				throw new RemoteDocumentNotFoundException(e);

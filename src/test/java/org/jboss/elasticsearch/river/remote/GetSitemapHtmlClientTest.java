@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.http.HttpStatus;
+import org.apache.http.client.ClientProtocolException;
 import org.elasticsearch.common.settings.SettingsException;
 import org.jboss.elasticsearch.river.remote.HttpRemoteSystemClientBase.HttpCallException;
 import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
@@ -194,7 +195,8 @@ public class GetSitemapHtmlClientTest {
 		try {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
-			GetSitemapHtmlClient tested = createTestedInstanceWithHttpCallException(config, HttpStatus.SC_NOT_FOUND);
+			GetSitemapHtmlClient tested = createTestedInstanceWithHttpCallException(config, new HttpCallException(
+					"http://test.org/sitemap.xml", HttpStatus.SC_NOT_FOUND, "response content"));
 			tested.getChangedDocuments("myspace", 0, null);
 			Assert.fail("HttpCallException expected");
 		} catch (HttpCallException e) {
@@ -275,7 +277,22 @@ public class GetSitemapHtmlClientTest {
 		try {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
-			GetSitemapHtmlClient tested = createTestedInstanceWithHttpCallException(config, HttpStatus.SC_NOT_FOUND);
+			GetSitemapHtmlClient tested = createTestedInstanceWithHttpCallException(config, new HttpCallException(
+					"http://test.org/sitemap.xml", HttpStatus.SC_NOT_FOUND, "response content"));
+
+			Map<String, Object> document = new HashMap<>();
+			document.put(GetSitemapHtmlClient.DOC_FIELD_URL, "http://test.org/doc");
+			tested.getChangedDocumentDetails("myspace", "myid", document);
+			Assert.fail("RemoteDocumentNotFoundException expected");
+		} catch (RemoteDocumentNotFoundException e) {
+			// OK
+		}
+
+		try {
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
+			GetSitemapHtmlClient tested = createTestedInstanceWithHttpCallException(config, new ClientProtocolException(
+					"http protocol error"));
 
 			Map<String, Object> document = new HashMap<>();
 			document.put(GetSitemapHtmlClient.DOC_FIELD_URL, "http://test.org/doc");
@@ -448,12 +465,11 @@ public class GetSitemapHtmlClientTest {
 	}
 
 	private GetSitemapHtmlClient createTestedInstanceWithHttpCallException(Map<String, Object> config,
-			final int returnHttpCode) {
+			final Exception exception) {
 		GetSitemapHtmlClient tested = new GetSitemapHtmlClient() {
 			@Override
-			protected HttpResponseContent performHttpGetCall(String url, Map<String, String> headers) throws Exception,
-					HttpCallException {
-				throw new HttpCallException(url, returnHttpCode, "response content");
+			protected HttpResponseContent performHttpGetCall(String url, Map<String, String> headers) throws Exception {
+				throw exception;
 			};
 
 		};

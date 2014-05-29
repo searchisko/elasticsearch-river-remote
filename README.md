@@ -331,7 +331,7 @@ Example river configuration to index parts of HTML as separate fields:
         "indexUpdatePeriod"     : "1h",
         "maxIndexingThreads"    : 1,
         "htmlMapping"           : {
-            "title"       : {"cssSelector" : "head title"},
+            "title"       : {"cssSelector" : "head title", "stripHtml" : true},
             "description" : {"cssSelector" : "head meta[name=description]", "valueAttribute" : "content"},
             "content"     : {"cssSelector" : "body #content-wrapper", "stripHtml" : true},
             "html"        : {}

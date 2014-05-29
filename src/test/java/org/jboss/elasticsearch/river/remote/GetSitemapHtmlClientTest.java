@@ -351,7 +351,7 @@ public class GetSitemapHtmlClientTest {
 
 		GetSitemapHtmlClient tested = createTestedInstance(
 				config,
-				"<html><body>my html body\n<div class='myclass'>my class content</div>\n<div class='myclass'>my <b>class</b> content 2</div></body><html>",
+				"<html><body>my html body\n<div class='myclass'>my class &amp; content</div>\n<div class='myclass'>my <b>class</b> content 2</div></body><html>",
 				CT_HTML, "http://test.org/doc");
 
 		Map<String, Object> document = new HashMap<>();
@@ -360,12 +360,12 @@ public class GetSitemapHtmlClientTest {
 		Map<String, String> o = (Map<String, String>) tested.getChangedDocumentDetails("myspace", "myid", document);
 
 		Assert.assertEquals("<html>\n <head></head>\n <body>\n  my html body \n"
-				+ "  <div class=\"myclass\">\n   my class content\n  </div> \n  <div class=\"myclass\">\n   my \n"
+				+ "  <div class=\"myclass\">\n   my class &amp; content\n  </div> \n  <div class=\"myclass\">\n   my \n"
 				+ "   <b>class</b> content 2\n  </div>\n </body>\n</html>", o.get("field_full_nostripe"));
-		Assert.assertEquals("my html body my class content my class content 2", o.get("field_full_stripe"));
-		Assert.assertEquals("<div class=\"myclass\">\n my class content\n</div>\n<div class=\"myclass\">\n"
+		Assert.assertEquals("my html body my class & content my class content 2", o.get("field_full_stripe"));
+		Assert.assertEquals("<div class=\"myclass\">\n my class &amp; content\n</div>\n<div class=\"myclass\">\n"
 				+ " my \n <b>class</b> content 2\n" + "</div>", o.get("field_css_nostripe"));
-		Assert.assertEquals("my class content my class content 2", o.get("field_css_stripe"));
+		Assert.assertEquals("my class & content my class content 2", o.get("field_css_stripe"));
 		Assert.assertEquals("my \n<b>class</b> content 2", o.get("field_css1_nostripe"));
 		Assert.assertEquals("my class content 2", o.get("field_css1_stripe"));
 		Assert.assertEquals(null, o.get("field_unknown_css_stripe"));
@@ -387,7 +387,7 @@ public class GetSitemapHtmlClientTest {
 
 		GetSitemapHtmlClient tested = createTestedInstance(
 				config,
-				"<html><head><meta name=\"description\" content=\"my description\"></head><body><span class='list' content='one'/><span class='list' content='two'/><span class='list' content=''/><span class='list' content='three'/></body><html>",
+				"<html><head><meta name=\"description\" content=\"my &amp; description\"></head><body><span class='list' content='one'/><span class='list' content='two'/><span class='list' content=''/><span class='list' content='three'/></body><html>",
 				CT_HTML, "http://test.org/doc");
 
 		Map<String, Object> document = new HashMap<>();
@@ -395,7 +395,7 @@ public class GetSitemapHtmlClientTest {
 
 		Map<String, String> o = (Map<String, String>) tested.getChangedDocumentDetails("myspace", "myid", document);
 
-		Assert.assertEquals("my description", o.get("field_css_attribute_one"));
+		Assert.assertEquals("my & description", o.get("field_css_attribute_one"));
 		Assert.assertEquals("one two three", o.get("field_css_attribute_more"));
 		Assert.assertNull(o.get("field_unknown_css_attribute"));
 	}

@@ -5,17 +5,17 @@
  */
 package org.jboss.elasticsearch.river.remote.mgm.lifecycle;
 
-import static org.elasticsearch.rest.RestStatus.OK;
-
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.XContentRestResponse;
 import org.jboss.elasticsearch.river.remote.mgm.JRMgmBaseActionListener;
 import org.jboss.elasticsearch.river.remote.mgm.RestJRMgmBaseAction;
+
+import static org.elasticsearch.rest.RestStatus.OK;
 
 /**
  * REST action handler for Remote river get state operation.
@@ -52,7 +52,7 @@ public class RestJRLifecycleAction extends RestJRMgmBaseAction {
 
 							@Override
 							protected void handleRiverResponse(NodeJRLifecycleResponse nodeInfo) throws Exception {
-								restChannel.sendResponse(new XContentRestResponse(restRequest, OK, buildMessageDocument(restRequest,
+								restChannel.sendResponse(new BytesRestResponse(OK, buildMessageDocument(restRequest,
 										"Command successful")));
 							}
 

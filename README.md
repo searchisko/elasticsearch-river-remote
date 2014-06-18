@@ -8,13 +8,15 @@ It's implemented as Elasticsearch [river](http://www.elasticsearch.org/guide/en/
 and uses remote APIs (REST with JSON for now, but should be REST with XML, SOAP etc.) to obtain documents 
 from remote systems. You can use it to index web pages from website also.
 
-In order to install the plugin into Elasticsearch, simply run: 
-`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.3.6/elasticsearch-river-remote-1.3.6.zip -install elasticsearch-river-remote`.
+In order to install the plugin into Elasticsearch 1.2.x, simply run: 
+`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.4.0/elasticsearch-river-remote-1.4.0.zip -install elasticsearch-river-remote`.
 
     --------------------------------------------------
     | Remote River | Elasticsearch    | Release date |
     --------------------------------------------------
-    | master       | 1.0.0            |              |
+    | master       | 1.2.0            |              |
+    --------------------------------------------------
+    | 1.4.0        | 1.2.0            | 18.6.2014    |
     --------------------------------------------------
     | 1.3.6        | 1.0.0            | 20.5.2014    |
     --------------------------------------------------
@@ -23,16 +25,7 @@ In order to install the plugin into Elasticsearch, simply run:
     | 1.3.4        | 1.0.0            | 23.4.2014    |
     --------------------------------------------------
     | 1.2.6        | 0.90.5           | 23.4.2014    |
-    --------------------------------------------------
-    | 1.3.3        | 1.0.0            | 14.4.2014    |
-    --------------------------------------------------
-    | 1.2.5        | 0.90.5           | 14.4.2014    |
-    --------------------------------------------------
-    | 1.3.2        | 1.0.0            | 3.4.2014     |
-    --------------------------------------------------
-    | 1.2.4        | 0.90.5           | 3.4.2014     |
-    --------------------------------------------------
-    
+    --------------------------------------------------    
 
 For info about older releases, detailed changelog, planned milestones/enhancements and known bugs see 
 [github issue tracker](https://github.com/searchisko/elasticsearch-river-remote/issues) please.

@@ -12,7 +12,6 @@ import java.util.Map;
 
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -34,9 +33,10 @@ public abstract class ElasticSearchIntegrationTest {
 
 	public static void main(String[] args) throws MalformedURLException {
 
-		Client client = new TransportClient().addTransportAddress(new InetSocketTransportAddress("localhost", 9300));
+		TransportClient client = new TransportClient();
 
 		try {
+			client.addTransportAddress(new InetSocketTransportAddress("localhost", 9300));
 			Map<String, Object> settings = new HashMap<String, Object>();
 			Map<String, Object> jiraSettings = new HashMap<String, Object>();
 			settings.put("jira", jiraSettings);

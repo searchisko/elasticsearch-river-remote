@@ -28,12 +28,7 @@ public class TransportJRStateAction extends
 	@Inject
 	public TransportJRStateAction(Settings settings, ClusterName clusterName, ThreadPool threadPool,
 			ClusterService clusterService, TransportService transportService) {
-		super(settings, clusterName, threadPool, clusterService, transportService);
-	}
-
-	@Override
-	protected String transportAction() {
-		return JRStateAction.NAME;
+		super(settings, JRStateAction.NAME, clusterName, threadPool, clusterService, transportService);
 	}
 
 	@Override

@@ -14,8 +14,10 @@ import java.util.Map;
 import junit.framework.Assert;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ListenableActionFuture;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.index.IndexRequestBuilder;
+import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
@@ -23,6 +25,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.transport.DummyTransportAddress;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.river.RiverName;
 import org.elasticsearch.river.RiverSettings;
 import org.jboss.elasticsearch.river.remote.testtools.DataPreprocessorMock;
@@ -446,7 +449,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 	public void storeDatetimeValue_Bulk() throws Exception {
 		RemoteRiver tested = prepareRiverInstanceForTest(null);
 
-		BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
+		BulkRequestBuilder esBulk = new BulkRequestBuilder(tested.client);
 		tested.storeDatetimeValue("ORG", "prop", new Date(), esBulk);
 		tested.storeDatetimeValue("ORG", "prop2", new Date(), esBulk);
 		tested.storeDatetimeValue("ORG", "prop3", new Date(), esBulk);
@@ -465,7 +468,8 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 	public void prepareESBulkRequestBuilder() throws Exception {
 		RemoteRiver tested = prepareRiverInstanceForTest(null);
 		Client clientMock = tested.client;
-		when(clientMock.prepareBulk()).thenReturn(new BulkRequestBuilder(null));
+		BulkRequestBuilder brb = new BulkRequestBuilder(clientMock);
+		when(clientMock.prepareBulk()).thenReturn(brb);
 		Assert.assertNotNull(tested.prepareESBulkRequestBuilder());
 		verify(clientMock, times(1)).prepareBulk();
 	}
@@ -495,10 +499,16 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		tested.activityLogIndexName = "alindex";
 		tested.activityLogTypeName = "altype";
 		{
-			IndexRequestBuilder irb = new IndexRequestBuilder(null);
+			IndexRequestBuilder irb = Mockito.mock(IndexRequestBuilder.class);
+			Mockito.when(irb.setSource(Mockito.any(XContentBuilder.class))).thenReturn(irb);
+			@SuppressWarnings("unchecked")
+			ListenableActionFuture<IndexResponse> laf = Mockito.mock(ListenableActionFuture.class);
+			Mockito.when(irb.execute()).thenReturn(laf);
 			when(clientMock.prepareIndex("alindex", "altype")).thenReturn(irb);
 			tested.reportIndexingFinished(new SpaceIndexingInfo("ORG", false, 10, 0, 0, null, true, 10, null));
-			Assert.assertNotNull(irb.request().source());
+			Mockito.verify(irb).setSource(Mockito.any(XContentBuilder.class));
+			Mockito.verify(irb).execute();
+			Mockito.verify(laf).actionGet();
 		}
 
 		// case - no exception if coordinatorInstance is null
@@ -512,7 +522,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		RemoteRiver tested = prepareRiverInstanceForTest(null);
 		Client clientMock = tested.client;
 
-		SearchRequestBuilder srb = new SearchRequestBuilder(null);
+		SearchRequestBuilder srb = new SearchRequestBuilder(clientMock);
 		when(clientMock.prepareSearch("myIndex")).thenReturn(srb);
 
 		tested.prepareESScrollSearchRequestBuilder("myIndex");
@@ -520,8 +530,6 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		Assert.assertNotNull(srb.request().scroll());
 		Assert.assertEquals(SearchType.SCAN, srb.request().searchType());
 		verify(clientMock).prepareSearch("myIndex");
-		Mockito.verifyNoMoreInteractions(clientMock);
-
 	}
 
 	@Test

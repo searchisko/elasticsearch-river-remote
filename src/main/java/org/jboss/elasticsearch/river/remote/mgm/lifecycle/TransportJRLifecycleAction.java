@@ -26,17 +26,12 @@ public class TransportJRLifecycleAction extends
 	@Inject
 	public TransportJRLifecycleAction(Settings settings, ClusterName clusterName, ThreadPool threadPool,
 			ClusterService clusterService, TransportService transportService) {
-		super(settings, clusterName, threadPool, clusterService, transportService);
+		super(settings, JRLifecycleAction.NAME, clusterName, threadPool, clusterService, transportService);
 	}
 
 	@Override
-	protected String transportAction() {
-		return JRLifecycleAction.NAME;
-	}
-
-	@Override
-	protected NodeJRLifecycleResponse performOperationOnRiver(IRiverMgm river, JRLifecycleRequest req,
-			DiscoveryNode node) throws Exception {
+	protected NodeJRLifecycleResponse performOperationOnRiver(IRiverMgm river, JRLifecycleRequest req, DiscoveryNode node)
+			throws Exception {
 		JRLifecycleCommand command = req.getCommand();
 		logger.debug("Go to perform lifecycle command {} on river '{}'", command, req.getRiverName());
 		switch (command) {

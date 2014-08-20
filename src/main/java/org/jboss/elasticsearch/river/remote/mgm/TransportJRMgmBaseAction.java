@@ -35,9 +35,9 @@ public abstract class TransportJRMgmBaseAction<Request extends JRMgmBaseRequest,
 	protected final ESLogger logger;
 
 	@Inject
-	public TransportJRMgmBaseAction(Settings settings, ClusterName clusterName, ThreadPool threadPool,
+	public TransportJRMgmBaseAction(Settings settings, String actionName, ClusterName clusterName, ThreadPool threadPool,
 			ClusterService clusterService, TransportService transportService) {
-		super(settings, clusterName, threadPool, clusterService, transportService);
+		super(settings, actionName, clusterName, threadPool, clusterService, transportService);
 		logger = Loggers.getLogger(getClass());
 	}
 

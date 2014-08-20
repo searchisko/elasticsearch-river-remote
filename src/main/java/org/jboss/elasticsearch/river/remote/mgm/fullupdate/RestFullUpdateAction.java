@@ -34,7 +34,7 @@ public class RestFullUpdateAction extends RestJRMgmBaseAction {
 	}
 
 	@Override
-	public void handleRequest(final RestRequest restRequest, final RestChannel restChannel) {
+	public void handleRequest(final RestRequest restRequest, final RestChannel restChannel, Client client) {
 
 		final String riverName = restRequest.param("riverName");
 		final String spaceKey = restRequest.param("spaceKey");

@@ -16,6 +16,7 @@ import junit.framework.Assert;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.joda.time.format.ISODateTimeFormat;
 import org.elasticsearch.common.text.StringText;
 import org.elasticsearch.search.SearchHit;
@@ -83,6 +84,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, false,
 				remoteClientMock, esIntegrationMock, documentIndexStructureBuilderMock);
+		Client client = Mockito.mock(Client.class);
 
 		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
 
@@ -129,7 +131,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 							(Map<String, Object>) Mockito.notNull())).thenThrow(new RemoteDocumentNotFoundException());
 			configureStructureBuilderMockDefaults(documentIndexStructureBuilderMock);
 			when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(docs, 0, 3));
-			BulkRequestBuilder brb = new BulkRequestBuilder(null);
+			BulkRequestBuilder brb = new BulkRequestBuilder(client);
 			when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(brb);
 
 			tested.processUpdate();
@@ -163,7 +165,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, false,
 				remoteClientMock, esIntegrationMock, documentIndexStructureBuilderMock);
-
+		Client client = Mockito.mock(Client.class);
 		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
 
 		// test case with one "page" of results from remote system search method and total returned, but all of results are
@@ -183,7 +185,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 							(Map<String, Object>) Mockito.notNull())).thenThrow(new RemoteDocumentNotFoundException());
 			configureStructureBuilderMockDefaults(documentIndexStructureBuilderMock);
 			when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(docs, 0, 3));
-			BulkRequestBuilder brb = new BulkRequestBuilder(null);
+			BulkRequestBuilder brb = new BulkRequestBuilder(client);
 			when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(brb);
 
 			tested.processUpdate();
@@ -221,6 +223,9 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, false,
 				remoteClientMock, esIntegrationMock, documentIndexStructureBuilderMock);
 
+		Client client = Mockito.mock(Client.class);
+		BulkRequestBuilder brb = new BulkRequestBuilder(client);
+
 		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
 		Map<String, Object> doc1 = addDocumentMock(docs, "ORG-45", "2012-08-14T08:00:00.000-0400");
 		Map<String, Object> doc2 = addDocumentMock(docs, "ORG-46", "2012-08-14T08:00:00.000-0400");
@@ -250,7 +255,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(docs, 0, 8));
 		when(remoteClientMock.getChangedDocuments("ORG", 3, null)).thenReturn(new ChangedDocumentsResults(docs2, 3, 8));
 		when(remoteClientMock.getChangedDocuments("ORG", 6, null)).thenReturn(new ChangedDocumentsResults(docs3, 6, 8));
-		when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(new BulkRequestBuilder(null));
+		when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(brb);
 		configureStructureBuilderMockDefaults(documentIndexStructureBuilderMock);
 
 		tested.processUpdate();
@@ -296,6 +301,8 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		// assert full update is set correctly internally
 		Assert.assertTrue(tested.indexingInfo.fullUpdate);
 
+		Client client = Mockito.mock(Client.class);
+
 		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
 
 		// test case with empty result list from remote system search method
@@ -328,7 +335,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 							(Map<String, Object>) Mockito.notNull())).thenThrow(new RemoteDocumentNotFoundException());
 			configureStructureBuilderMockDefaults(documentIndexStructureBuilderMock);
 			when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(docs, 0, 3));
-			BulkRequestBuilder brb = new BulkRequestBuilder(null);
+			BulkRequestBuilder brb = new BulkRequestBuilder(client);
 			when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(brb);
 
 			tested.processUpdate();
@@ -363,7 +370,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, false,
 				remoteClientMock, esIntegrationMock, documentIndexStructureBuilderMock);
-
+		Client client = Mockito.mock(Client.class);
 		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
 
 		// test case with list from remote system search method containing only one doc with same update time as 'last
@@ -377,7 +384,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		configureStructureBuilderMockDefaults(documentIndexStructureBuilderMock);
 		when(remoteClientMock.getChangedDocuments("ORG", 0, mockDateAfter)).thenReturn(
 				new ChangedDocumentsResults(docs, 0, 1));
-		BulkRequestBuilder brb = new BulkRequestBuilder(null);
+		BulkRequestBuilder brb = new BulkRequestBuilder(client);
 		when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(brb);
 
 		tested.processUpdate();
@@ -415,6 +422,9 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, false,
 				remoteClientMock, esIntegrationMock, documentIndexStructureBuilderMock);
 
+		Client client = Mockito.mock(Client.class);
+		BulkRequestBuilder brb = new BulkRequestBuilder(client);
+
 		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
 		Map<String, Object> doc1 = addDocumentMock(docs, "ORG-45", "2012-08-14T08:00:10.000-0400");
 		Map<String, Object> doc2 = addDocumentMock(docs, "ORG-46", "2012-08-14T08:01:10.000-0400");
@@ -434,7 +444,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(docs, 0, 8));
 		when(remoteClientMock.getChangedDocuments("ORG", 0, after2)).thenReturn(new ChangedDocumentsResults(docs2, 0, 5));
 		when(remoteClientMock.getChangedDocuments("ORG", 0, after3)).thenReturn(new ChangedDocumentsResults(docs3, 0, 2));
-		when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(new BulkRequestBuilder(null));
+		when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(brb);
 		configureStructureBuilderMockDefaults(documentIndexStructureBuilderMock);
 
 		tested.processUpdate();
@@ -488,6 +498,8 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, false,
 				remoteClientMock, esIntegrationMock, documentIndexStructureBuilderMock);
+		Client client = Mockito.mock(Client.class);
+		BulkRequestBuilder brb = new BulkRequestBuilder(client);
 
 		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
 		Map<String, Object> doc1 = addDocumentMock(docs, "ORG-45", "2012-08-14T08:00:00.000-0400");
@@ -506,7 +518,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(docs, 0, 8));
 		when(remoteClientMock.getChangedDocuments("ORG", 3, null)).thenReturn(new ChangedDocumentsResults(docs2, 3, 8));
 		when(remoteClientMock.getChangedDocuments("ORG", 6, null)).thenReturn(new ChangedDocumentsResults(docs3, 6, 8));
-		when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(new BulkRequestBuilder(null));
+		when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(brb);
 		configureStructureBuilderMockDefaults(documentIndexStructureBuilderMock);
 
 		tested.processUpdate();
@@ -547,6 +559,9 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, false,
 				remoteClientMock, esIntegrationMock, documentIndexStructureBuilderMock);
 
+		Client client = Mockito.mock(Client.class);
+		BulkRequestBuilder brb = new BulkRequestBuilder(client);
+
 		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
 		Date lastUpdatedDate = DateTimeUtils.parseISODateTime("2012-08-14T07:00:00.000-0400");
 
@@ -562,7 +577,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 					lastUpdatedDate);
 			when(remoteClientMock.getChangedDocuments("ORG", 0, lastUpdatedDate)).thenReturn(
 					new ChangedDocumentsResults(docs, 0, 3));
-			when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(new BulkRequestBuilder(null));
+			when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(brb);
 			configureStructureBuilderMockDefaults(documentIndexStructureBuilderMock);
 
 			tested.run();
@@ -579,7 +594,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 							SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE)).thenReturn(null);
 			when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(docs, 0, 4));
 			when(remoteClientMock.getChangedDocuments("ORG", 3, null)).thenThrow(new Exception("Remote call error"));
-			when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(new BulkRequestBuilder(null));
+			when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(brb);
 
 			tested.run();
 			verify(esIntegrationMock, times(1)).reportIndexingFinished(
@@ -601,11 +616,12 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 							SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE)).thenReturn(mockDate);
 			// updatedAfter is null here (even some is returned from previous when) because we run full update!
 			when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(docs, 0, 3));
-			when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(new BulkRequestBuilder(null));
+			when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(brb);
+
+			SearchRequestBuilder srb = new SearchRequestBuilder(client);
 
 			// prepare delete part
-			when(esIntegrationMock.prepareESScrollSearchRequestBuilder(Mockito.anyString())).thenReturn(
-					new SearchRequestBuilder(null));
+			when(esIntegrationMock.prepareESScrollSearchRequestBuilder(Mockito.anyString())).thenReturn(srb);
 			SearchResponse sr1 = prepareSearchResponse("scrlid1",
 					new InternalSearchHit(1, "ORG-12", new StringText(""), null));
 			when(esIntegrationMock.executeESSearchRequest(Mockito.any(SearchRequestBuilder.class))).thenReturn(sr1);
@@ -655,6 +671,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", true, false,
 				remoteClientMock, esIntegrationMock, documentIndexStructureBuilderMock);
+		Client client = Mockito.mock(Client.class);
 
 		try {
 			tested.processDelete(null);
@@ -684,7 +701,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 			Date boundDate = DateTimeUtils.parseISODateTime("2012-08-14T07:00:00.000-0400");
 
 			when(documentIndexStructureBuilderMock.getDocumentSearchIndexName("ORG")).thenReturn(testIndexName);
-			SearchRequestBuilder srbmock = new SearchRequestBuilder(null);
+			SearchRequestBuilder srbmock = new SearchRequestBuilder(client);
 			when(esIntegrationMock.prepareESScrollSearchRequestBuilder(testIndexName)).thenReturn(srbmock);
 			when(esIntegrationMock.executeESSearchRequest(srbmock)).thenReturn(prepareSearchResponse("scrlid3"));
 
@@ -714,13 +731,13 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 			Date boundDate = DateTimeUtils.parseISODateTime("2012-08-14T07:00:00.000-0400");
 
 			when(documentIndexStructureBuilderMock.getDocumentSearchIndexName("ORG")).thenReturn(testIndexName);
-			SearchRequestBuilder srbmock = new SearchRequestBuilder(null);
+			SearchRequestBuilder srbmock = new SearchRequestBuilder(client);
 			when(esIntegrationMock.prepareESScrollSearchRequestBuilder(testIndexName)).thenReturn(srbmock);
 
 			SearchResponse sr = prepareSearchResponse("scrlid0", new InternalSearchHit(1, "ORG-12", new StringText(""), null));
 			when(esIntegrationMock.executeESSearchRequest(srbmock)).thenReturn(sr);
 
-			BulkRequestBuilder brbmock = new BulkRequestBuilder(null);
+			BulkRequestBuilder brbmock = new BulkRequestBuilder(client);
 			when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(brbmock);
 
 			InternalSearchHit hit1_1 = new InternalSearchHit(1, "ORG-12", new StringText(""), null);

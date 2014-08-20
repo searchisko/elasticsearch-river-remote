@@ -35,7 +35,7 @@ public class TransportListRiversAction extends
 	@Inject
 	public TransportListRiversAction(Settings settings, ClusterName clusterName, ThreadPool threadPool,
 			ClusterService clusterService, TransportService transportService) {
-		super(settings, clusterName, threadPool, clusterService, transportService);
+		super(settings, ListRiversAction.NAME, clusterName, threadPool, clusterService, transportService);
 	}
 
 	@Override
@@ -64,11 +64,6 @@ public class TransportListRiversAction extends
 	protected NodeListRiversResponse nodeOperation(NodeListRiversRequest nodeRequest) throws ElasticsearchException {
 		logger.debug("Go to look for remote rivers on this node");
 		return new NodeListRiversResponse(clusterService.localNode(), RemoteRiver.getRunningInstances());
-	}
-
-	@Override
-	protected String transportAction() {
-		return ListRiversAction.NAME;
 	}
 
 	@Override

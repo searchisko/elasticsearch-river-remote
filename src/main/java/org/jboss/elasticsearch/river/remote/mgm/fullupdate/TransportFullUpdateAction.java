@@ -26,12 +26,7 @@ public class TransportFullUpdateAction extends
 	@Inject
 	public TransportFullUpdateAction(Settings settings, ClusterName clusterName, ThreadPool threadPool,
 			ClusterService clusterService, TransportService transportService) {
-		super(settings, clusterName, threadPool, clusterService, transportService);
-	}
-
-	@Override
-	protected String transportAction() {
-		return FullUpdateAction.NAME;
+		super(settings, FullUpdateAction.NAME, clusterName, threadPool, clusterService, transportService);
 	}
 
 	@Override

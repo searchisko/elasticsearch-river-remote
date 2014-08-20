@@ -18,6 +18,7 @@ import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.xcontent.XContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -303,6 +304,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void buildSearchForIndexedDocumentsNotUpdatedAfter() throws IOException {
 
+		Client client = Mockito.mock(Client.class);
+
 		Map<String, Object> settings = (Map<String, Object>) Utils.loadJSONFromJarPackagedFile(
 				"/index_structure_configuration_test_ok.json").get("index");
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
@@ -312,7 +315,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		// case - comments NONE
 		{
 			tested.commentIndexingMode = CommentIndexingMode.NONE;
-			SearchRequestBuilder srb = new SearchRequestBuilder(null);
+			SearchRequestBuilder srb = new SearchRequestBuilder(client);
 			tested.buildSearchForIndexedDocumentsNotUpdatedAfter(srb, "ORG",
 					DateTimeUtils.parseISODateTime("2012-09-06T12:22:19Z"));
 			Assert.assertArrayEquals(new String[] { "issue_type" }, srb.request().types());
@@ -326,7 +329,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		// case - comments EMBEDDED
 		{
 			tested.commentIndexingMode = CommentIndexingMode.EMBEDDED;
-			SearchRequestBuilder srb = new SearchRequestBuilder(null);
+			SearchRequestBuilder srb = new SearchRequestBuilder(client);
 			tested.buildSearchForIndexedDocumentsNotUpdatedAfter(srb, "ORG",
 					DateTimeUtils.parseISODateTime("2012-09-06T12:22:19Z"));
 			Assert.assertArrayEquals(new String[] { "issue_type" }, srb.request().types());
@@ -340,7 +343,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		// case - comments EMBEDDED
 		{
 			tested.commentIndexingMode = CommentIndexingMode.CHILD;
-			SearchRequestBuilder srb = new SearchRequestBuilder(null);
+			SearchRequestBuilder srb = new SearchRequestBuilder(client);
 			tested.buildSearchForIndexedDocumentsNotUpdatedAfter(srb, "ORG",
 					DateTimeUtils.parseISODateTime("2012-09-06T12:22:19Z"));
 			Assert.assertArrayEquals(new String[] { "issue_type", "comment_type" }, srb.request().types());
@@ -354,7 +357,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		// case - comments EMBEDDED
 		{
 			tested.commentIndexingMode = CommentIndexingMode.STANDALONE;
-			SearchRequestBuilder srb = new SearchRequestBuilder(null);
+			SearchRequestBuilder srb = new SearchRequestBuilder(client);
 			tested.buildSearchForIndexedDocumentsNotUpdatedAfter(srb, "ORG",
 					DateTimeUtils.parseISODateTime("2012-09-06T12:22:19Z"));
 			Assert.assertArrayEquals(new String[] { "issue_type", "comment_type" }, srb.request().types());
@@ -556,10 +559,11 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
 				"search_index", "issue_type", loadTestSettings("/index_structure_configuration_test_ok.json"), true);
 		tested.remoteDataFieldForComments = "fields.comment.comments";
+		Client client = Mockito.mock(Client.class);
 
 		// case - comments NONE
 		{
-			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
+			BulkRequestBuilder esBulk = new BulkRequestBuilder(client);
 			tested.commentIndexingMode = CommentIndexingMode.NONE;
 			Map<String, Object> document = TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501");
 			tested.indexDocument(esBulk, "ORG", document);
@@ -569,7 +573,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 		// case - comments EMBEDDED
 		{
-			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
+			BulkRequestBuilder esBulk = new BulkRequestBuilder(client);
 			tested.commentIndexingMode = CommentIndexingMode.EMBEDDED;
 			tested.indexDocument(esBulk, "ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"));
 			Assert.assertEquals(1, esBulk.request().numberOfActions());
@@ -577,7 +581,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 		// case - comments CHILD
 		{
-			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
+			BulkRequestBuilder esBulk = new BulkRequestBuilder(client);
 			tested.commentIndexingMode = CommentIndexingMode.CHILD;
 			tested.indexDocument(esBulk, "ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"));
 			Assert.assertEquals(3, esBulk.request().numberOfActions());
@@ -585,7 +589,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 		// case - comments STANDALONE with comments in issue
 		{
-			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
+			BulkRequestBuilder esBulk = new BulkRequestBuilder(client);
 			tested.commentIndexingMode = CommentIndexingMode.STANDALONE;
 			tested.indexDocument(esBulk, "ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501"));
 			Assert.assertEquals(3, esBulk.request().numberOfActions());
@@ -593,7 +597,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 		// case - comments STANDALONE without comments in issue
 		{
-			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
+			BulkRequestBuilder esBulk = new BulkRequestBuilder(client);
 			tested.commentIndexingMode = CommentIndexingMode.STANDALONE;
 			tested.indexDocument(esBulk, "ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-15013"));
 			Assert.assertEquals(1, esBulk.request().numberOfActions());
@@ -601,7 +605,7 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 		// case - preprocessor called
 		{
-			BulkRequestBuilder esBulk = new BulkRequestBuilder(null);
+			BulkRequestBuilder esBulk = new BulkRequestBuilder(client);
 			tested.commentIndexingMode = CommentIndexingMode.STANDALONE;
 			StructuredContentPreprocessor idp1 = mock(StructuredContentPreprocessor.class);
 			when(idp1.preprocessData(Mockito.anyMap())).thenAnswer(new Answer<Map<String, Object>>() {

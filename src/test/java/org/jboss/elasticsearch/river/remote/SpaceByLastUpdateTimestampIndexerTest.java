@@ -13,6 +13,7 @@ import java.util.Map;
 
 import junit.framework.Assert;
 
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
@@ -101,6 +102,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 
 			tested.processUpdate();
 			Assert.assertEquals(0, tested.getIndexingInfo().documentsUpdated);
+			Assert.assertEquals(0, tested.indexingInfo.documentsWithError);
 			Assert.assertFalse(tested.getIndexingInfo().fullUpdate);
 			verify(remoteClientMock, times(1)).getChangedDocuments("ORG", 0, mockDateAfter);
 			verify(esIntegrationMock, times(1)).readDatetimeValue(Mockito.any(String.class), Mockito.any(String.class));
@@ -136,11 +138,136 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 
 			tested.processUpdate();
 			Assert.assertEquals(2, tested.indexingInfo.documentsUpdated);
+			Assert.assertEquals(1, tested.indexingInfo.documentsWithError);
 			Assert.assertTrue(tested.indexingInfo.fullUpdate);
 			verify(remoteClientMock, times(1)).getChangedDocuments("ORG", 0, null);
 			verify(esIntegrationMock, times(1)).readDatetimeValue(Mockito.any(String.class), Mockito.any(String.class));
 			verify(esIntegrationMock, times(1)).prepareESBulkRequestBuilder();
 			verify(documentIndexStructureBuilderMock, times(2)).indexDocument(Mockito.eq(brb), Mockito.eq("ORG"),
+					Mockito.any(Map.class));
+			verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq("ORG"),
+					Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE),
+					Mockito.eq(DateTimeUtils.parseISODateTime("2012-08-14T08:02:10.000-0400")), eq(brb));
+			verify(esIntegrationMock, times(1)).executeESBulkRequest(eq(brb));
+			verify(esIntegrationMock, Mockito.atLeastOnce()).isClosed();
+
+			verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-45", doc1);
+			verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-46", doc2);
+			verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-47", doc3);
+			Mockito.verifyNoMoreInteractions(remoteClientMock);
+			Mockito.verifyNoMoreInteractions(esIntegrationMock);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void processUpdate_Error_BulkUpdatePartial() throws Exception {
+
+		// test for issue #42
+
+		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
+		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
+		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, false,
+				remoteClientMock, esIntegrationMock, documentIndexStructureBuilderMock);
+		Client client = Mockito.mock(Client.class);
+
+		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
+
+		// test case with one "page" of results from remote system search method
+		// test case with 'last update date' storing
+		{
+			reset(esIntegrationMock);
+			reset(remoteClientMock);
+			reset(documentIndexStructureBuilderMock);
+			when(
+					esIntegrationMock.readDatetimeValue("ORG",
+							SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE)).thenReturn(null);
+			// test skipping of bad read of remote document - issue #11
+			Map<String, Object> doc1 = addDocumentMock(docs, "ORG-45", "2012-08-14T08:00:00.000-0400");
+			Map<String, Object> doc2 = addDocumentMock(docs, "ORG-46", "2012-08-14T08:01:00.000-0400");
+			Map<String, Object> doc3 = addDocumentMock(docs, "ORG-47", "2012-08-14T08:02:10.000-0400");
+
+			configureStructureBuilderMockDefaults(documentIndexStructureBuilderMock);
+			when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(docs, 0, 3));
+			BulkRequestBuilder brb = new BulkRequestBuilder(client);
+			when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(brb);
+			Mockito.doThrow(new BulkUpdatePartialFailureException("bulk err message", 2)).when(esIntegrationMock)
+					.executeESBulkRequest(brb);
+
+			tested.processUpdate();
+			Assert.assertEquals(1, tested.indexingInfo.documentsUpdated);
+			Assert.assertEquals(2, tested.indexingInfo.documentsWithError);
+			Assert.assertEquals("bulk err message", tested.indexingInfo.getErrorMessage());
+			Assert.assertTrue(tested.indexingInfo.fullUpdate);
+			verify(remoteClientMock, times(1)).getChangedDocuments("ORG", 0, null);
+			verify(esIntegrationMock, times(1)).readDatetimeValue(Mockito.any(String.class), Mockito.any(String.class));
+			verify(esIntegrationMock, times(1)).prepareESBulkRequestBuilder();
+			verify(documentIndexStructureBuilderMock, times(3)).indexDocument(Mockito.eq(brb), Mockito.eq("ORG"),
+					Mockito.any(Map.class));
+			verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq("ORG"),
+					Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE),
+					Mockito.eq(DateTimeUtils.parseISODateTime("2012-08-14T08:02:10.000-0400")), eq(brb));
+			verify(esIntegrationMock, times(1)).executeESBulkRequest(eq(brb));
+			verify(esIntegrationMock, Mockito.atLeastOnce()).isClosed();
+
+			verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-45", doc1);
+			verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-46", doc2);
+			verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-47", doc3);
+			Mockito.verifyNoMoreInteractions(remoteClientMock);
+			Mockito.verifyNoMoreInteractions(esIntegrationMock);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void processUpdate_Error_BulkUpdateComplete() throws Exception {
+
+		// test for issue #42
+
+		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
+		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
+		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, false,
+				remoteClientMock, esIntegrationMock, documentIndexStructureBuilderMock);
+		Client client = Mockito.mock(Client.class);
+
+		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
+
+		// test case with one "page" of results from remote system search method
+		// test case with 'last update date' storing
+		{
+			reset(esIntegrationMock);
+			reset(remoteClientMock);
+			reset(documentIndexStructureBuilderMock);
+			when(
+					esIntegrationMock.readDatetimeValue("ORG",
+							SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE)).thenReturn(null);
+			// test skipping of bad read of remote document - issue #11
+			Map<String, Object> doc1 = addDocumentMock(docs, "ORG-45", "2012-08-14T08:00:00.000-0400");
+			Map<String, Object> doc2 = addDocumentMock(docs, "ORG-46", "2012-08-14T08:01:00.000-0400");
+			Map<String, Object> doc3 = addDocumentMock(docs, "ORG-47", "2012-08-14T08:02:10.000-0400");
+
+			configureStructureBuilderMockDefaults(documentIndexStructureBuilderMock);
+			when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(docs, 0, 3));
+			BulkRequestBuilder brb = new BulkRequestBuilder(client);
+			when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(brb);
+			ElasticsearchException eMock = new ElasticsearchException("bulk err message");
+			Mockito.doThrow(eMock).when(esIntegrationMock).executeESBulkRequest(brb);
+
+			try {
+				tested.processUpdate();
+			} catch (ElasticsearchException e) {
+				Assert.assertEquals(eMock, e);
+			}
+			Assert.assertEquals(0, tested.indexingInfo.documentsUpdated);
+			Assert.assertEquals(0, tested.indexingInfo.documentsWithError);
+			Assert.assertEquals(null, tested.indexingInfo.getErrorMessage());
+			Assert.assertTrue(tested.indexingInfo.fullUpdate);
+			verify(remoteClientMock, times(1)).getChangedDocuments("ORG", 0, null);
+			verify(esIntegrationMock, times(1)).readDatetimeValue(Mockito.any(String.class), Mockito.any(String.class));
+			verify(esIntegrationMock, times(1)).prepareESBulkRequestBuilder();
+			verify(documentIndexStructureBuilderMock, times(3)).indexDocument(Mockito.eq(brb), Mockito.eq("ORG"),
 					Mockito.any(Map.class));
 			verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq("ORG"),
 					Mockito.eq(SpaceByLastUpdateTimestampIndexer.STORE_PROPERTYNAME_LAST_INDEXED_DOC_UPDATE_DATE),
@@ -182,7 +309,8 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 			Map<String, Object> doc3 = addDocumentMock(docs, "ORG-47", "2012-08-14T08:02:10.000-0400");
 			when(
 					remoteClientMock.getChangedDocumentDetails(Mockito.eq("ORG"), Mockito.anyString(),
-							(Map<String, Object>) Mockito.notNull())).thenThrow(new RemoteDocumentNotFoundException());
+							(Map<String, Object>) Mockito.notNull())).thenThrow(
+					new RemoteDocumentNotFoundException("URL unreachable"));
 			configureStructureBuilderMockDefaults(documentIndexStructureBuilderMock);
 			when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(docs, 0, 3));
 			BulkRequestBuilder brb = new BulkRequestBuilder(client);
@@ -190,6 +318,12 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 
 			tested.processUpdate();
 			Assert.assertEquals(0, tested.indexingInfo.documentsUpdated);
+			Assert.assertEquals(3, tested.indexingInfo.documentsWithError);
+			Assert.assertEquals(
+					"Detail processing problem for document with id ' documentId', so we skip it: URL unreachable\n"
+							+ "Detail processing problem for document with id ' documentId', so we skip it: URL unreachable\n"
+							+ "Detail processing problem for document with id ' documentId', so we skip it: URL unreachable",
+					tested.indexingInfo.getErrorMessage());
 			Assert.assertTrue(tested.indexingInfo.fullUpdate);
 			verify(remoteClientMock, times(1)).getChangedDocuments("ORG", 0, null);
 			verify(esIntegrationMock, times(1)).readDatetimeValue(Mockito.any(String.class), Mockito.any(String.class));
@@ -260,6 +394,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 
 		tested.processUpdate();
 		Assert.assertEquals(5, tested.indexingInfo.documentsUpdated);
+		Assert.assertEquals(3, tested.indexingInfo.documentsWithError);
 		verify(esIntegrationMock, times(1)).readDatetimeValue(Mockito.any(String.class), Mockito.any(String.class));
 		verify(esIntegrationMock, times(3)).prepareESBulkRequestBuilder();
 		verify(remoteClientMock, times(1)).getChangedDocuments("ORG", 0, null);
@@ -311,6 +446,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 
 			tested.processUpdate();
 			Assert.assertEquals(0, tested.getIndexingInfo().documentsUpdated);
+			Assert.assertEquals(0, tested.indexingInfo.documentsWithError);
 			Assert.assertTrue(tested.getIndexingInfo().fullUpdate);
 			verify(remoteClientMock, times(1)).getChangedDocuments("ORG", 0, null);
 			verify(esIntegrationMock, times(0)).readDatetimeValue(Mockito.any(String.class), Mockito.any(String.class));
@@ -340,6 +476,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 
 			tested.processUpdate();
 			Assert.assertEquals(2, tested.indexingInfo.documentsUpdated);
+			Assert.assertEquals(1, tested.indexingInfo.documentsWithError);
 			Assert.assertTrue(tested.indexingInfo.fullUpdate);
 			verify(remoteClientMock, times(1)).getChangedDocuments("ORG", 0, null);
 			verify(esIntegrationMock, times(0)).readDatetimeValue(Mockito.any(String.class), Mockito.any(String.class));
@@ -389,6 +526,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 
 		tested.processUpdate();
 		Assert.assertEquals(1, tested.indexingInfo.documentsUpdated);
+		Assert.assertEquals(0, tested.indexingInfo.documentsWithError);
 		Assert.assertFalse(tested.indexingInfo.fullUpdate);
 		verify(remoteClientMock, times(1)).getChangedDocuments("ORG", 0, mockDateAfter);
 		verify(esIntegrationMock, times(1)).readDatetimeValue(Mockito.any(String.class), Mockito.any(String.class));
@@ -449,6 +587,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 
 		tested.processUpdate();
 		Assert.assertEquals(8, tested.indexingInfo.documentsUpdated);
+		Assert.assertEquals(0, tested.indexingInfo.documentsWithError);
 		Assert.assertTrue(tested.indexingInfo.fullUpdate);
 		verify(esIntegrationMock, times(1)).readDatetimeValue(Mockito.any(String.class), Mockito.any(String.class));
 		verify(esIntegrationMock, times(3)).prepareESBulkRequestBuilder();
@@ -523,6 +662,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 
 		tested.processUpdate();
 		Assert.assertEquals(8, tested.indexingInfo.documentsUpdated);
+		Assert.assertEquals(0, tested.indexingInfo.documentsWithError);
 		verify(esIntegrationMock, times(1)).readDatetimeValue(Mockito.any(String.class), Mockito.any(String.class));
 		verify(esIntegrationMock, times(3)).prepareESBulkRequestBuilder();
 		verify(remoteClientMock, times(1)).getChangedDocuments("ORG", 0, null);

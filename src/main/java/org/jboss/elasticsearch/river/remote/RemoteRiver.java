@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteResponse;
@@ -760,10 +761,25 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	}
 
 	@Override
-	public void executeESBulkRequest(BulkRequestBuilder esBulk) throws Exception {
+	public void executeESBulkRequest(BulkRequestBuilder esBulk) throws ElasticsearchException,
+			BulkUpdatePartialFailureException {
 		BulkResponse response = esBulk.execute().actionGet();
 		if (response.hasFailures()) {
-			throw new ElasticsearchException("Failed to execute ES index bulk update: " + response.buildFailureMessage());
+			boolean containsSuccess = false;
+			int numOfFailures = 0;
+			for (BulkItemResponse bir : response.getItems()) {
+				if (!bir.isFailed()) {
+					containsSuccess = true;
+				} else {
+					numOfFailures++;
+				}
+			}
+			if (containsSuccess) {
+				throw new BulkUpdatePartialFailureException(response.buildFailureMessage(), numOfFailures);
+			} else {
+				throw new ElasticsearchException("Failed to completely execute ES index bulk update for " + numOfFailures
+						+ " commands: " + response.buildFailureMessage());
+			}
 		}
 	}
 

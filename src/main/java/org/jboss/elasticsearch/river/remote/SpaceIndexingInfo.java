@@ -25,6 +25,7 @@ public class SpaceIndexingInfo {
 	public static final String DOCFIELD_TIME_ELAPSED = "time_elapsed";
 	public static final String DOCFIELD_RESULT = "result";
 	public static final String DOCFIELD_DOCUMENTS_UPDATED = "documents_updated";
+	public static final String DOCFIELD_DOCUMENTS_WITH_ERROR = "documents_with_error";
 	public static final String DOCFIELD_UPDATE_TYPE = "update_type";
 	public static final String DOCFIELD_START_DATE = "start_date";
 	public static final String DOCFIELD_SPACE_KEY = "space_key";
@@ -45,6 +46,10 @@ public class SpaceIndexingInfo {
 	 */
 	public int documentsDeleted;
 	/**
+	 * Number of documents not updated during this indexing run due errors.
+	 */
+	public int documentsWithError;
+	/**
 	 * Number of comments saved as separate es documents deleted during this indexing run.
 	 */
 	public int commentsDeleted;
@@ -64,7 +69,7 @@ public class SpaceIndexingInfo {
 	/**
 	 * error message if indexing finished with error
 	 */
-	public String errorMessage;
+	private StringBuilder errorMessage = new StringBuilder();
 
 	/**
 	 * Partially filling constructor.
@@ -102,7 +107,35 @@ public class SpaceIndexingInfo {
 		this.startDate = startDate;
 		this.finishedOK = finishedOK;
 		this.timeElapsed = timeElapsed;
-		this.errorMessage = errorMessage;
+		errorMessage = Utils.trimToNull(errorMessage);
+		if (errorMessage != null)
+			this.errorMessage.append(errorMessage);
+	}
+
+	/**
+	 * Add row of text into error message.
+	 * 
+	 * @param msgRow text to be added into message as row
+	 */
+	public void addErrorMessage(String msgRow) {
+		msgRow = Utils.trimToNull(msgRow);
+		if (msgRow != null) {
+			if (errorMessage.length() != 0) {
+				errorMessage.append("\n");
+			}
+			errorMessage.append(msgRow);
+		}
+	}
+
+	/**
+	 * Get error message.
+	 * 
+	 * @return error message.
+	 */
+	public String getErrorMessage() {
+		if (errorMessage.length() == 0)
+			return null;
+		return errorMessage.toString();
 	}
 
 	/**
@@ -124,11 +157,12 @@ public class SpaceIndexingInfo {
 		builder.field(DOCFIELD_START_DATE, startDate);
 		builder.field(DOCFIELD_DOCUMENTS_UPDATED, documentsUpdated);
 		builder.field(DOCFIELD_DOCUMENTS_DELETED, documentsDeleted);
+		builder.field(DOCFIELD_DOCUMENTS_WITH_ERROR, documentsWithError);
 		if (printFinalStatus) {
 			builder.field(DOCFIELD_RESULT, finishedOK ? DOCVAL_RESULT_OK : "ERROR");
 			builder.field(DOCFIELD_TIME_ELAPSED, timeElapsed + "ms");
-			if (!finishedOK && !Utils.isEmpty(errorMessage)) {
-				builder.field(DOCFIELD_ERROR_MESSAGE, errorMessage);
+			if (!Utils.isEmpty(getErrorMessage())) {
+				builder.field(DOCFIELD_ERROR_MESSAGE, getErrorMessage());
 			}
 		}
 		builder.endObject();
@@ -149,9 +183,10 @@ public class SpaceIndexingInfo {
 		ret.startDate = DateTimeUtils.parseISODateTime((String) document.get(DOCFIELD_START_DATE));
 		ret.documentsUpdated = Utils.nodeIntegerValue(document.get(DOCFIELD_DOCUMENTS_UPDATED));
 		ret.documentsDeleted = Utils.nodeIntegerValue(document.get(DOCFIELD_DOCUMENTS_DELETED));
+		ret.documentsWithError = Utils.nodeIntegerValue(document.get(DOCFIELD_DOCUMENTS_WITH_ERROR));
 		ret.finishedOK = DOCVAL_RESULT_OK.equals(document.get(DOCFIELD_RESULT));
 		ret.timeElapsed = Long.parseLong(((String) document.get(DOCFIELD_TIME_ELAPSED)).replace("ms", ""));
-		ret.errorMessage = (String) document.get(DOCFIELD_ERROR_MESSAGE);
+		ret.addErrorMessage((String) document.get(DOCFIELD_ERROR_MESSAGE));
 		return ret;
 	}
 

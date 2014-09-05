@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
@@ -96,10 +97,11 @@ public interface IESIntegration {
 	 * Execute ElasticSearch bulk request against ElasticSearch cluster.
 	 * 
 	 * @param esBulk to perform
-	 * @throws Exception in case of update failure
+	 * @throws ElasticsearchException in case of fatal ES update failure
+	 * @throws BulkUpdatePartialFailureException
 	 * @see #prepareESBulkRequestBuilder()
 	 */
-	void executeESBulkRequest(BulkRequestBuilder esBulk) throws Exception;
+	void executeESBulkRequest(BulkRequestBuilder esBulk) throws ElasticsearchException, BulkUpdatePartialFailureException;
 
 	/**
 	 * Acquire thread from ElasticSearch infrastructure to run indexing.

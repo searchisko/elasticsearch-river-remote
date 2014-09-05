@@ -110,9 +110,15 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 			logger.info("Finished {} update for Space {}. {} updated and {} deleted documents. Time elapsed {}s.",
 					indexingInfo.fullUpdate ? "full" : "incremental", spaceKey, indexingInfo.documentsUpdated,
 					indexingInfo.documentsDeleted, (indexingInfo.timeElapsed / 1000));
+			if (indexingInfo.getErrorMessage() != null) {
+				logger
+						.info(
+								"Update for Space {} contained {} documents with skipped unfatal errors: "
+										+ indexingInfo.getErrorMessage(), spaceKey, indexingInfo.documentsWithError);
+			}
 		} catch (Throwable e) {
 			indexingInfo.timeElapsed = (System.currentTimeMillis() - startTime);
-			indexingInfo.errorMessage = e.getMessage();
+			indexingInfo.addErrorMessage(e.getMessage());
 			indexingInfo.finishedOK = false;
 			esIntegrationComponent.reportIndexingFinished(indexingInfo);
 			Throwable cause = e;
@@ -178,7 +184,11 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 						}
 					} catch (RemoteDocumentNotFoundException e) {
 						// skip rest of processing in this case
-						logger.warn("Document '{}' details not found on server, so skip it: " + e.getMessage(), documentId);
+						String msg = "Detail processing problem for document with id ' documentId', so we skip it: "
+								+ e.getMessage();
+						indexingInfo.addErrorMessage(msg);
+						indexingInfo.documentsWithError++;
+						logger.warn(msg);
 						continue;
 					}
 					lastDocumentUpdatedDate = documentIndexStructureBuilder.extractDocumentUpdated(document);
@@ -191,11 +201,11 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 					}
 
 					documentIndexStructureBuilder.indexDocument(esBulk, spaceKey, document);
-					indexingInfo.documentsUpdated++;
 					updatedInThisBulk++;
 
 					if (simpleGetDocuments && updatedInThisBulk > MAX_BULK_SIZE_IN_SIMPLE_GET) {
-						esIntegrationComponent.executeESBulkRequest(esBulk);
+						executeBulkUpdate(esBulk);
+						indexingInfo.documentsUpdated += updatedInThisBulk;
 						esBulk = esIntegrationComponent.prepareESBulkRequestBuilder();
 						updatedInThisBulk = 0;
 					}
@@ -207,8 +217,10 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 				if (!simpleGetDocuments && lastDocumentUpdatedDate != null)
 					storeLastDocumentUpdatedDate(esBulk, spaceKey, lastDocumentUpdatedDate);
 
-				if (updatedInThisBulk > 0)
-					esIntegrationComponent.executeESBulkRequest(esBulk);
+				if (updatedInThisBulk > 0) {
+					executeBulkUpdate(esBulk);
+					indexingInfo.documentsUpdated += updatedInThisBulk;
+				}
 
 				if (simpleGetDocuments) {
 					cont = false;
@@ -265,6 +277,16 @@ public class SpaceByLastUpdateTimestampIndexer implements Runnable {
 			// no any new document during this update cycle, go to increment lastDocumentUpdatedDate in store by one second
 			// not to index last document again and again in next cycle
 			storeLastDocumentUpdatedDate(null, spaceKey, new Date(lastDocumentUpdatedDate.getTime() + 1000));
+		}
+	}
+
+	private void executeBulkUpdate(BulkRequestBuilder esBulk) {
+		try {
+			esIntegrationComponent.executeESBulkRequest(esBulk);
+		} catch (BulkUpdatePartialFailureException e) {
+			indexingInfo.addErrorMessage(e.getMessage());
+			indexingInfo.documentsWithError += e.getNumOfFailures();
+			indexingInfo.documentsUpdated -= e.getNumOfFailures();
 		}
 	}
 

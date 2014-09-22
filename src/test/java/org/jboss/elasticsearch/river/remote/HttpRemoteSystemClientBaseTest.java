@@ -15,22 +15,18 @@ import junit.framework.Assert;
 import org.apache.http.Header;
 import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.ParseException;
 import org.apache.http.StatusLine;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.Credentials;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicAuthCache;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.CoreConnectionPNames;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.protocol.BasicHttpContext;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.SettingsException;
 import org.jboss.elasticsearch.river.remote.HttpRemoteSystemClientBase.HttpCallException;
@@ -108,134 +104,21 @@ public class HttpRemoteSystemClientBaseTest {
 	}
 
 	@Test
-	public void initHttpClient_noauth() {
-
-		HttpRemoteSystemClientBase tested = getTested();
-		ESLogger logger = Loggers.getLogger("test logger");
-		Map<String, Object> config = new HashMap<String, Object>();
-
-		Assert.assertNull(tested.initHttpClient(logger, config, null, "http://test.org"));
-
-		Assert.assertEquals(logger, tested.myLogger);
-		Assert.assertNotNull(tested.httpclient);
-		Assert.assertFalse(tested.isAuthConfigured);
-		Credentials c = ((DefaultHttpClient) tested.httpclient).getCredentialsProvider().getCredentials(
-				new AuthScope("test.org", AuthScope.ANY_PORT));
-		Assert.assertNull(c);
-		Assert.assertEquals(5000, tested.httpclient.getParams().getParameter(CoreConnectionPNames.SO_TIMEOUT));
-		Assert.assertEquals(5000, tested.httpclient.getParams().getParameter(CoreConnectionPNames.CONNECTION_TIMEOUT));
-	}
-
-	@Test
-	public void initHttpClient_nopassword_settimeout() {
-		// no password so no auth!
-		HttpRemoteSystemClientBase tested = getTested();
-		ESLogger logger = Loggers.getLogger("test logger");
-		Map<String, Object> config = new HashMap<String, Object>();
-		config.put(HttpRemoteSystemClientBase.CFG_USERNAME, "uname");
-		config.put(HttpRemoteSystemClientBase.CFG_TIMEOUT, "10s");
-
-		Assert.assertNull(tested.initHttpClient(logger, config, null, "http://test.org"));
-
-		Assert.assertEquals(logger, tested.myLogger);
-		Assert.assertNotNull(tested.httpclient);
-		Assert.assertFalse(tested.isAuthConfigured);
-		Credentials c = ((DefaultHttpClient) tested.httpclient).getCredentialsProvider().getCredentials(
-				new AuthScope("test.org", AuthScope.ANY_PORT));
-		Assert.assertNull(c);
-
-		Assert.assertEquals(10000, tested.httpclient.getParams().getParameter(CoreConnectionPNames.SO_TIMEOUT));
-		Assert.assertEquals(10000, tested.httpclient.getParams().getParameter(CoreConnectionPNames.CONNECTION_TIMEOUT));
-
-	}
-
-	@Test
-	public void initHttpClient_auth() {
-		HttpRemoteSystemClientBase tested = getTested();
-		ESLogger logger = Loggers.getLogger("test logger");
-		Map<String, Object> config = new HashMap<String, Object>();
-		config.put(HttpRemoteSystemClientBase.CFG_USERNAME, "uname");
-		config.put(HttpRemoteSystemClientBase.CFG_PASSWORD, "pwd");
-
-		IPwdLoader pwdLoader = Mockito.mock(IPwdLoader.class);
-
-		Assert.assertEquals("uname", tested.initHttpClient(logger, config, pwdLoader, "http://test.org"));
-
-		Assert.assertEquals(logger, tested.myLogger);
-		Assert.assertNotNull(tested.httpclient);
-		Assert.assertTrue(tested.isAuthConfigured);
-		Credentials c = ((DefaultHttpClient) tested.httpclient).getCredentialsProvider().getCredentials(
-				new AuthScope("test.org", AuthScope.ANY_PORT));
-		Assert.assertNotNull(c);
-		Assert.assertTrue(c instanceof UsernamePasswordCredentials);
-		Assert.assertEquals("uname", ((UsernamePasswordCredentials) c).getUserName());
-		Assert.assertEquals("pwd", ((UsernamePasswordCredentials) c).getPassword());
-	}
-
-	@Test
-	public void initHttpClient_auth_pwd_pwdloader() {
-
-		HttpRemoteSystemClientBase tested = getTested();
-		ESLogger logger = Loggers.getLogger("test logger");
-		Map<String, Object> config = new HashMap<String, Object>();
-		config.put(HttpRemoteSystemClientBase.CFG_USERNAME, "uname");
-		config.put(HttpRemoteSystemClientBase.CFG_PASSWORD, "pwd");
-
-		IPwdLoader pwdLoader = Mockito.mock(IPwdLoader.class);
-		Mockito.when(pwdLoader.loadPassword("uname")).thenReturn("mypwd");
-
-		Assert.assertEquals("uname", tested.initHttpClient(logger, config, pwdLoader, "http://test.org"));
-
-		Assert.assertEquals(logger, tested.myLogger);
-		Assert.assertNotNull(tested.httpclient);
-		Assert.assertTrue(tested.isAuthConfigured);
-		Credentials c = ((DefaultHttpClient) tested.httpclient).getCredentialsProvider().getCredentials(
-				new AuthScope("test.org", AuthScope.ANY_PORT));
-		Assert.assertNotNull(c);
-		Assert.assertTrue(c instanceof UsernamePasswordCredentials);
-		Assert.assertEquals("uname", ((UsernamePasswordCredentials) c).getUserName());
-		// pwd from config must be used, not from loader!
-		Assert.assertEquals("pwd", ((UsernamePasswordCredentials) c).getPassword());
-		Mockito.verifyZeroInteractions(pwdLoader);
-	}
-
-	@Test
-	public void initHttpClient_auth_pwdloader() {
-
-		HttpRemoteSystemClientBase tested = getTested();
-		ESLogger logger = Loggers.getLogger("test logger");
-		Map<String, Object> config = new HashMap<String, Object>();
-		config.put(HttpRemoteSystemClientBase.CFG_USERNAME, "uname");
-
-		IPwdLoader pwdLoader = Mockito.mock(IPwdLoader.class);
-		Mockito.when(pwdLoader.loadPassword("uname")).thenReturn("mypwd");
-
-		Assert.assertEquals("uname", tested.initHttpClient(logger, config, pwdLoader, "http://test.org"));
-
-		Assert.assertEquals(logger, tested.myLogger);
-		Assert.assertNotNull(tested.httpclient);
-		Assert.assertTrue(tested.isAuthConfigured);
-		Credentials c = ((DefaultHttpClient) tested.httpclient).getCredentialsProvider().getCredentials(
-				new AuthScope("test.org", AuthScope.ANY_PORT));
-		Assert.assertNotNull(c);
-		Assert.assertTrue(c instanceof UsernamePasswordCredentials);
-		Assert.assertEquals("uname", ((UsernamePasswordCredentials) c).getUserName());
-		Assert.assertEquals("mypwd", ((UsernamePasswordCredentials) c).getPassword());
-	}
-
-	@Test
 	public void performHttpGetCall_succes_noHeaders() throws HttpCallException, Exception {
 		HttpRemoteSystemClientBase tested = getTested();
 		tested.myLogger = Loggers.getLogger("test logger");
-		tested.httpclient = Mockito.mock(HttpClient.class);
+		tested.httpclient = Mockito.mock(CloseableHttpClient.class);
 
-		Mockito.when(tested.httpclient.execute(Mockito.any(HttpGet.class), Mockito.any(BasicHttpContext.class)))
-				.thenAnswer(prepereHttpResponseAnswer(HttpStatus.SC_OK, "response", "text/plain", null, false));
+		Mockito.when(
+				tested.httpclient.execute(Mockito.any(HttpHost.class), Mockito.any(HttpGet.class),
+						Mockito.any(BasicHttpContext.class))).thenAnswer(
+				prepereHttpResponseAnswer(HttpStatus.SC_OK, "response", "text/plain", null, false));
 
 		HttpResponseContent ret = tested.performHttpGetCall("http://test.org", null);
 		Assert.assertEquals("response", new String(ret.content));
 		Assert.assertEquals("text/plain", new String(ret.contentType));
-		Mockito.verify(tested.httpclient).execute(Mockito.any(HttpGet.class), Mockito.any(BasicHttpContext.class));
+		Mockito.verify(tested.httpclient).execute(Mockito.any(HttpHost.class), Mockito.any(HttpGet.class),
+				Mockito.any(BasicHttpContext.class));
 		Mockito.verifyNoMoreInteractions(tested.httpclient);
 	}
 
@@ -243,19 +126,22 @@ public class HttpRemoteSystemClientBaseTest {
 	public void performHttpGetCall_succes_headers_auth() throws HttpCallException, Exception {
 		HttpRemoteSystemClientBase tested = getTested();
 		tested.myLogger = Loggers.getLogger("test logger");
-		tested.httpclient = Mockito.mock(HttpClient.class);
+		tested.httpclient = Mockito.mock(CloseableHttpClient.class);
 		tested.isAuthConfigured = true;
 
 		Map<String, String> headers = new HashMap<String, String>();
 		headers.put("Accept", "application/json");
 
-		Mockito.when(tested.httpclient.execute(Mockito.any(HttpGet.class), Mockito.any(BasicHttpContext.class)))
-				.thenAnswer(prepereHttpResponseAnswer(HttpStatus.SC_OK, "response", "text/any", headers, true));
+		Mockito.when(
+				tested.httpclient.execute(Mockito.any(HttpHost.class), Mockito.any(HttpGet.class),
+						Mockito.any(BasicHttpContext.class))).thenAnswer(
+				prepereHttpResponseAnswer(HttpStatus.SC_OK, "response", "text/any", headers, true));
 
 		HttpResponseContent ret = tested.performHttpGetCall("http://test.org", headers);
 		Assert.assertEquals("response", new String(ret.content));
 		Assert.assertEquals("text/any", new String(ret.contentType));
-		Mockito.verify(tested.httpclient).execute(Mockito.any(HttpGet.class), Mockito.any(BasicHttpContext.class));
+		Mockito.verify(tested.httpclient).execute(Mockito.any(HttpHost.class), Mockito.any(HttpGet.class),
+				Mockito.any(BasicHttpContext.class));
 		Mockito.verifyNoMoreInteractions(tested.httpclient);
 	}
 
@@ -263,10 +149,12 @@ public class HttpRemoteSystemClientBaseTest {
 	public void performHttpGetCall_error_entity() throws HttpCallException, Exception {
 		HttpRemoteSystemClientBase tested = getTested();
 		tested.myLogger = Loggers.getLogger("test logger");
-		tested.httpclient = Mockito.mock(HttpClient.class);
+		tested.httpclient = Mockito.mock(CloseableHttpClient.class);
 
-		Mockito.when(tested.httpclient.execute(Mockito.any(HttpGet.class), Mockito.any(BasicHttpContext.class)))
-				.thenAnswer(prepereHttpResponseAnswer(HttpStatus.SC_NOT_FOUND, "response", "text/plain", null, false));
+		Mockito.when(
+				tested.httpclient.execute(Mockito.any(HttpHost.class), Mockito.any(HttpGet.class),
+						Mockito.any(BasicHttpContext.class))).thenAnswer(
+				prepereHttpResponseAnswer(HttpStatus.SC_NOT_FOUND, "response", "text/plain", null, false));
 
 		try {
 			tested.performHttpGetCall("http://test.org", null);
@@ -276,7 +164,8 @@ public class HttpRemoteSystemClientBaseTest {
 					.assertEquals(
 							"Failed remote system HTTP GET request to the url 'http://test.org'. HTTP error code: 404 Response body: response",
 							e.getMessage());
-			Mockito.verify(tested.httpclient).execute(Mockito.any(HttpGet.class), Mockito.any(BasicHttpContext.class));
+			Mockito.verify(tested.httpclient).execute(Mockito.any(HttpHost.class), Mockito.any(HttpGet.class),
+					Mockito.any(BasicHttpContext.class));
 			Mockito.verifyNoMoreInteractions(tested.httpclient);
 		}
 	}
@@ -285,10 +174,12 @@ public class HttpRemoteSystemClientBaseTest {
 	public void performHttpGetCall_error_no_entity() throws HttpCallException, Exception {
 		HttpRemoteSystemClientBase tested = getTested();
 		tested.myLogger = Loggers.getLogger("test logger");
-		tested.httpclient = Mockito.mock(HttpClient.class);
+		tested.httpclient = Mockito.mock(CloseableHttpClient.class);
 
-		Mockito.when(tested.httpclient.execute(Mockito.any(HttpGet.class), Mockito.any(BasicHttpContext.class)))
-				.thenAnswer(prepereHttpResponseAnswer(HttpStatus.SC_NOT_FOUND, null, null, null, false));
+		Mockito.when(
+				tested.httpclient.execute(Mockito.any(HttpHost.class), Mockito.any(HttpGet.class),
+						Mockito.any(BasicHttpContext.class))).thenAnswer(
+				prepereHttpResponseAnswer(HttpStatus.SC_NOT_FOUND, null, null, null, false));
 
 		try {
 			tested.performHttpGetCall("http://test.org", null);
@@ -298,7 +189,8 @@ public class HttpRemoteSystemClientBaseTest {
 					"Failed remote system HTTP GET request to the url 'http://test.org'. HTTP error code: 404 Response body: ",
 					e.getMessage());
 			Assert.assertEquals(HttpStatus.SC_NOT_FOUND, e.getStatusCode());
-			Mockito.verify(tested.httpclient).execute(Mockito.any(HttpGet.class), Mockito.any(BasicHttpContext.class));
+			Mockito.verify(tested.httpclient).execute(Mockito.any(HttpHost.class), Mockito.any(HttpGet.class),
+					Mockito.any(BasicHttpContext.class));
 			Mockito.verifyNoMoreInteractions(tested.httpclient);
 		}
 	}
@@ -310,7 +202,7 @@ public class HttpRemoteSystemClientBaseTest {
 			@Override
 			public HttpResponse answer(InvocationOnMock invocation) throws Throwable {
 
-				HttpGet method = (HttpGet) invocation.getArguments()[0];
+				HttpGet method = (HttpGet) invocation.getArguments()[1];
 
 				if (headersExpected == null) {
 					Assert.assertEquals(0, method.getAllHeaders().length);
@@ -320,14 +212,14 @@ public class HttpRemoteSystemClientBaseTest {
 					}
 				}
 
-				BasicHttpContext localcontext = (BasicHttpContext) invocation.getArguments()[1];
+				HttpClientContext localcontext = (HttpClientContext) invocation.getArguments()[2];
 				if (authExpected) {
-					Assert.assertTrue(localcontext.getAttribute(ClientContext.AUTH_CACHE) instanceof BasicAuthCache);
+					Assert.assertTrue(localcontext.getAuthCache() instanceof BasicAuthCache);
 				} else {
-					Assert.assertNull(localcontext.getAttribute(ClientContext.AUTH_CACHE));
+					Assert.assertNull(localcontext.getAuthCache());
 				}
 
-				HttpResponse ret = Mockito.mock(HttpResponse.class);
+				HttpResponse ret = Mockito.mock(CloseableHttpResponse.class);
 				StatusLine sl = Mockito.mock(StatusLine.class);
 				Mockito.when(sl.getStatusCode()).thenReturn(statusCode);
 				Mockito.when(ret.getStatusLine()).thenReturn(sl);

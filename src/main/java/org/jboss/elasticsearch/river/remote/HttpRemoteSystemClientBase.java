@@ -10,25 +10,27 @@ import java.net.URL;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.http.Consts;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
-import org.apache.http.client.HttpClient;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.config.ConnectionConfig;
 import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.BasicAuthCache;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.PoolingClientConnectionManager;
-import org.apache.http.params.CoreConnectionPNames;
-import org.apache.http.params.CoreProtocolPNames;
-import org.apache.http.params.HttpParams;
-import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.settings.SettingsException;
@@ -49,7 +51,7 @@ public abstract class HttpRemoteSystemClientBase implements IRemoteSystemClient 
 
 	protected ESLogger myLogger = null;
 
-	protected HttpClient httpclient;
+	protected CloseableHttpClient httpclient;
 
 	protected boolean isAuthConfigured = false;
 
@@ -67,19 +69,20 @@ public abstract class HttpRemoteSystemClientBase implements IRemoteSystemClient 
 	protected String initHttpClient(ESLogger logger, Map<String, Object> config, IPwdLoader pwdLoader, String url) {
 		this.myLogger = logger;
 
-		PoolingClientConnectionManager connectionManager = new PoolingClientConnectionManager();
-		connectionManager.setDefaultMaxPerRoute(20);
-		connectionManager.setMaxTotal(20);
+		PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
+		connManager.setDefaultMaxPerRoute(20);
+		connManager.setMaxTotal(20);
 
-		DefaultHttpClient httpclientImpl = new DefaultHttpClient(connectionManager);
-		httpclient = httpclientImpl;
-		HttpParams params = httpclient.getParams();
-		params.setParameter(CoreProtocolPNames.HTTP_CONTENT_CHARSET, "UTF-8");
+		ConnectionConfig connectionConfig = ConnectionConfig.custom().setCharset(Consts.UTF_8).build();
+		connManager.setDefaultConnectionConfig(connectionConfig);
+
+		HttpClientBuilder clientBuilder = HttpClients.custom().setConnectionManager(connManager);
 
 		Integer timeout = new Long(Utils.parseTimeValue(config, CFG_TIMEOUT, 5, TimeUnit.SECONDS)).intValue();
+
 		if (timeout != null) {
-			params.setParameter(CoreConnectionPNames.SO_TIMEOUT, timeout);
-			params.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, timeout);
+			RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeout).setConnectTimeout(timeout).build();
+			clientBuilder.setDefaultRequestConfig(requestConfig);
 		}
 
 		String remoteUsername = Utils.trimToNull(XContentMapValues.nodeStringValue(config.get(CFG_USERNAME), null));
@@ -91,8 +94,10 @@ public abstract class HttpRemoteSystemClientBase implements IRemoteSystemClient 
 				try {
 					URL urlParsed = new URL(url);
 					String host = urlParsed.getHost();
-					httpclientImpl.getCredentialsProvider().setCredentials(new AuthScope(host, AuthScope.ANY_PORT),
-							new UsernamePasswordCredentials(remoteUsername, remotePassword));
+					CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+					credentialsProvider.setCredentials(new AuthScope(host, AuthScope.ANY_PORT), new UsernamePasswordCredentials(
+							remoteUsername, remotePassword));
+					clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
 					isAuthConfigured = true;
 				} catch (MalformedURLException e) {
 					// this should never happen due validation before
@@ -104,6 +109,7 @@ public abstract class HttpRemoteSystemClientBase implements IRemoteSystemClient 
 		} else {
 			remoteUsername = null;
 		}
+		httpclient = clientBuilder.build();
 		return remoteUsername;
 	}
 
@@ -154,20 +160,19 @@ public abstract class HttpRemoteSystemClientBase implements IRemoteSystemClient 
 			for (String headerName : headers.keySet())
 				method.addHeader(headerName, headers.get(headerName));
 		}
+		CloseableHttpResponse response = null;
 		try {
+			HttpHost targetHost = new HttpHost(builder.getHost(), builder.getPort(), builder.getScheme());
 
-			BasicHttpContext localcontext = new BasicHttpContext();
+			HttpClientContext localcontext = HttpClientContext.create();
 			if (isAuthConfigured) {
-				// Preemptive authentication enabled - see
-				// http://hc.apache.org/httpcomponents-client-ga/tutorial/html/authentication.html#d5e1032
-				HttpHost targetHost = new HttpHost(builder.getHost(), builder.getPort(), builder.getScheme());
 				AuthCache authCache = new BasicAuthCache();
 				BasicScheme basicAuth = new BasicScheme();
 				authCache.put(targetHost, basicAuth);
-				localcontext.setAttribute(ClientContext.AUTH_CACHE, authCache);
+				localcontext.setAuthCache(authCache);
 			}
 
-			HttpResponse response = httpclient.execute(method, localcontext);
+			response = httpclient.execute(targetHost, method, localcontext);
 			int statusCode = response.getStatusLine().getStatusCode();
 			byte[] responseContent = null;
 			if (response.getEntity() != null) {
@@ -180,6 +185,8 @@ public abstract class HttpRemoteSystemClientBase implements IRemoteSystemClient 
 
 			return new HttpResponseContent(h != null ? h.getValue() : null, responseContent);
 		} finally {
+			if (response != null)
+				response.close();
 			method.releaseConnection();
 		}
 	}

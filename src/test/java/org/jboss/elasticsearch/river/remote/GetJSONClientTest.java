@@ -6,6 +6,7 @@
 package org.jboss.elasticsearch.river.remote;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +28,26 @@ import org.mockito.Mockito;
  * @author Vlastimil Elias (velias at redhat dot com)
  */
 public class GetJSONClientTest {
+
+	public static final void main(String... args) throws Exception {
+		GetJSONClient tested = new GetJSONClient();
+		Map<String, Object> config = new HashMap<>();
+		config.put(
+				GetJSONClient.CFG_URL_GET_DOCUMENTS,
+				"https://issues.jboss.org/rest/api/2/search?jql="
+						+ URLEncoder.encode("project=ORG and updatedDate >= \"2014/09/15 01:00\"", "UTF-8"));
+		config.put(GetJSONClient.CFG_USERNAME, "");
+		config.put(GetJSONClient.CFG_PASSWORD, "");
+		config.put(GetJSONClient.CFG_TIMEOUT, "50s");
+		config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_DOCUMENTS, "issues");
+		config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_TOTALCOUNT, "total");
+		tested.init(config, false, null);
+
+		ChangedDocumentsResults ret = tested.getChangedDocuments("ORG", 0, null);
+
+		System.out.println("Documents count: " + ret.getDocumentsCount());
+
+	}
 
 	@Test
 	public void init() {

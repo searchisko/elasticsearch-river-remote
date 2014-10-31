@@ -1,6 +1,8 @@
 Universal remote system indexing River Plugin for Elasticsearch
 ===============================================================
 
+[![Build Status](https://travis-ci.org/searchisko/elasticsearch-river-remote.svg?branch=master)](https://travis-ci.org/searchisko/elasticsearch-river-remote)
+
 The Universal remote system indexing River Plugin allows index documents from
 remotely accessible systems into [Elasticsearch](http://www.elasticsearch.org). 
 It's implemented as Elasticsearch [river](http://www.elasticsearch.org/guide/en/elasticsearch/rivers/current/index.html) 

@@ -81,6 +81,12 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	protected long indexFullUpdatePeriod = -1;
 
 	/**
+	 * Cron expression to schedule automatic full update from remote system. Ignore <code>indexFullUpdatePeriod</code> if
+	 * this one is not null.
+	 */
+	protected CronExpression indexFullUpdateCronExpression;
+
+	/**
 	 * <code>true</code> to run simple indexing mode - "List Documents" is called only once in this run
 	 */
 	protected boolean simpleGetDocuments;
@@ -116,7 +122,7 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	 */
 	public SpaceIndexerCoordinator(IRemoteSystemClient remoteSystemClient, IESIntegration esIntegrationComponent,
 			IDocumentIndexStructureBuilder documentIndexStructureBuilder, long indexUpdatePeriod, int maxIndexingThreads,
-			long indexFullUpdatePeriod, boolean simpleGetDocuments) {
+			long indexFullUpdatePeriod, boolean simpleGetDocuments, CronExpression indexFullUpdateCronExpression) {
 		super();
 		this.remoteSystemClient = remoteSystemClient;
 		this.esIntegrationComponent = esIntegrationComponent;
@@ -125,6 +131,7 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 		this.documentIndexStructureBuilder = documentIndexStructureBuilder;
 		this.indexFullUpdatePeriod = indexFullUpdatePeriod;
 		this.simpleGetDocuments = simpleGetDocuments;
+		this.indexFullUpdateCronExpression = indexFullUpdateCronExpression;
 	}
 
 	@Override
@@ -271,7 +278,14 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 		if (logger.isDebugEnabled())
 			logger.debug("Space {} last indexing start date is {}. We perform next indexing after {}ms.", spaceKey,
 					lastIndexing, indexUpdatePeriod);
-		return lastIndexing == null || lastIndexing.getTime() < ((System.currentTimeMillis() - indexUpdatePeriod));
+		if (lastIndexing == null || lastIndexing.getTime() < ((System.currentTimeMillis() - indexUpdatePeriod))) {
+			return true;
+		}
+		if (indexFullUpdateCronExpression != null || indexFullUpdatePeriod > 0) {
+			// evaluate full update necessary condition here to start it if necessary (added during #49 implementation)
+			return spaceIndexFullUpdateNecessary(spaceKey);
+		}
+		return false;
 	}
 
 	/**
@@ -284,15 +298,27 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	protected boolean spaceIndexFullUpdateNecessary(String spaceKey) throws Exception {
 		if (esIntegrationComponent.readDatetimeValue(spaceKey, STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE) != null)
 			return true;
-		if (indexFullUpdatePeriod < 1) {
-			return false;
+
+		if (indexFullUpdateCronExpression != null) {
+			Date lastFullIndexing = esIntegrationComponent.readDatetimeValue(spaceKey,
+					STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE);
+			if (lastFullIndexing == null) {
+				lastFullIndexing = new Date(0);
+			}
+			Date nextFullIndexing = indexFullUpdateCronExpression.getNextValidTimeAfter(lastFullIndexing);
+			return (nextFullIndexing != null && (nextFullIndexing.getTime() < System.currentTimeMillis()));
+		} else {
+			if (indexFullUpdatePeriod < 1) {
+				return false;
+			}
+			Date lastFullIndexing = esIntegrationComponent.readDatetimeValue(spaceKey,
+					STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE);
+			if (logger.isDebugEnabled())
+				logger.debug("Space {} last full update date is {}. We perform next full indexing after {}ms.", spaceKey,
+						lastFullIndexing, indexFullUpdatePeriod);
+			return lastFullIndexing == null
+					|| lastFullIndexing.getTime() < ((System.currentTimeMillis() - indexFullUpdatePeriod));
 		}
-		Date lastIndexing = esIntegrationComponent.readDatetimeValue(spaceKey,
-				STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE);
-		if (logger.isDebugEnabled())
-			logger.debug("Space {} last full update date is {}. We perform next full indexing after {}ms.", spaceKey,
-					lastIndexing, indexFullUpdatePeriod);
-		return lastIndexing == null || lastIndexing.getTime() < ((System.currentTimeMillis() - indexFullUpdatePeriod));
 	}
 
 	@Override

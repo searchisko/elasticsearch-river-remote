@@ -77,6 +77,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		Assert.assertEquals(1, tested.maxIndexingThreads);
 		Assert.assertEquals(5 * 60 * 1000, tested.indexUpdatePeriod);
 		Assert.assertEquals(12 * 60 * 60 * 1000, tested.indexFullUpdatePeriod);
+		Assert.assertNull(tested.indexFullUpdateCronExpression);
 		Assert.assertEquals("my_remote_river", tested.indexName);
 		Assert.assertEquals(RemoteRiver.INDEX_DOCUMENT_TYPE_NAME_DEFAULT, tested.typeName);
 		Assert.assertEquals(tested.documentIndexStructureBuilder, tested.remoteSystemClient.getIndexStructureBuilder());
@@ -86,6 +87,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		remoteSettingsAdd.put("maxIndexingThreads", "5");
 		remoteSettingsAdd.put("indexUpdatePeriod", "20m");
 		remoteSettingsAdd.put("indexFullUpdatePeriod", "5h");
+		remoteSettingsAdd.put("indexFullUpdateCronExpression", "0 0 10 * * ?");
 		remoteSettingsAdd.put("maxIssuesPerRequest", 20);
 		remoteSettingsAdd.put("timeout", "5s");
 		remoteSettingsAdd.put("jqlTimeZone", "Europe/Prague");
@@ -98,6 +100,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		Assert.assertEquals(5, tested.maxIndexingThreads);
 		Assert.assertEquals(20 * 60 * 1000, tested.indexUpdatePeriod);
 		Assert.assertEquals(5 * 60 * 60 * 1000, tested.indexFullUpdatePeriod);
+		Assert.assertEquals("0 0 10 * * ?", tested.indexFullUpdateCronExpression.toString());
 		Assert.assertEquals("my_index_name", tested.indexName);
 		Assert.assertEquals("type_test", tested.typeName);
 		Assert.assertTrue(tested.simpleGetDocuments);
@@ -110,6 +113,17 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		Assert.assertEquals(tested.riverName().getName(),
 				((DocumentWithCommentsIndexStructureBuilder) tested.documentIndexStructureBuilder).riverName);
 
+		// case - #49 - invalid cron expression
+		try {
+			remoteSettingsAdd.put("indexFullUpdateCronExpression", "0 0 10 * ? ?");
+			tested = prepareRiverInstanceForTest("https://issues.jboss.org", remoteSettingsAdd, toplevelSettingsAdd, false);
+			Assert.fail("SettingsException expected");
+		} catch (SettingsException e) {
+			Assert
+					.assertEquals(
+							"Cron expression in indexFullUpdateCronExpression is invalid: '?' can only be specfied for Day-of-Month or Day-of-Week.",
+							e.getMessage());
+		}
 	}
 
 	@Test

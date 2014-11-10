@@ -2,6 +2,7 @@ package org.jboss.elasticsearch.river.remote;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.text.ParseException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -105,6 +106,11 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	protected long indexFullUpdatePeriod = -1;
 
 	/**
+	 * Config - cron expression to schedule automatic full update from remote system.
+	 */
+	protected CronExpression indexFullUpdateCronExpression;
+
+	/**
 	 * Config - name of ElasticSearch index used to store documents from this river
 	 */
 	protected String indexName;
@@ -206,6 +212,15 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 			maxIndexingThreads = XContentMapValues.nodeIntegerValue(remoteSettings.get("maxIndexingThreads"), 1);
 			indexUpdatePeriod = Utils.parseTimeValue(remoteSettings, "indexUpdatePeriod", 5, TimeUnit.MINUTES);
 			indexFullUpdatePeriod = Utils.parseTimeValue(remoteSettings, "indexFullUpdatePeriod", 12, TimeUnit.HOURS);
+
+			String ifuce = Utils.trimToNull((String) remoteSettings.get("indexFullUpdateCronExpression"));
+			if (ifuce != null) {
+				try {
+					this.indexFullUpdateCronExpression = new CronExpression(ifuce);
+				} catch (ParseException e) {
+					throw new SettingsException("Cron expression in indexFullUpdateCronExpression is invalid: " + e.getMessage());
+				}
+			}
 			simpleGetDocuments = XContentMapValues.nodeBooleanValue(remoteSettings.get("simpleGetDocuments"), false);
 			if (remoteSettings.containsKey("spacesIndexed")) {
 				allIndexedSpacesKeys = Utils.parseCsvString(XContentMapValues.nodeStringValue(
@@ -325,7 +340,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 		closed = false;
 		lastRestartDate = new Date();
 		coordinatorInstance = new SpaceIndexerCoordinator(remoteSystemClient, this, documentIndexStructureBuilder,
-				indexUpdatePeriod, maxIndexingThreads, indexFullUpdatePeriod, simpleGetDocuments);
+				indexUpdatePeriod, maxIndexingThreads, indexFullUpdatePeriod, simpleGetDocuments, indexFullUpdateCronExpression);
 		coordinatorThread = acquireIndexingThread("remote_river_coordinator", coordinatorInstance);
 		coordinatorThread.start();
 	}

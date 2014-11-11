@@ -18,7 +18,7 @@ import org.elasticsearch.common.joda.time.format.ISODateTimeFormat;
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
-public class DateTimeUtils {
+public abstract class DateTimeUtils {
 
 	/**
 	 * Parse ISO datetime string.

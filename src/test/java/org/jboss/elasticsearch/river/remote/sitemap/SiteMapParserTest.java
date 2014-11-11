@@ -17,9 +17,13 @@
 
 package org.jboss.elasticsearch.river.remote.sitemap;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.util.zip.GZIPOutputStream;
 
+import org.jboss.elasticsearch.river.remote.DateTimeUtils;
+import org.junit.Assert;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -41,8 +45,9 @@ public class SiteMapParserTest {
 			+ "   <lastmod>2005-01-01</lastmod>" + " </sitemap>" + " </sitemapindex>";
 
 	@Test
-	public void testSitemapIndex() throws UnknownFormatException, IOException {
+	public void parseSiteMap_Index() throws UnknownFormatException, IOException {
 		SiteMapParser parser = new SiteMapParser();
+		Assert.assertTrue(parser.isStrict());
 		String contentType = "text/xml";
 
 		byte[] content = SITEMAP_XML_INDEX.getBytes();
@@ -79,7 +84,7 @@ public class SiteMapParserTest {
 			+ "</url>" + "</urlset>";
 
 	@Test
-	public void testSitemapXML() throws UnknownFormatException, IOException {
+	public void parseSiteMap_XML() throws UnknownFormatException, IOException {
 		SiteMapParser parser = new SiteMapParser();
 		String contentType = "text/xml";
 
@@ -90,6 +95,39 @@ public class SiteMapParserTest {
 		assertEquals(true, asm instanceof SiteMap);
 		SiteMap sm = (SiteMap) asm;
 		assertEquals(5, sm.getSiteMapUrls().size());
+		Assert.assertEquals("http://www.example.com/", sm.getSiteMapUrls().iterator().next().getUrl().toString());
+		Assert.assertEquals("2005-01-01T00:00:00.0+0000",
+				DateTimeUtils.formatISODateTime(sm.getSiteMapUrls().iterator().next().getLastModified()));
+	}
+
+	@Test(expected = UnknownFormatException.class)
+	public void parseSiteMap_UnknownXml() throws UnknownFormatException, IOException {
+		SiteMapParser parser = new SiteMapParser();
+		String contentType = "text/xml";
+
+		byte[] content = ("<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + "<unknown>" + "</unknown>").getBytes();
+		URL url = new URL(URL_SITEMAP_XML);
+		parser.parseSiteMap(contentType, content, url);
+	}
+
+	@Test
+	public void parseSiteMap_XMLGzip() throws UnknownFormatException, IOException {
+		SiteMapParser parser = new SiteMapParser();
+		String contentType = "application/x-gzip";
+
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		GZIPOutputStream gos = new GZIPOutputStream(bos);
+		gos.write(SITEMAP_XML.getBytes());
+		gos.close();
+		URL url = new URL(URL_SITEMAP_XML + ".gz");
+		AbstractSiteMap asm = parser.parseSiteMap(contentType, bos.toByteArray(), url);
+		assertEquals(false, asm.isIndex());
+		assertEquals(true, asm instanceof SiteMap);
+		SiteMap sm = (SiteMap) asm;
+		assertEquals(5, sm.getSiteMapUrls().size());
+		Assert.assertEquals("http://www.example.com/", sm.getSiteMapUrls().iterator().next().getUrl().toString());
+		Assert.assertEquals("2005-01-01T00:00:00.0+0000",
+				DateTimeUtils.formatISODateTime(sm.getSiteMapUrls().iterator().next().getLastModified()));
 	}
 
 	public static final String SITEMAP_XML_NO_DECLARATIONS = "<urlset>" + "  <url>"
@@ -104,8 +142,18 @@ public class SiteMapParserTest {
 			+ "<loc>http://www.example.com/catalog?item=83&amp;desc=vacation_usa</loc>" + "<lastmod>2004-11-23</lastmod>"
 			+ "</url>" + "</urlset>";
 
+	@Test(expected = UnknownFormatException.class)
+	public void parseSiteMap_UnknownFormat() throws UnknownFormatException, IOException {
+		SiteMapParser parser = new SiteMapParser();
+		String contentType = "text/unklnown";
+
+		byte[] content = SITEMAP_XML_NO_DECLARATIONS.getBytes();
+		URL url = new URL(URL_SITEMAP_XML + ".aaa");
+		parser.parseSiteMap(contentType, content, url);
+	}
+
 	@Test
-	public void testSitemapXMLNoDeclaration() throws UnknownFormatException, IOException {
+	public void parseSiteMap_XMLNoDeclaration() throws UnknownFormatException, IOException {
 		SiteMapParser parser = new SiteMapParser();
 		String contentType = "text/xml";
 
@@ -119,7 +167,7 @@ public class SiteMapParserTest {
 	}
 
 	@Test
-	public void testSitemapXMLNoDeclarationNoContentype() throws UnknownFormatException, IOException {
+	public void parseSiteMap_XMLNoDeclarationNoContentype() throws UnknownFormatException, IOException {
 		SiteMapParser parser = new SiteMapParser();
 		byte[] content = SITEMAP_XML_NO_DECLARATIONS.getBytes();
 
@@ -132,7 +180,7 @@ public class SiteMapParserTest {
 	}
 
 	@Test
-	public void testSitemapTXT() throws UnknownFormatException, IOException {
+	public void parseSiteMap_TXT() throws UnknownFormatException, IOException {
 		SiteMapParser parser = new SiteMapParser();
 		String contentType = "text/plain";
 
@@ -148,7 +196,7 @@ public class SiteMapParserTest {
 	}
 
 	@Test(expected = UnknownFormatException.class)
-	public void testSitemapParserBrokenXml() throws IOException, UnknownFormatException {
+	public void parseSiteMap_BrokenXml() throws IOException, UnknownFormatException {
 		// This Sitemap contains badly formatted XML and can't be read
 		SiteMapParser parser = new SiteMapParser();
 		String contentType = "text/xml";
@@ -165,7 +213,7 @@ public class SiteMapParserTest {
 	}
 
 	@Test
-	public void testLenientParser() throws UnknownFormatException, IOException {
+	public void parseSiteMap_lenientParser() throws UnknownFormatException, IOException {
 		SiteMapParser parser = new SiteMapParser();
 		String contentType = "text/xml";
 
@@ -184,6 +232,7 @@ public class SiteMapParserTest {
 
 		// Now try again with lenient parsing. We should get one invalid URL
 		parser = new SiteMapParser(false);
+		Assert.assertFalse(parser.isStrict());
 		asm = parser.parseSiteMap(contentType, content, url);
 		assertEquals(false, asm.isIndex());
 		assertEquals(true, asm instanceof SiteMap);
@@ -206,6 +255,76 @@ public class SiteMapParserTest {
 		sm = (SiteMap) asm;
 		assertEquals(1, sm.getSiteMapUrls().size());
 		assertFalse(sm.getSiteMapUrls().iterator().next().isValid());
+
+	}
+
+	public static final String URL_SITEMAP_ATOM = "http://www.example.com/sitemap.xml";
+
+	public static final String SITEMAP_ATOM = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + "<feed>"
+			+ "<modified>2005-01-01</modified>" + "<entry><link href=\"http://www.example.com/\"/></entry>"
+			+ "<entry><link href=\"http://www.example.com/catalog?item=12&amp;desc=vacation_hawaii\"/></entry>"
+			+ "<entry><link href=\"http://www.example.com/catalog?item=73&amp;desc=vacation_new_zealand\"/></entry>"
+			+ "<entry><link href=\"http://www.example.com/catalog?item=74&amp;desc=vacation_newfoundland\"/></entry>"
+			+ "<entry><link href=\"http://www.example.org/catalog?item=74&amp;desc=vacation_newfoundland\"/></entry>"
+			+ "<entry><link href=\"\"/></entry>"
+			+ "<entry><link href=\"http://www.example.com/catalog?item=83&amp;desc=vacation_usa\"/></entry>" + "</feed>";
+
+	@Test
+	public void parseSiteMap_Atom() throws UnknownFormatException, IOException {
+		SiteMapParser parser = new SiteMapParser();
+		String contentType = "application/atom+xml";
+
+		byte[] content = SITEMAP_ATOM.getBytes();
+		URL url = new URL(URL_SITEMAP_ATOM);
+		AbstractSiteMap asm = parser.parseSiteMap(contentType, content, url);
+		assertEquals(false, asm.isIndex());
+		assertEquals(true, asm instanceof SiteMap);
+		SiteMap sm = (SiteMap) asm;
+		assertEquals(5, sm.getSiteMapUrls().size());
+		Assert.assertEquals("http://www.example.com/", sm.getSiteMapUrls().iterator().next().getUrl().toString());
+		Assert.assertEquals("2005-01-01T00:00:00.0+0000",
+				DateTimeUtils.formatISODateTime(sm.getSiteMapUrls().iterator().next().getLastModified()));
+
+	}
+
+	public static final String URL_SITEMAP_RSS = "http://www.example.com/sitemap.xml";
+
+	public static final String SITEMAP_RSS = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+			+ "<rss version=\"2.0\"> <channel>" + "<pubDate>Tue, 10 Jun 2003 04:00:00 GMT</pubDate>"
+			+ "<item><link>http://www.example.com/</link></item>"
+			+ "<item><link>http://www.example.com/catalog?item=12&amp;desc=vacation_hawaii</link></item>"
+			+ "<item><link>http://www.example.com/catalog?item=73&amp;desc=vacation_new_zealand</link></item>"
+			+ "<item><link>http://www.example.com/catalog?item=74&amp;desc=vacation_newfoundland</link></item>"
+			+ "<item><link>http://www.example.org/catalog?item=74&amp;desc=vacation_newfoundland</link></item>"
+			+ "<item><link></link></item>"
+			+ "<item><link>http://www.example.com/catalog?item=83&amp;desc=vacation_usa</link></item>" + "</channel></rss>";
+
+	@Test
+	public void parseSiteMap_Rss() throws UnknownFormatException, IOException {
+		SiteMapParser parser = new SiteMapParser();
+		String contentType = "application/rss+xml";
+
+		byte[] content = SITEMAP_RSS.getBytes();
+		URL url = new URL(URL_SITEMAP_RSS);
+		AbstractSiteMap asm = parser.parseSiteMap(contentType, content, url);
+		assertEquals(false, asm.isIndex());
+		assertEquals(true, asm instanceof SiteMap);
+		SiteMap sm = (SiteMap) asm;
+		assertEquals(5, sm.getSiteMapUrls().size());
+		Assert.assertEquals("http://www.example.com/", sm.getSiteMapUrls().iterator().next().getUrl().toString());
+		Assert.assertEquals("2003-06-10T04:00:00.0+0000",
+				DateTimeUtils.formatISODateTime(sm.getSiteMapUrls().iterator().next().getLastModified()));
+
+	}
+
+	@Test
+	public void urlIsLegal() {
+		Assert.assertTrue(SiteMapParser.urlIsLegal("http://aaa.cz", "http://aaa.cz"));
+		Assert.assertTrue(SiteMapParser.urlIsLegal("http://aaa.cz", "http://aaa.cz/aok/rtr.html"));
+		Assert.assertTrue(SiteMapParser.urlIsLegal("http://aaA.cz", "http://aaa.CZ/aok/rtR.html"));
+
+		Assert.assertFalse(SiteMapParser.urlIsLegal("http://aaa.com", "http://aaa.cz/aok/rtr.html"));
+		Assert.assertFalse(SiteMapParser.urlIsLegal("http://aaa.cz/oo", "http://aaa.cz/aok/rtr.html"));
 
 	}
 

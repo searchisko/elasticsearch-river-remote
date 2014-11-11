@@ -581,14 +581,14 @@ public class SiteMapParser {
 	 * @param testUrl
 	 * @return true if testUrl is under sitemapUrl, false otherwise
 	 */
-	private boolean urlIsLegal(String sitemapBaseUrl, String testUrl) {
+	protected static boolean urlIsLegal(String sitemapBaseUrl, String testUrl) {
 
 		boolean ret = false;
 
 		// Don't try a comparison if the URL is too short to match
 		if (sitemapBaseUrl != null && sitemapBaseUrl.length() <= testUrl.length()) {
 			String u = testUrl.substring(0, sitemapBaseUrl.length()).toLowerCase();
-			ret = sitemapBaseUrl.equals(u);
+			ret = sitemapBaseUrl.toLowerCase().equals(u);
 		}
 		if (logger.isTraceEnabled()) {
 			StringBuffer sb = new StringBuffer("urlIsLegal: ");

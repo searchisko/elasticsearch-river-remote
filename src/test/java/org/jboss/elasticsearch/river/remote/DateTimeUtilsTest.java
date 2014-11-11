@@ -25,6 +25,13 @@ public class DateTimeUtilsTest {
 	}
 
 	@Test
+	public void parseISODateTime() {
+		Assert.assertNull(DateTimeUtils.parseISODateTime(null));
+		Assert.assertNull(DateTimeUtils.parseISODateTime(""));
+		Assert.assertNull(DateTimeUtils.parseISODateTime("  "));
+	}
+
+	@Test
 	public void parseISODateTimeWithMinutePrecise() {
 		Assert.assertNull(DateTimeUtils.parseISODateTimeWithMinutePrecise(null));
 		Assert.assertNull(DateTimeUtils.parseISODateTimeWithMinutePrecise(""));

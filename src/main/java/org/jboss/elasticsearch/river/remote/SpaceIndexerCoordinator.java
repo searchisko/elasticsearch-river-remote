@@ -106,7 +106,7 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	/**
 	 * Map where currently running Space indexers are stored.
 	 */
-	protected final Map<String, SpaceByLastUpdateTimestampIndexer> spaceIndexers = new HashMap<String, SpaceByLastUpdateTimestampIndexer>();
+	protected final Map<String, SpaceIndexerBase> spaceIndexers = new HashMap<String, SpaceIndexerBase>();
 
 	/**
 	 * Constructor with parameters.
@@ -249,8 +249,15 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 				continue;
 			}
 
-			SpaceByLastUpdateTimestampIndexer indexer = new SpaceByLastUpdateTimestampIndexer(spaceKey, fullUpdateNecessary,
-					simpleGetDocuments, remoteSystemClient, esIntegrationComponent, documentIndexStructureBuilder);
+			SpaceIndexerBase indexer = null;
+
+			if (simpleGetDocuments) {
+				indexer = new SpaceSimpleIndexer(spaceKey, remoteSystemClient, esIntegrationComponent,
+						documentIndexStructureBuilder);
+			} else {
+				indexer = new SpaceByLastUpdateTimestampIndexer(spaceKey, fullUpdateNecessary, remoteSystemClient,
+						esIntegrationComponent, documentIndexStructureBuilder);
+			}
 			Thread it = esIntegrationComponent.acquireIndexingThread("remote_river_indexer_" + spaceKey, indexer);
 			esIntegrationComponent.storeDatetimeValue(spaceKey, STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE, new Date(),
 					null);
@@ -374,7 +381,7 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	public List<SpaceIndexingInfo> getCurrentSpaceIndexingInfo() {
 		List<SpaceIndexingInfo> ret = new ArrayList<SpaceIndexingInfo>();
 		synchronized (spaceIndexerThreads) {
-			for (SpaceByLastUpdateTimestampIndexer indexer : spaceIndexers.values()) {
+			for (SpaceIndexerBase indexer : spaceIndexers.values()) {
 				ret.add(indexer.getIndexingInfo());
 			}
 		}

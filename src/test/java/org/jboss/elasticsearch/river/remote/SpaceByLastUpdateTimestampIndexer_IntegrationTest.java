@@ -68,7 +68,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 			// run 1 to insert documents
 			Date dateStartRun1 = new Date();
-			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false, false,
+			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false,
 					remoteClientMock, remoteRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
 			tested.storeLastDocumentUpdatedDate(null, PROJECT_KEY, lastIssueUpdatedDate);
@@ -98,7 +98,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Thread.sleep(100);
 			Date dateStartRun2 = new Date();
 			Mockito.reset(remoteClientMock);
-			tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false, false, remoteClientMock, remoteRiverMock,
+			tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false, remoteClientMock, remoteRiverMock,
 					structureBuilder);
 			when(remoteClientMock.getChangedDocuments(PROJECT_KEY, 0, lastIssueUpdatedDate2)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501-updated"));
@@ -157,7 +157,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 			// run 1 to insert documents
 			Date dateStartRun1 = new Date();
-			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false, false,
+			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false,
 					remoteClientMock, remoteRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
 			tested.storeLastDocumentUpdatedDate(null, PROJECT_KEY, lastIssueUpdatedDate);
@@ -189,7 +189,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Thread.sleep(100);
 			Date dateStartRun2 = new Date();
 			Mockito.reset(remoteClientMock);
-			tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false, false, remoteClientMock, remoteRiverMock,
+			tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false, remoteClientMock, remoteRiverMock,
 					structureBuilder);
 			when(remoteClientMock.getChangedDocuments(PROJECT_KEY, 0, lastIssueUpdatedDate2)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501-updated"));
@@ -241,7 +241,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 			// run 1 to insert documents
 			Date dateStartRun1 = new Date();
-			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, false,
+			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true,
 					remoteClientMock, remoteRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
 			tested.storeLastDocumentUpdatedDate(null, PROJECT_KEY, lastIssueUpdatedDate);
@@ -268,7 +268,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Thread.sleep(100);
 			Date dateStartRun2 = new Date();
 			Mockito.reset(remoteClientMock);
-			tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, false, remoteClientMock, remoteRiverMock,
+			tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, remoteClientMock, remoteRiverMock,
 					structureBuilder);
 			when(remoteClientMock.getChangedDocuments(PROJECT_KEY, 0, null)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1513", "ORG-1501-updated"));
@@ -309,7 +309,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 			// run 1 to insert documents
 			Date dateStartRun1 = new Date();
-			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, false,
+			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true,
 					remoteClientMock, remoteRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
 			tested.storeLastDocumentUpdatedDate(null, PROJECT_KEY, lastIssueUpdatedDate);
@@ -339,7 +339,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Thread.sleep(100);
 			Date dateStartRun2 = new Date();
 			Mockito.reset(remoteClientMock);
-			tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, false, remoteClientMock, remoteRiverMock,
+			tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, remoteClientMock, remoteRiverMock,
 					structureBuilder);
 			when(remoteClientMock.getChangedDocuments(PROJECT_KEY, 0, null)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1513", "ORG-1501-updated"));
@@ -389,7 +389,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 			// run 1 to insert documents
 			Date dateStartRun1 = new Date();
-			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, false,
+			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true,
 					remoteClientMock, remoteRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
 			tested.storeLastDocumentUpdatedDate(null, PROJECT_KEY, lastIssueUpdatedDate);
@@ -419,7 +419,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Thread.sleep(100);
 			Date dateStartRun2 = new Date();
 			Mockito.reset(remoteClientMock);
-			tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, false, remoteClientMock, remoteRiverMock,
+			tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, remoteClientMock, remoteRiverMock,
 					structureBuilder);
 			when(remoteClientMock.getChangedDocuments(PROJECT_KEY, 0, null)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1513", "ORG-1501-updated"));
@@ -614,8 +614,8 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 	protected void initDocumentsForProjectAAA(RemoteRiver remoteRiverMock,
 			DocumentWithCommentsIndexStructureBuilder structureBuilder) throws Exception {
 		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
-		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("AAA", true, false,
-				remoteClientMock, remoteRiverMock, structureBuilder);
+		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("AAA", true, remoteClientMock,
+				remoteRiverMock, structureBuilder);
 		ChangedDocumentsResults changedIssues = prepareChangedDocumentsCallResults("AAA-1", "AAA-2");
 		when(remoteClientMock.getChangedDocuments("AAA", 0, null)).thenReturn(changedIssues);
 		when(remoteClientMock.getChangedDocuments(Mockito.eq("AAA"), Mockito.eq(0), (Date) Mockito.notNull())).thenReturn(

@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.common.settings.SettingsException;
 import org.jboss.elasticsearch.river.remote.testtools.MockThread;
 import org.junit.Assert;
 import org.junit.Test;
@@ -28,40 +29,101 @@ import static org.mockito.Mockito.when;
  */
 public class SpaceIndexerCoordinatorTest {
 
+	private static final String SPACE_KEY = "ORG";
+
+	@Test
+	public void prepareSpaceIndexer() {
+		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IRemoteSystemClient remoteSystemClientMock = Mockito.mock(IRemoteSystemClient.class);
+		IDocumentIndexStructureBuilder documentIndexStructureBuilder = Mockito.mock(IDocumentIndexStructureBuilder.class);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(remoteSystemClientMock, esIntegrationMock,
+				documentIndexStructureBuilder, 10, 2, -1, null, SpaceIndexingMode.SIMPLE);
+
+		{
+			SpaceIndexerBase indexer = tested.prepareSpaceIndexer(SPACE_KEY, true);
+			Assert.assertTrue(indexer instanceof SpaceSimpleIndexer);
+			Assert.assertEquals(esIntegrationMock, indexer.esIntegrationComponent);
+			Assert.assertEquals(documentIndexStructureBuilder, indexer.documentIndexStructureBuilder);
+			Assert.assertEquals(remoteSystemClientMock, indexer.remoteSystemClient);
+			Assert.assertEquals(SPACE_KEY, indexer.spaceKey);
+		}
+
+		{
+			tested.spaceIndexingMode = SpaceIndexingMode.PAGINATION;
+			SpaceIndexerBase indexer = tested.prepareSpaceIndexer(SPACE_KEY, true);
+			Assert.assertTrue(indexer instanceof SpacePaginatingIndexer);
+			Assert.assertEquals(esIntegrationMock, indexer.esIntegrationComponent);
+			Assert.assertEquals(documentIndexStructureBuilder, indexer.documentIndexStructureBuilder);
+			Assert.assertEquals(remoteSystemClientMock, indexer.remoteSystemClient);
+			Assert.assertEquals(SPACE_KEY, indexer.spaceKey);
+		}
+
+		{
+			tested.spaceIndexingMode = SpaceIndexingMode.UPDATE_TIMESTAMP;
+			SpaceIndexerBase indexer = tested.prepareSpaceIndexer(SPACE_KEY, true);
+			Assert.assertTrue(indexer instanceof SpaceByLastUpdateTimestampIndexer);
+			Assert.assertEquals(esIntegrationMock, indexer.esIntegrationComponent);
+			Assert.assertEquals(documentIndexStructureBuilder, indexer.documentIndexStructureBuilder);
+			Assert.assertEquals(remoteSystemClientMock, indexer.remoteSystemClient);
+			Assert.assertEquals(SPACE_KEY, indexer.spaceKey);
+			Assert.assertEquals(true, indexer.indexingInfo.fullUpdate);
+		}
+
+		{
+			tested.spaceIndexingMode = SpaceIndexingMode.UPDATE_TIMESTAMP;
+			SpaceIndexerBase indexer = tested.prepareSpaceIndexer(SPACE_KEY, false);
+			Assert.assertTrue(indexer instanceof SpaceByLastUpdateTimestampIndexer);
+			Assert.assertEquals(esIntegrationMock, indexer.esIntegrationComponent);
+			Assert.assertEquals(documentIndexStructureBuilder, indexer.documentIndexStructureBuilder);
+			Assert.assertEquals(remoteSystemClientMock, indexer.remoteSystemClient);
+			Assert.assertEquals(SPACE_KEY, indexer.spaceKey);
+			Assert.assertEquals(false, indexer.indexingInfo.fullUpdate);
+		}
+
+		try {
+			tested.spaceIndexingMode = null;
+			tested.prepareSpaceIndexer(SPACE_KEY, true);
+			Assert.fail("SettingsException expected");
+		} catch (SettingsException e) {
+			// OK
+		}
+
+	}
+
 	@Test
 	public void spaceIndexUpdateNecessary() throws Exception {
 		int indexUpdatePeriod = 60 * 1000;
 
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
 		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2,
-				-1, false, null);
+				-1, null, SpaceIndexingMode.SIMPLE);
 
 		// case - update necessary - no date of last update stored
 		{
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE)).thenReturn(null);
-			Assert.assertTrue(tested.spaceIndexUpdateNecessary("ORG"));
+			Assert.assertTrue(tested.spaceIndexUpdateNecessary(SPACE_KEY));
 		}
 
 		// case - update necessary - date of last update stored and is older than index update period
 		{
 			reset(esIntegrationMock);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE)).thenReturn(
 					new Date(System.currentTimeMillis() - indexUpdatePeriod - 100));
-			Assert.assertTrue(tested.spaceIndexUpdateNecessary("ORG"));
+			Assert.assertTrue(tested.spaceIndexUpdateNecessary(SPACE_KEY));
 		}
 
 		// case - no update necessary - date of last update stored and is newer than index update period
 		{
 			reset(esIntegrationMock);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE)).thenReturn(
 					new Date(System.currentTimeMillis() - indexUpdatePeriod + 1000));
-			Assert.assertFalse(tested.spaceIndexUpdateNecessary("ORG"));
+			Assert.assertFalse(tested.spaceIndexUpdateNecessary(SPACE_KEY));
 		}
 
 		// case - update necessary - date of last update stored and is newer than index update period, but full reindex is
@@ -69,14 +131,14 @@ public class SpaceIndexerCoordinatorTest {
 		{
 			reset(esIntegrationMock);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE)).thenReturn(
 					new Date(System.currentTimeMillis() - indexUpdatePeriod + 1000));
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE)).thenReturn(
 					new Date(System.currentTimeMillis() - 1000));
-			Assert.assertTrue(tested.spaceIndexUpdateNecessary("ORG"));
+			Assert.assertTrue(tested.spaceIndexUpdateNecessary(SPACE_KEY));
 		}
 
 		// case - update necessary - #49 - date of last run is newer than index update period, but cron expression for
@@ -84,11 +146,11 @@ public class SpaceIndexerCoordinatorTest {
 		{
 			reset(esIntegrationMock);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE)).thenReturn(
 					new Date(System.currentTimeMillis() - indexUpdatePeriod + 100));
 			tested.indexFullUpdateCronExpression = new CronExpression("0 0/1 * * * ?");
-			Assert.assertTrue(tested.spaceIndexUpdateNecessary("ORG"));
+			Assert.assertTrue(tested.spaceIndexUpdateNecessary(SPACE_KEY));
 		}
 
 		// case - update not necessary - #49 - date of last run is newer than index update period and cron expression for
@@ -96,15 +158,15 @@ public class SpaceIndexerCoordinatorTest {
 		{
 			reset(esIntegrationMock);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE)).thenReturn(
 					new Date(System.currentTimeMillis() - indexUpdatePeriod + 1000));
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(
 					new Date(System.currentTimeMillis() - 100));
 			tested.indexFullUpdateCronExpression = new CronExpression("0 0/1 * * * ?");
-			Assert.assertFalse(tested.spaceIndexUpdateNecessary("ORG"));
+			Assert.assertFalse(tested.spaceIndexUpdateNecessary(SPACE_KEY));
 		}
 
 	}
@@ -115,21 +177,22 @@ public class SpaceIndexerCoordinatorTest {
 
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
 		// simpleGetDocument is on true to check tested operation is not affected by this (as it is used in indexer later)
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 1000, 2, -1, true, null);
-		Assert.assertTrue(tested.simpleGetDocuments);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 1000, 2, -1, null,
+				SpaceIndexingMode.SIMPLE);
+		Assert.assertEquals(SpaceIndexingMode.SIMPLE, tested.spaceIndexingMode);
 		tested.setIndexFullUpdatePeriod(0);
 
 		// case - full update disabled, no force
 		{
 			reset(esIntegrationMock);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
-			Assert.assertFalse(tested.spaceIndexFullUpdateNecessary("ORG"));
-			verify(esIntegrationMock).readDatetimeValue("ORG",
+			Assert.assertFalse(tested.spaceIndexFullUpdateNecessary(SPACE_KEY));
+			verify(esIntegrationMock).readDatetimeValue(SPACE_KEY,
 					SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE);
 			Mockito.verifyNoMoreInteractions(esIntegrationMock);
 		}
@@ -139,15 +202,15 @@ public class SpaceIndexerCoordinatorTest {
 		{
 			reset(esIntegrationMock);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
-			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary("ORG"));
-			verify(esIntegrationMock).readDatetimeValue("ORG",
+			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary(SPACE_KEY));
+			verify(esIntegrationMock).readDatetimeValue(SPACE_KEY,
 					SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE);
-			verify(esIntegrationMock).readDatetimeValue("ORG",
+			verify(esIntegrationMock).readDatetimeValue(SPACE_KEY,
 					SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE);
 
 			Mockito.verifyNoMoreInteractions(esIntegrationMock);
@@ -158,16 +221,16 @@ public class SpaceIndexerCoordinatorTest {
 		{
 			reset(esIntegrationMock);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(
 					new Date(System.currentTimeMillis() - indexFullUpdatePeriod - 100));
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
-			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary("ORG"));
-			verify(esIntegrationMock).readDatetimeValue("ORG",
+			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary(SPACE_KEY));
+			verify(esIntegrationMock).readDatetimeValue(SPACE_KEY,
 					SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE);
-			verify(esIntegrationMock).readDatetimeValue("ORG",
+			verify(esIntegrationMock).readDatetimeValue(SPACE_KEY,
 					SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE);
 			Mockito.verifyNoMoreInteractions(esIntegrationMock);
 		}
@@ -177,17 +240,17 @@ public class SpaceIndexerCoordinatorTest {
 		{
 			reset(esIntegrationMock);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(
 					new Date(System.currentTimeMillis() - indexFullUpdatePeriod + 1000));
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
 
-			Assert.assertFalse(tested.spaceIndexFullUpdateNecessary("ORG"));
-			verify(esIntegrationMock).readDatetimeValue("ORG",
+			Assert.assertFalse(tested.spaceIndexFullUpdateNecessary(SPACE_KEY));
+			verify(esIntegrationMock).readDatetimeValue(SPACE_KEY,
 					SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE);
-			verify(esIntegrationMock).readDatetimeValue("ORG",
+			verify(esIntegrationMock).readDatetimeValue(SPACE_KEY,
 					SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE);
 
 			Mockito.verifyNoMoreInteractions(esIntegrationMock);
@@ -197,57 +260,57 @@ public class SpaceIndexerCoordinatorTest {
 	@Test
 	public void spaceIndexFullUpdateNecessary_cron() throws Exception {
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 1000, 2, -1, false,
-				null);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 1000, 2, -1, null,
+				SpaceIndexingMode.SIMPLE);
 
 		// case - full update necessary - because no full update performed yet
 		{
 			tested.indexFullUpdateCronExpression = new CronExpression("0 0 0/1 * * ?");
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
-			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary("ORG"));
+			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary(SPACE_KEY));
 		}
 
 		// case - full update necessary - full update performed but cron is satisfied now
 		{
 			tested.indexFullUpdateCronExpression = new CronExpression("0 0 0/1 * * ?");
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(
 					new Date(System.currentTimeMillis() - (61 * 60 * 1000L)));
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
-			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary("ORG"));
+			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary(SPACE_KEY));
 		}
 
 		// case - full update not necessary - full update performed and cron is not satisfied now
 		{
 			tested.indexFullUpdateCronExpression = new CronExpression("0 0 0/1 * * ?");
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(new Date());
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
-			Assert.assertFalse(tested.spaceIndexFullUpdateNecessary("ORG"));
+			Assert.assertFalse(tested.spaceIndexFullUpdateNecessary(SPACE_KEY));
 		}
 
 		// case - full update necessary - full update performed and cron is not satisfied now but update is forced
 		{
 			tested.indexFullUpdateCronExpression = new CronExpression("0 0 0/1 * * ?");
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(
 					new Date(System.currentTimeMillis() - (1000L)));
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE)).thenReturn(new Date());
-			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary("ORG"));
+			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary(SPACE_KEY));
 		}
 
 	}
@@ -257,21 +320,21 @@ public class SpaceIndexerCoordinatorTest {
 		int indexFullUpdatePeriod = 60 * 1000;
 
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 1000, 2, -1, false,
-				null);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 1000, 2, -1, null,
+				SpaceIndexingMode.SIMPLE);
 		tested.setIndexFullUpdatePeriod(0);
 
 		// case - full update disabled, but forced
 		{
 			reset(esIntegrationMock);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE)).thenReturn(new Date());
-			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary("ORG"));
-			verify(esIntegrationMock).readDatetimeValue("ORG",
+			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary(SPACE_KEY));
+			verify(esIntegrationMock).readDatetimeValue(SPACE_KEY,
 					SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE);
 			Mockito.verifyNoMoreInteractions(esIntegrationMock);
 		}
@@ -281,13 +344,13 @@ public class SpaceIndexerCoordinatorTest {
 		{
 			reset(esIntegrationMock);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE)).thenReturn(new Date());
-			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary("ORG"));
-			verify(esIntegrationMock).readDatetimeValue("ORG",
+			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary(SPACE_KEY));
+			verify(esIntegrationMock).readDatetimeValue(SPACE_KEY,
 					SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE);
 
 			Mockito.verifyNoMoreInteractions(esIntegrationMock);
@@ -298,14 +361,14 @@ public class SpaceIndexerCoordinatorTest {
 		{
 			reset(esIntegrationMock);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(
 					new Date(System.currentTimeMillis() - indexFullUpdatePeriod - 100));
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE)).thenReturn(new Date());
-			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary("ORG"));
-			verify(esIntegrationMock).readDatetimeValue("ORG",
+			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary(SPACE_KEY));
+			verify(esIntegrationMock).readDatetimeValue(SPACE_KEY,
 					SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE);
 			Mockito.verifyNoMoreInteractions(esIntegrationMock);
 		}
@@ -315,15 +378,15 @@ public class SpaceIndexerCoordinatorTest {
 		{
 			reset(esIntegrationMock);
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(
 					new Date(System.currentTimeMillis() - indexFullUpdatePeriod + 1000));
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE)).thenReturn(new Date());
 
-			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary("ORG"));
-			verify(esIntegrationMock).readDatetimeValue("ORG",
+			Assert.assertTrue(tested.spaceIndexFullUpdateNecessary(SPACE_KEY));
+			verify(esIntegrationMock).readDatetimeValue(SPACE_KEY,
 					SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE);
 
 			Mockito.verifyNoMoreInteractions(esIntegrationMock);
@@ -335,7 +398,7 @@ public class SpaceIndexerCoordinatorTest {
 		int indexUpdatePeriod = 60 * 1000;
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
 		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2,
-				-1, false, null);
+				-1, null, SpaceIndexingMode.SIMPLE);
 		Assert.assertTrue(tested.spaceKeysToIndexQueue.isEmpty());
 
 		// case - no any space available (both null or empty list)
@@ -356,7 +419,7 @@ public class SpaceIndexerCoordinatorTest {
 			reset(esIntegrationMock);
 			when(esIntegrationMock.getAllIndexedSpaceKeys()).thenReturn(Utils.parseCsvString("ORG,AAA,BBB,CCC,DDD"));
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE)).thenReturn(null);
 			when(
 					esIntegrationMock.readDatetimeValue("AAA",
@@ -378,7 +441,7 @@ public class SpaceIndexerCoordinatorTest {
 			tested.fillSpaceKeysToIndexQueue();
 			Assert.assertFalse(tested.spaceKeysToIndexQueue.isEmpty());
 			Assert.assertEquals(4, tested.spaceKeysToIndexQueue.size());
-			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("ORG"));
+			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains(SPACE_KEY));
 			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("AAA"));
 			Assert.assertFalse(tested.spaceKeysToIndexQueue.contains("BBB"));
 			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("CCC"));
@@ -389,8 +452,9 @@ public class SpaceIndexerCoordinatorTest {
 		// now
 		{
 			reset(esIntegrationMock);
-			tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2, -1, true, null);
-			tested.spaceIndexerThreads.put("ORG", new Thread());
+			tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2, -1, null,
+					SpaceIndexingMode.SIMPLE);
+			tested.spaceIndexerThreads.put(SPACE_KEY, new Thread());
 			when(
 					esIntegrationMock.readDatetimeValue(Mockito.eq(Mockito.anyString()),
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE)).thenReturn(null);
@@ -399,7 +463,7 @@ public class SpaceIndexerCoordinatorTest {
 			tested.fillSpaceKeysToIndexQueue();
 			Assert.assertFalse(tested.spaceKeysToIndexQueue.isEmpty());
 			Assert.assertEquals(4, tested.spaceKeysToIndexQueue.size());
-			Assert.assertFalse(tested.spaceKeysToIndexQueue.contains("ORG"));
+			Assert.assertFalse(tested.spaceKeysToIndexQueue.contains(SPACE_KEY));
 			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("AAA"));
 			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("BBB"));
 			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("CCC"));
@@ -409,8 +473,9 @@ public class SpaceIndexerCoordinatorTest {
 		// case - some space available for index update, but in queue already, so do not schedule it for processing now
 		{
 			reset(esIntegrationMock);
-			tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2, -1, false, null);
-			tested.spaceKeysToIndexQueue.add("ORG");
+			tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2, -1, null,
+					SpaceIndexingMode.SIMPLE);
+			tested.spaceKeysToIndexQueue.add(SPACE_KEY);
 			when(
 					esIntegrationMock.readDatetimeValue(Mockito.eq(Mockito.anyString()),
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE)).thenReturn(null);
@@ -419,7 +484,7 @@ public class SpaceIndexerCoordinatorTest {
 			tested.fillSpaceKeysToIndexQueue();
 			Assert.assertFalse(tested.spaceKeysToIndexQueue.isEmpty());
 			Assert.assertEquals(5, tested.spaceKeysToIndexQueue.size());
-			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("ORG"));
+			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains(SPACE_KEY));
 			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("AAA"));
 			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("BBB"));
 			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("CCC"));
@@ -444,8 +509,8 @@ public class SpaceIndexerCoordinatorTest {
 	public void startIndexers() throws Exception {
 
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1, true,
-				null);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1, null,
+				SpaceIndexingMode.SIMPLE);
 		Assert.assertTrue(tested.spaceKeysToIndexQueue.isEmpty());
 
 		// case - nothing to start
@@ -482,16 +547,16 @@ public class SpaceIndexerCoordinatorTest {
 					.thenReturn(new MockThread());
 			tested.startIndexers();
 			Assert.assertEquals(2, tested.spaceIndexerThreads.size());
-			Assert.assertTrue(tested.spaceIndexerThreads.containsKey("ORG"));
+			Assert.assertTrue(tested.spaceIndexerThreads.containsKey(SPACE_KEY));
 			Assert.assertEquals(2, tested.spaceIndexers.size());
-			Assert.assertTrue(tested.spaceIndexers.containsKey("ORG"));
-			Assert.assertTrue(((MockThread) tested.spaceIndexerThreads.get("ORG")).wasStarted);
+			Assert.assertTrue(tested.spaceIndexers.containsKey(SPACE_KEY));
+			Assert.assertTrue(((MockThread) tested.spaceIndexerThreads.get(SPACE_KEY)).wasStarted);
 			Assert.assertEquals(4, tested.spaceKeysToIndexQueue.size());
-			Assert.assertFalse(tested.spaceKeysToIndexQueue.contains("ORG"));
+			Assert.assertFalse(tested.spaceKeysToIndexQueue.contains(SPACE_KEY));
 			verify(esIntegrationMock, times(1)).acquireIndexingThread(Mockito.any(String.class), Mockito.any(Runnable.class));
 			verify(esIntegrationMock, times(1)).acquireIndexingThread(Mockito.eq("remote_river_indexer_ORG"),
 					Mockito.any(Runnable.class));
-			verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq("ORG"),
+			verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq(SPACE_KEY),
 					Mockito.eq(SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE), Mockito.any(Date.class),
 					Mockito.eq((BulkRequestBuilder) null));
 		}
@@ -509,23 +574,23 @@ public class SpaceIndexerCoordinatorTest {
 					.thenReturn(new MockThread());
 			tested.startIndexers();
 			Assert.assertEquals(2, tested.spaceIndexerThreads.size());
-			Assert.assertTrue(tested.spaceIndexerThreads.containsKey("ORG"));
+			Assert.assertTrue(tested.spaceIndexerThreads.containsKey(SPACE_KEY));
 			Assert.assertTrue(tested.spaceIndexerThreads.containsKey("AAA"));
-			Assert.assertTrue(((MockThread) tested.spaceIndexerThreads.get("ORG")).wasStarted);
+			Assert.assertTrue(((MockThread) tested.spaceIndexerThreads.get(SPACE_KEY)).wasStarted);
 			Assert.assertTrue(((MockThread) tested.spaceIndexerThreads.get("AAA")).wasStarted);
 			Assert.assertEquals(2, tested.spaceIndexers.size());
-			Assert.assertTrue(tested.spaceIndexers.containsKey("ORG"));
+			Assert.assertTrue(tested.spaceIndexers.containsKey(SPACE_KEY));
 			Assert.assertTrue(tested.spaceIndexers.containsKey("AAA"));
 
 			Assert.assertEquals(3, tested.spaceKeysToIndexQueue.size());
-			Assert.assertFalse(tested.spaceKeysToIndexQueue.contains("ORG"));
+			Assert.assertFalse(tested.spaceKeysToIndexQueue.contains(SPACE_KEY));
 			Assert.assertFalse(tested.spaceKeysToIndexQueue.contains("AAA"));
 			verify(esIntegrationMock, times(2)).acquireIndexingThread(Mockito.any(String.class), Mockito.any(Runnable.class));
 			verify(esIntegrationMock, times(1)).acquireIndexingThread(Mockito.eq("remote_river_indexer_ORG"),
 					Mockito.any(Runnable.class));
 			verify(esIntegrationMock, times(1)).acquireIndexingThread(Mockito.eq("remote_river_indexer_AAA"),
 					Mockito.any(Runnable.class));
-			verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq("ORG"),
+			verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq(SPACE_KEY),
 					Mockito.eq(SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE), Mockito.any(Date.class),
 					Mockito.eq((BulkRequestBuilder) null));
 			verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq("AAA"),
@@ -539,20 +604,20 @@ public class SpaceIndexerCoordinatorTest {
 			tested.spaceIndexerThreads.clear();
 			tested.spaceIndexers.clear();
 			tested.spaceKeysToIndexQueue.clear();
-			tested.spaceKeysToIndexQueue.addAll(Utils.parseCsvString("ORG"));
+			tested.spaceKeysToIndexQueue.addAll(Utils.parseCsvString(SPACE_KEY));
 			when(esIntegrationMock.acquireIndexingThread(Mockito.eq("remote_river_indexer_ORG"), Mockito.any(Runnable.class)))
 					.thenReturn(new MockThread());
 			tested.startIndexers();
 			Assert.assertEquals(1, tested.spaceIndexerThreads.size());
-			Assert.assertTrue(tested.spaceIndexerThreads.containsKey("ORG"));
+			Assert.assertTrue(tested.spaceIndexerThreads.containsKey(SPACE_KEY));
 			Assert.assertEquals(1, tested.spaceIndexers.size());
-			Assert.assertTrue(tested.spaceIndexers.containsKey("ORG"));
-			Assert.assertTrue(((MockThread) tested.spaceIndexerThreads.get("ORG")).wasStarted);
+			Assert.assertTrue(tested.spaceIndexers.containsKey(SPACE_KEY));
+			Assert.assertTrue(((MockThread) tested.spaceIndexerThreads.get(SPACE_KEY)).wasStarted);
 			Assert.assertTrue(tested.spaceKeysToIndexQueue.isEmpty());
 			verify(esIntegrationMock, times(1)).acquireIndexingThread(Mockito.any(String.class), Mockito.any(Runnable.class));
 			verify(esIntegrationMock, times(1)).acquireIndexingThread(Mockito.eq("remote_river_indexer_ORG"),
 					Mockito.any(Runnable.class));
-			verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq("ORG"),
+			verify(esIntegrationMock, times(1)).storeDatetimeValue(Mockito.eq(SPACE_KEY),
 					Mockito.eq(SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE), Mockito.any(Date.class),
 					Mockito.eq((BulkRequestBuilder) null));
 		}
@@ -563,7 +628,7 @@ public class SpaceIndexerCoordinatorTest {
 			tested.spaceIndexerThreads.clear();
 			tested.spaceIndexers.clear();
 			tested.spaceKeysToIndexQueue.clear();
-			tested.spaceKeysToIndexQueue.addAll(Utils.parseCsvString("ORG"));
+			tested.spaceKeysToIndexQueue.addAll(Utils.parseCsvString(SPACE_KEY));
 			when(esIntegrationMock.isClosed()).thenReturn(true);
 			try {
 				tested.startIndexers();
@@ -578,8 +643,8 @@ public class SpaceIndexerCoordinatorTest {
 	public void startIndexers_reserveIndexingThreadSlotForIncremental() throws Exception {
 
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1, true,
-				null);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1, null,
+				SpaceIndexingMode.SIMPLE);
 		Assert.assertTrue(tested.spaceKeysToIndexQueue.isEmpty());
 
 		// case - only one thread configured, so use it for full reindex too!!
@@ -591,7 +656,7 @@ public class SpaceIndexerCoordinatorTest {
 			tested.spaceKeysToIndexQueue.clear();
 			tested.spaceKeysToIndexQueue.addAll(Utils.parseCsvString("ORG,AAA"));
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
 			when(
 					esIntegrationMock.readDatetimeValue("AAA",
@@ -602,7 +667,7 @@ public class SpaceIndexerCoordinatorTest {
 
 			tested.startIndexers();
 			Assert.assertEquals(1, tested.spaceIndexerThreads.size());
-			Assert.assertTrue(tested.spaceIndexerThreads.containsKey("ORG"));
+			Assert.assertTrue(tested.spaceIndexerThreads.containsKey(SPACE_KEY));
 			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("AAA"));
 			Assert.assertEquals(1, tested.spaceKeysToIndexQueue.size());
 		}
@@ -616,9 +681,9 @@ public class SpaceIndexerCoordinatorTest {
 			tested.spaceIndexerThreads.put("BBB", new Thread());
 
 			tested.spaceKeysToIndexQueue.clear();
-			tested.spaceKeysToIndexQueue.addAll(Utils.parseCsvString("ORG"));
+			tested.spaceKeysToIndexQueue.addAll(Utils.parseCsvString(SPACE_KEY));
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
 			when(esIntegrationMock.acquireIndexingThread(Mockito.anyString(), Mockito.any(Runnable.class))).thenReturn(
 					new MockThread());
@@ -626,8 +691,8 @@ public class SpaceIndexerCoordinatorTest {
 			tested.startIndexers();
 			Assert.assertEquals(1, tested.spaceIndexerThreads.size());
 			Assert.assertTrue(tested.spaceIndexerThreads.containsKey("BBB"));
-			Assert.assertFalse(tested.spaceIndexerThreads.containsKey("ORG"));
-			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("ORG"));
+			Assert.assertFalse(tested.spaceIndexerThreads.containsKey(SPACE_KEY));
+			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains(SPACE_KEY));
 			Assert.assertEquals(1, tested.spaceKeysToIndexQueue.size());
 		}
 
@@ -642,7 +707,7 @@ public class SpaceIndexerCoordinatorTest {
 			tested.spaceKeysToIndexQueue.clear();
 			tested.spaceKeysToIndexQueue.addAll(Utils.parseCsvString("ORG,AAA"));
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
 			when(
 					esIntegrationMock.readDatetimeValue("AAA",
@@ -654,9 +719,9 @@ public class SpaceIndexerCoordinatorTest {
 			Assert.assertEquals(2, tested.spaceIndexerThreads.size());
 			Assert.assertTrue(tested.spaceIndexerThreads.containsKey("AAA"));
 			Assert.assertTrue(tested.spaceIndexerThreads.containsKey("BBB"));
-			Assert.assertFalse(tested.spaceIndexerThreads.containsKey("ORG"));
+			Assert.assertFalse(tested.spaceIndexerThreads.containsKey(SPACE_KEY));
 			// check first space stayed in queue!
-			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains("ORG"));
+			Assert.assertTrue(tested.spaceKeysToIndexQueue.contains(SPACE_KEY));
 			Assert.assertEquals(1, tested.spaceKeysToIndexQueue.size());
 		}
 
@@ -672,7 +737,7 @@ public class SpaceIndexerCoordinatorTest {
 			tested.spaceKeysToIndexQueue.clear();
 			tested.spaceKeysToIndexQueue.addAll(Utils.parseCsvString("ORG,ORG2,AAA,ORG3"));
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_FULL_UPDATE_DATE)).thenReturn(null);
 			when(
 					esIntegrationMock.readDatetimeValue("ORG2",
@@ -689,7 +754,7 @@ public class SpaceIndexerCoordinatorTest {
 			tested.startIndexers();
 			Assert.assertEquals(3, tested.spaceIndexerThreads.size());
 			Assert.assertTrue(tested.spaceIndexerThreads.containsKey("BBB"));
-			Assert.assertTrue(tested.spaceIndexerThreads.containsKey("ORG"));
+			Assert.assertTrue(tested.spaceIndexerThreads.containsKey(SPACE_KEY));
 			Assert.assertTrue(tested.spaceIndexerThreads.containsKey("AAA"));
 			Assert.assertFalse(tested.spaceIndexerThreads.containsKey("ORG2"));
 			Assert.assertFalse(tested.spaceIndexerThreads.containsKey("ORG3"));
@@ -703,8 +768,8 @@ public class SpaceIndexerCoordinatorTest {
 	@Test
 	public void run() throws Exception {
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1, true,
-				null);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1, null,
+				SpaceIndexingMode.SIMPLE);
 		when(esIntegrationMock.acquireIndexingThread(Mockito.any(String.class), Mockito.any(Runnable.class))).thenReturn(
 				new MockThread());
 
@@ -712,7 +777,7 @@ public class SpaceIndexerCoordinatorTest {
 		{
 			MockThread mt1 = new MockThread();
 			MockThread mt2 = new MockThread();
-			tested.spaceIndexerThreads.put("ORG", mt1);
+			tested.spaceIndexerThreads.put(SPACE_KEY, mt1);
 			tested.spaceIndexerThreads.put("AAA", mt2);
 			when(esIntegrationMock.isClosed()).thenReturn(true);
 
@@ -729,7 +794,7 @@ public class SpaceIndexerCoordinatorTest {
 			tested.spaceKeysToIndexQueue.clear();
 			MockThread mt1 = new MockThread();
 			MockThread mt2 = new MockThread();
-			tested.spaceIndexerThreads.put("ORG", mt1);
+			tested.spaceIndexerThreads.put(SPACE_KEY, mt1);
 			tested.spaceIndexerThreads.put("AAA", mt2);
 			when(esIntegrationMock.isClosed()).thenReturn(false);
 			when(esIntegrationMock.getAllIndexedSpaceKeys()).thenThrow(new InterruptedException());
@@ -755,8 +820,8 @@ public class SpaceIndexerCoordinatorTest {
 	@Test
 	public void processLoopTask() throws Exception {
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1, true,
-				null);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1, null,
+				SpaceIndexingMode.SIMPLE);
 		when(esIntegrationMock.acquireIndexingThread(Mockito.any(String.class), Mockito.any(Runnable.class))).thenReturn(
 				new MockThread());
 
@@ -765,9 +830,9 @@ public class SpaceIndexerCoordinatorTest {
 			reset(esIntegrationMock);
 			tested.spaceIndexerThreads.clear();
 			tested.spaceKeysToIndexQueue.clear();
-			when(esIntegrationMock.getAllIndexedSpaceKeys()).thenReturn(Utils.parseCsvString("ORG"));
+			when(esIntegrationMock.getAllIndexedSpaceKeys()).thenReturn(Utils.parseCsvString(SPACE_KEY));
 			when(
-					esIntegrationMock.readDatetimeValue("ORG",
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
 							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE)).thenReturn(null);
 			when(esIntegrationMock.acquireIndexingThread(Mockito.eq("remote_river_indexer_ORG"), Mockito.any(Runnable.class)))
 					.thenReturn(new MockThread());
@@ -786,8 +851,8 @@ public class SpaceIndexerCoordinatorTest {
 			reset(esIntegrationMock);
 			tested.spaceIndexerThreads.clear();
 			tested.spaceKeysToIndexQueue.clear();
-			tested.spaceKeysToIndexQueue.add("ORG");
-			when(esIntegrationMock.getAllIndexedSpaceKeys()).thenReturn(Utils.parseCsvString("ORG"));
+			tested.spaceKeysToIndexQueue.add(SPACE_KEY);
+			when(esIntegrationMock.getAllIndexedSpaceKeys()).thenReturn(Utils.parseCsvString(SPACE_KEY));
 			when(esIntegrationMock.acquireIndexingThread(Mockito.eq("remote_river_indexer_ORG"), Mockito.any(Runnable.class)))
 					.thenReturn(new MockThread());
 
@@ -806,7 +871,7 @@ public class SpaceIndexerCoordinatorTest {
 			tested.lastQueueFillTime = System.currentTimeMillis() - SpaceIndexerCoordinator.COORDINATOR_THREAD_WAITS_SLOW - 1;
 			tested.spaceIndexerThreads.clear();
 			tested.spaceKeysToIndexQueue.clear();
-			tested.spaceKeysToIndexQueue.add("ORG");
+			tested.spaceKeysToIndexQueue.add(SPACE_KEY);
 			when(esIntegrationMock.getAllIndexedSpaceKeys()).thenReturn(Utils.parseCsvString("ORG,AAA"));
 			when(esIntegrationMock.acquireIndexingThread(Mockito.eq("remote_river_indexer_ORG"), Mockito.any(Runnable.class)))
 					.thenReturn(new MockThread());
@@ -843,19 +908,21 @@ public class SpaceIndexerCoordinatorTest {
 	@Test
 	public void reportIndexingFinished() throws Exception {
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 10, 2, -1, false, null);
-		tested.spaceIndexerThreads.put("ORG", new Thread());
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 10, 2, -1, null,
+				SpaceIndexingMode.SIMPLE);
+		tested.spaceIndexerThreads.put(SPACE_KEY, new Thread());
 		tested.spaceIndexerThreads.put("AAA", new Thread());
-		tested.spaceIndexers.put("ORG", new SpaceByLastUpdateTimestampIndexer("ORG", false, null, esIntegrationMock, null));
+		tested.spaceIndexers.put(SPACE_KEY, new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, false, null,
+				esIntegrationMock, null));
 		tested.spaceIndexers.put("AAA", new SpaceByLastUpdateTimestampIndexer("AAA", false, null, esIntegrationMock, null));
 
 		// case - incremental indexing with success
 		{
-			tested.reportIndexingFinished("ORG", true, false);
+			tested.reportIndexingFinished(SPACE_KEY, true, false);
 			Assert.assertEquals(1, tested.spaceIndexerThreads.size());
-			Assert.assertFalse(tested.spaceIndexerThreads.containsKey("ORG"));
+			Assert.assertFalse(tested.spaceIndexerThreads.containsKey(SPACE_KEY));
 			Assert.assertEquals(1, tested.spaceIndexers.size());
-			Assert.assertFalse(tested.spaceIndexers.containsKey("ORG"));
+			Assert.assertFalse(tested.spaceIndexers.containsKey(SPACE_KEY));
 			// no full reindex date stored
 			Mockito.verifyZeroInteractions(esIntegrationMock);
 		}
@@ -904,7 +971,8 @@ public class SpaceIndexerCoordinatorTest {
 	public void getCurrentSpaceIndexingInfo() {
 
 		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 10, 2, -1, false, null);
+		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 10, 2, -1, null,
+				SpaceIndexingMode.SIMPLE);
 
 		{
 			List<SpaceIndexingInfo> l = tested.getCurrentSpaceIndexingInfo();

@@ -22,7 +22,6 @@ import org.mockito.stubbing.Answer;
 import static org.mockito.Matchers.eq;
 
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,43 +48,36 @@ public class SpaceSimpleIndexerTest {
 	@Test
 	public void processUpdate_emptyList() throws Exception {
 
-		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
-		SpaceSimpleIndexer tested = new SpaceSimpleIndexer("ORG", remoteClientMock, esIntegrationMock,
-				documentIndexStructureBuilderMock);
+		SpaceSimpleIndexer tested = getTested();
 
 		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
 
 		// test case with empty result list from remote system search method
-		when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(docs, 0, 0));
+		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, null)).thenReturn(
+				new ChangedDocumentsResults(docs, 0, 0));
 
 		tested.processUpdate();
 		Assert.assertEquals(0, tested.getIndexingInfo().documentsUpdated);
 		Assert.assertEquals(0, tested.indexingInfo.documentsWithError);
 		Assert.assertTrue(tested.getIndexingInfo().fullUpdate);
-		verify(remoteClientMock, times(1)).getChangedDocuments("ORG", 0, null);
-		verify(esIntegrationMock, times(0)).prepareESBulkRequestBuilder();
-		verify(esIntegrationMock, times(0)).executeESBulkRequest(Mockito.any(BulkRequestBuilder.class));
-		Mockito.verifyNoMoreInteractions(remoteClientMock);
-		Mockito.verifyNoMoreInteractions(esIntegrationMock);
+		verify(tested.remoteSystemClient, times(1)).getChangedDocuments("ORG", 0, null);
+		verify(tested.esIntegrationComponent, times(0)).prepareESBulkRequestBuilder();
+		verify(tested.esIntegrationComponent, times(0)).executeESBulkRequest(Mockito.any(BulkRequestBuilder.class));
+		Mockito.verifyNoMoreInteractions(tested.remoteSystemClient);
+		Mockito.verifyNoMoreInteractions(tested.esIntegrationComponent);
+		Mockito.verifyNoMoreInteractions(tested.documentIndexStructureBuilder);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Test
 	public void processUpdate_list() throws Exception {
 
-		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
-		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
-		SpaceSimpleIndexer tested = new SpaceSimpleIndexer("ORG", remoteClientMock, esIntegrationMock,
-				documentIndexStructureBuilderMock);
+		SpaceSimpleIndexer tested = getTested();
 
 		Client client = Mockito.mock(Client.class);
 
 		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
 
-		reset(esIntegrationMock, remoteClientMock, documentIndexStructureBuilderMock);
 		// test that bulks are handled correctly
 		tested.bulkSize = 2;
 
@@ -95,30 +87,43 @@ public class SpaceSimpleIndexerTest {
 		Map<String, Object> doc4 = addDocumentMock(docs, "ORG-48");
 		// test skipping of bad read of remote document detail - issue #11
 		when(
-				remoteClientMock.getChangedDocumentDetails(Mockito.eq("ORG"), Mockito.eq("ORG-46"),
+				tested.remoteSystemClient.getChangedDocumentDetails(Mockito.eq("ORG"), Mockito.eq("ORG-46"),
 						(Map<String, Object>) Mockito.notNull())).thenThrow(new RemoteDocumentNotFoundException());
-		configureStructureBuilderMockDefaults(documentIndexStructureBuilderMock);
-		when(remoteClientMock.getChangedDocuments("ORG", 0, null)).thenReturn(new ChangedDocumentsResults(docs, 0, 3));
+		configureStructureBuilderMockDefaults(tested.documentIndexStructureBuilder);
+		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, null)).thenReturn(
+				new ChangedDocumentsResults(docs, 0, 3));
 		BulkRequestBuilder brb = new BulkRequestBuilder(client);
-		when(esIntegrationMock.prepareESBulkRequestBuilder()).thenReturn(brb);
+		when(tested.esIntegrationComponent.prepareESBulkRequestBuilder()).thenReturn(brb);
 
 		tested.processUpdate();
 		Assert.assertEquals(3, tested.indexingInfo.documentsUpdated);
 		Assert.assertEquals(1, tested.indexingInfo.documentsWithError);
 		Assert.assertTrue(tested.indexingInfo.fullUpdate);
-		verify(remoteClientMock, times(1)).getChangedDocuments("ORG", 0, null);
-		verify(esIntegrationMock, times(2)).prepareESBulkRequestBuilder();
-		verify(documentIndexStructureBuilderMock, times(3)).indexDocument(Mockito.eq(brb), Mockito.eq("ORG"),
+		verify(tested.remoteSystemClient, times(1)).getChangedDocuments("ORG", 0, null);
+		verify(tested.esIntegrationComponent, times(2)).prepareESBulkRequestBuilder();
+		verify(tested.documentIndexStructureBuilder, times(3)).indexDocument(Mockito.eq(brb), Mockito.eq("ORG"),
 				Mockito.any(Map.class));
-		verify(esIntegrationMock, times(2)).executeESBulkRequest(eq(brb));
-		verify(esIntegrationMock, Mockito.atLeastOnce()).isClosed();
+		verify(tested.documentIndexStructureBuilder, times(4)).extractDocumentId(Mockito.anyMap());
 
-		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-45", doc1);
-		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-46", doc2);
-		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-47", doc3);
-		verify(remoteClientMock).getChangedDocumentDetails("ORG", "ORG-48", doc4);
-		Mockito.verifyNoMoreInteractions(remoteClientMock);
-		Mockito.verifyNoMoreInteractions(esIntegrationMock);
+		verify(tested.esIntegrationComponent, times(2)).executeESBulkRequest(eq(brb));
+		verify(tested.esIntegrationComponent, Mockito.atLeastOnce()).isClosed();
+
+		verify(tested.remoteSystemClient).getChangedDocumentDetails("ORG", "ORG-45", doc1);
+		verify(tested.remoteSystemClient).getChangedDocumentDetails("ORG", "ORG-46", doc2);
+		verify(tested.remoteSystemClient).getChangedDocumentDetails("ORG", "ORG-47", doc3);
+		verify(tested.remoteSystemClient).getChangedDocumentDetails("ORG", "ORG-48", doc4);
+		Mockito.verifyNoMoreInteractions(tested.remoteSystemClient);
+		Mockito.verifyNoMoreInteractions(tested.esIntegrationComponent);
+		Mockito.verifyNoMoreInteractions(tested.documentIndexStructureBuilder);
+	}
+
+	protected SpaceSimpleIndexer getTested() {
+		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
+		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
+		SpaceSimpleIndexer tested = new SpaceSimpleIndexer("ORG", remoteClientMock, esIntegrationMock,
+				documentIndexStructureBuilderMock);
+		return tested;
 	}
 
 	/**

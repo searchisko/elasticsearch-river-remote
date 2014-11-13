@@ -81,7 +81,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		Assert.assertEquals("my_remote_river", tested.indexName);
 		Assert.assertEquals(RemoteRiver.INDEX_DOCUMENT_TYPE_NAME_DEFAULT, tested.typeName);
 		Assert.assertEquals(tested.documentIndexStructureBuilder, tested.remoteSystemClient.getIndexStructureBuilder());
-		Assert.assertFalse(tested.simpleGetDocuments);
+		Assert.assertEquals(SpaceIndexingMode.UPDATE_TIMESTAMP, tested.spaceIndexingMode);
 
 		// case - test river configuration reading
 		remoteSettingsAdd.put("maxIndexingThreads", "5");
@@ -103,7 +103,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		Assert.assertEquals("0 0 10 * * ?", tested.indexFullUpdateCronExpression.toString());
 		Assert.assertEquals("my_index_name", tested.indexName);
 		Assert.assertEquals("type_test", tested.typeName);
-		Assert.assertTrue(tested.simpleGetDocuments);
+		Assert.assertEquals(SpaceIndexingMode.SIMPLE, tested.spaceIndexingMode);
 		// assert index structure builder initialization
 		Assert.assertEquals(tested.documentIndexStructureBuilder, tested.remoteSystemClient.getIndexStructureBuilder());
 		Assert.assertEquals(tested.indexName,
@@ -112,6 +112,12 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 				((DocumentWithCommentsIndexStructureBuilder) tested.documentIndexStructureBuilder).issueTypeName);
 		Assert.assertEquals(tested.riverName().getName(),
 				((DocumentWithCommentsIndexStructureBuilder) tested.documentIndexStructureBuilder).riverName);
+
+		// case - #50 - listDocumentsMode config reading test
+		remoteSettingsAdd.put("simpleGetDocuments", "true");
+		remoteSettingsAdd.put("listDocumentsMode", SpaceIndexingMode.PAGINATION.getConfigValue());
+		tested = prepareRiverInstanceForTest("https://issues.jboss.org", remoteSettingsAdd, toplevelSettingsAdd, false);
+		Assert.assertEquals(SpaceIndexingMode.PAGINATION, tested.spaceIndexingMode);
 
 		// case - #49 - invalid cron expression
 		try {

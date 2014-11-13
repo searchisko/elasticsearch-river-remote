@@ -17,6 +17,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.SettingsException;
 
 /**
  * Space indexing coordinator components. Coordinate parallel indexing of more Spaces, and also handles how often one
@@ -89,7 +90,7 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	/**
 	 * <code>true</code> to run simple indexing mode - "List Documents" is called only once in this run
 	 */
-	protected boolean simpleGetDocuments;
+	protected SpaceIndexingMode spaceIndexingMode;
 
 	/**
 	 * Queue of Space keys which needs to be reindexed in near future.
@@ -118,11 +119,12 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	 * @param indexUpdatePeriod index update period [ms]
 	 * @param maxIndexingThreads maximal number of parallel JIRA indexing threads started by this coordinator
 	 * @param indexFullUpdatePeriod period of index automatic full update from remote system [ms]. value <= 0 means never.
-	 * @param simpleGetDocuments true to run simple indexing mode - "List Documents" is called only once in this run
+	 * @param indexFullUpdateCronExpression cron expression for full updates.
+	 * @param spaceIndexingMode mode of space indexing
 	 */
 	public SpaceIndexerCoordinator(IRemoteSystemClient remoteSystemClient, IESIntegration esIntegrationComponent,
 			IDocumentIndexStructureBuilder documentIndexStructureBuilder, long indexUpdatePeriod, int maxIndexingThreads,
-			long indexFullUpdatePeriod, boolean simpleGetDocuments, CronExpression indexFullUpdateCronExpression) {
+			long indexFullUpdatePeriod, CronExpression indexFullUpdateCronExpression, SpaceIndexingMode spaceIndexingMode) {
 		super();
 		this.remoteSystemClient = remoteSystemClient;
 		this.esIntegrationComponent = esIntegrationComponent;
@@ -130,7 +132,7 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 		this.maxIndexingThreads = maxIndexingThreads;
 		this.documentIndexStructureBuilder = documentIndexStructureBuilder;
 		this.indexFullUpdatePeriod = indexFullUpdatePeriod;
-		this.simpleGetDocuments = simpleGetDocuments;
+		this.spaceIndexingMode = spaceIndexingMode;
 		this.indexFullUpdateCronExpression = indexFullUpdateCronExpression;
 	}
 
@@ -249,15 +251,7 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 				continue;
 			}
 
-			SpaceIndexerBase indexer = null;
-
-			if (simpleGetDocuments) {
-				indexer = new SpaceSimpleIndexer(spaceKey, remoteSystemClient, esIntegrationComponent,
-						documentIndexStructureBuilder);
-			} else {
-				indexer = new SpaceByLastUpdateTimestampIndexer(spaceKey, fullUpdateNecessary, remoteSystemClient,
-						esIntegrationComponent, documentIndexStructureBuilder);
-			}
+			SpaceIndexerBase indexer = prepareSpaceIndexer(spaceKey, fullUpdateNecessary);
 			Thread it = esIntegrationComponent.acquireIndexingThread("remote_river_indexer_" + spaceKey, indexer);
 			esIntegrationComponent.storeDatetimeValue(spaceKey, STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE, new Date(),
 					null);
@@ -266,6 +260,30 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 				spaceIndexers.put(spaceKey, indexer);
 			}
 			it.start();
+		}
+	}
+
+	/**
+	 * Select correct space indexer implementation based on {@link #spaceIndexingMode}.
+	 * 
+	 * @param spaceKey to create indexer for
+	 * @param fullUpdateNecessary flag for indexer
+	 * @return indexer
+	 */
+	protected SpaceIndexerBase prepareSpaceIndexer(String spaceKey, boolean fullUpdateNecessary) {
+		if (spaceIndexingMode == null)
+			throw new SettingsException("undefined space indexing mode");
+		switch (spaceIndexingMode) {
+		case SIMPLE:
+			return new SpaceSimpleIndexer(spaceKey, remoteSystemClient, esIntegrationComponent, documentIndexStructureBuilder);
+		case PAGINATION:
+			return new SpacePaginatingIndexer(spaceKey, remoteSystemClient, esIntegrationComponent,
+					documentIndexStructureBuilder);
+		case UPDATE_TIMESTAMP:
+			return new SpaceByLastUpdateTimestampIndexer(spaceKey, fullUpdateNecessary, remoteSystemClient,
+					esIntegrationComponent, documentIndexStructureBuilder);
+		default:
+			throw new SettingsException("unsupported space indexing mode");
 		}
 	}
 

@@ -90,7 +90,8 @@ The example above lists all the main options controlling the creation and behavi
 * `remote/indexFullUpdateCronExpression` contains [Quartz Cron Expression](http://www.quartz-scheduler.org/documentation/quartz-1.x/tutorials/crontrigger) defining when is full index update performed. Optional, if defined then `indexFullUpdatePeriod` is not used. Available from version 1.5.3.
 * `remote/maxIndexingThreads` defines maximal number of parallel indexing threads running for this river. Optional, default 1. This setting influences load on both JIRA and Elasticsearch servers during indexing. Threads are started per JIRA project update. If there is more threads allowed, then one is always dedicated for incremental updates only (so full updates do not block incremental updates for another projects).
 * `remote/remoteClientClass` class implementing *remote system API client* used to pull data from remote system. See dedicated chapter later. Optional, *GET JSON remote system API client* used by default. Client class must implement [`org.jboss.elasticsearch.river.remote.IRemoteSystemClient`](/src/main/java/org/jboss/elasticsearch/river/remote/IRemoteSystemClient.java) interface.
-* `remote/simpleGetDocuments` if `true` then *List Documents* URL is called only once per index update. Timestamp of document last update is not required for this simple indexing mode (but can be provided). This mode is useful when list of all indexed documents is always returned in one call (is short and/or no pagination support for this operation is available).
+* `remote/listDocumentsMode` defines indexing mode for one space, so how *List Documents* URL of remote system is called to obtain all necessary data from it. Available values are `updateTimestamp`, `pagination`, `simple`, see description later in *Remote system API to obtain data from* chapter. Optional, default value is `updateTimestamp`.
+* `remote/simpleGetDocuments` deprecated from 1.5.3, use `remote/listDocumentsMode` with `simple` value instead.
 * `remote/*` other params are used by the *remote system API client*
 * `index/index` defines name of search [index](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/glossary.html#glossary-index) where documents from remote system are stored. Parameter is optional, name of river is used if omitted. See related notes later!
 * `index/type` defines [type](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/glossary.html#glossary-type) used when document from remote system is stored into search index. Parameter is optional, `remote_document` is used if omitted. See related notes later!
@@ -190,41 +191,80 @@ Each Space is then indexed independently, and partially in parallel, by the rive
 Space key is passed to the "List documents" operation so remote system can return documents for given space. 
 
 This operation is optional, `remote/spacesIndexed` configuration parameter can be used to define fixed set of space keys if you do not want to read them dynamically.
-If your remote system do not support Space concept, you can define `remote/spacesIndexed` with one value only representing all documents.    
+
+If your remote system do not support Space concept, you can define `remote/spacesIndexed` configuration with 
+one value only representing all documents, and then ignore `spaceKey` request parameter for next operations.    
 
 ####List Documents
-This operation is used by indexer to obtain documents from remote system and store them into search index.
- 
-Number of documents returned from one call of this operation is not restricted,
-but ideal value is between 10 and 100 documents. Indexer calls the operation multiple 
-times and sets request parameters accordingly to obtain all necessary documents 
+This operation is used by indexer to obtain documents from remote system for one space and store them into search index. 
+You can use one of three modes depending on your remote system API capabilities. 
+
+##### List Documents mode `simple` 
+You can use this mode if your remote system API has no capability for other modes or always returns reasonable amount of data. 
+"List Documents" operation is called only once per indexing in this case and it is expected it return all documents.
+
+Incremental update is not possible in this mode, full update is performed always.
+
+Operation MUST accept and correctly handle these request parameters if provided by indexer: 
+
+* `spaceKey` - remote system MUST return only documents for this space key (always provided by indexer)
+
+##### List Documents mode `pagination`
+You SHOULD use this mode if your remote system API list operation supports pagination to 
+restrict number of documents returned from one call of this operation (ideal number is between 10 and 100 documents). 
+Indexer calls list operation multiple times and sets `startAtIndex` request parameter accordingly to obtain 
+all available documents. 
+
+Incremental update is not possible in this mode, full update is performed always.   
+
+Operation MUST accept and correctly handle these request parameters if provided by indexer: 
+
+* `spaceKey` - remote system MUST return only documents for this space key (always provided by indexer)
+* `startAtIndex` - remote system MUST return only documents matching previous criteria, and starting at this index in result set (0 based, always provided by indexer).
+
+Operation MUST return these results:
+
+* `documents` - list of documents with information to be stored in search index reflecting `startAtIndex` param. Unique identifier must be present in the data for each document.
+* `total count` - total number of documents for indexing. Use of this feature is optional, if provided then indexing finishes when given number of indexed documents is reached. 
+  If not used then indexing is finished when `documents` list is empty.
+
+
+##### List Documents mode `updateTimestamp`
+This is most advanced mode which allows to do incremental updates to decrease load on your remote system.
+You SHOULD use this mode if your remote system API list operation supports both filtering and ordering by 'last document update' timestamp. 
+Number of documents returned from one call of this operation is not restricted, but ideal value is between 10 and 100 documents. 
+Indexer calls the operation multiple times and sets request parameters accordingly to obtain all necessary documents 
 for both full and incremental update.   
 
 Operation MUST accept and correctly handle these request parameters if provided by indexer: 
 
 * `spaceKey` - remote system MUST return only documents for this space key (always provided by indexer)
-* `updatedAfter` - remote system MUST return only documents updated at or after this timestamp (whole history if not provided by indexer)
-* `startAtIndex` - remote system MUST return only documents matching previous two criteria, and starting at this index in result set. Support for this feature by remote system is optional, and is used only if remote system is able to return "total" count of matching documents in response. 
-
-If your REST API list operation do not support filtering by date of last update and returns reasonable amount of data, then you can set `remote/simpleGetDocuments` to `true`. "List Documents" operation is called only once per indexing in this case.
+* `updatedAfter` - remote system MUST return only documents updated at or after this timestamp (whole history if this param is not provided by indexer)
+* `startAtIndex` - remote system MUST return only documents matching previous two criteria, and starting at this index in result set (0 based). 
+   Support for this feature by remote system is optional, and is used only if remote system is able to return "total" count of matching documents in response. 
 
 Operation MUST return these results:
 
-* `documents` - list of documents with information to be stored in search index. Unique identifier and 'last document update' timestamp must be present in data. Returned list MUST be ascending ordered by timestamp of last document update!
-* `total count` - total number of documents matching request search criteria (but response may contain only part of them). Use of this feature is optional, some bulk updates in remote system may be missed if not used (because pooling is based only on updated timestamp in this case). If used then remote system MUST handle `startAtIndex` request parameter. 
+* `documents` - list of documents with information to be stored in search index. Unique identifier and 'last document update' timestamp 
+  must be present in the data. Returned list MUST be ascending ordered by timestamp of last document update!
+* `total count` - total number of documents matching space and timestamp criteria (but given response may contain only part of them).
+  Use of this feature is optional, some bulk updates in remote system may be missed if not used (because pooling is based only on updated 
+  timestamp only in this case). If used then remote system MUST handle `startAtIndex` request parameter. 
 
 ####Get Document Details
-This operation may be optionally used by indexer to obtain details for one document. 
+This operation may be optionally used by indexer to obtain details for each indexed document. 
 Is used when "List Documents" operation do not provide all information necessary for indexing.
 This operation is called once for each item from list returned from "List Documents" call.
-Note that this type of indexing requires lots of remote system calls, so for performance it is better to return all necessary data directly in List Documents" response.  
+Note that this type of indexing requires lots of remote system calls, so due performance reasons it is 
+better to return all necessary data directly in List Documents" response if possible.  
 
-URL for each item must be provided in data returned from "List Documents" operation, or have to be constructed from identifier provided there.
+URL for each item MUST be provided in data returned from "List Documents" operation, or have to be constructed 
+from document identifier provided there.
 
 Data returned from this call are stored into document structure under `detail` key, so you can map them into search index then.
 
 ###Remote system API clients
-You can use some clients provided by river to use distinct remote system access technology and protocols, 
+You can use remote API clients provided by the river to use distinct remote system access technology and protocols, 
 or you can create a new one by implementing [`org.jboss.elasticsearch.river.remote.IRemoteSystemClient`](/src/main/java/org/jboss/elasticsearch/river/remote/IRemoteSystemClient.java) interface.
 
 #####GET JSON remote system API client
@@ -232,10 +272,7 @@ This is default remote system client implementation provided by river.
 Uses http/s GET requests to the target remote system and handles JSON response data. 
 Configuration parameters for this client type:
 
-* `remote/urlGetDocuments` is URL used to call *List Documents* operation from remote system. You may use three placeholders in this URL to be replaced by parameters required by indexing process as described above: 
-  * `{space}` - remote system must return only documents for this space 
-  * `{updatedAfter}` - remote system must return only documents updated after this timestamp, number representing as millis from 1.1.1970
-  * `{startAtIndex}` - remote system must return only documents matching previous two criteria, and starting at this index in result set.  
+* `remote/urlGetDocuments` is URL used to call *List Documents* operation from remote system. You may use three placeholders in this URL to be replaced by parameters required by indexing process as described above: `{space}`, `{startAtIndex}`, `{updatedAfter}`
 * `remote/getDocsResFieldDocuments` defines field in JSON data returned from `remote/urlGetDocuments` call, where array of documents is stored. If not defined then the array is expected directly in the root of returned data. Dot notation may be used for deeper nesting in the JSON structure.
 * `remote/getDocsResFieldTotalcount` defines field in JSON data returned from `remote/urlGetDocuments` call, where total number of documents matching passed search criteria is stored. Dot notation may be used for deeper nesting in the JSON structure. 
 * `remote/urlGetDocumentDetails` is URL used to call *Get Document Details* operation from remote system.
@@ -264,7 +301,7 @@ Configuration parameters for this client type:
 
 * `remote/urlGetSitemap` is URL used to obtain sitemap from. Sitemap can be in [`sitemap.xml`](http://www.sitemaps.org/protocol.html) 
   format (plain xml with `.xml` or gzip compressed with `.gz` file extension), or it can be text file (`.txt` extension) with one url 
-  at each line. [crawler-commons](http://code.google.com/p/crawler-commons) `SiteMapParser` code is used as base there. 
+  at each line, or feed file in rss or Atom format. [crawler-commons](http://code.google.com/p/crawler-commons) `SiteMapParser` code is used as base there. 
   Note that this parser validates URL's provided in sitemap, and keeps only URL's from same domain where sitemap.xml is served from!
   Only documents with `Content-Type` `text/html` are processed.  
 * `remote/username` and `remote/pwd` are optional login credentials to access webpages. HTTP BASIC authentication is supported. 
@@ -281,7 +318,7 @@ When you use this remote client, you must set some configurations of the river t
 
 * `remote/spacesIndexed` always set to one string as this client doesn't support document spaces, eg. `MAIN` 
 * `remote/remoteClientClass` always set to `org.jboss.elasticsearch.river.remote.GetSitemapHtmlClient`
-* `remote/simpleGetDocuments` always set to `true` as this client support simple indexing mode only 
+* `remote/listDocumentsMode` always set to `simple` 
   (full update is done each time when indexing runs).
 * `index/remote_field_document_id` always set to `id` as this field is provided by the remote client 
 * `index/fields` must be used to store informations about webpage into search index. Information about 
@@ -304,7 +341,7 @@ Example river configuration to index whole HTML content only:
         "urlGetSitemap"         : "http://test.org/sitemap.xml",
         "timeout"               : "5s",
         "spacesIndexed"         : "MAIN",
-        "simpleGetDocuments"    : true,
+        "listDocumentsMode"     : "simple",
         "indexUpdatePeriod"     : "1h",
         "maxIndexingThreads"    : 1
     },
@@ -330,7 +367,7 @@ Example river configuration to index parts of HTML as separate fields:
         "urlGetSitemap"         : "http://test.org/sitemap.xml",
         "timeout"               : "5s",
         "spacesIndexed"         : "MAIN",
-        "simpleGetDocuments"    : true,
+        "listDocumentsMode"     : "simple",
         "indexUpdatePeriod"     : "1h",
         "maxIndexingThreads"    : 1,
         "htmlMapping"           : {

@@ -37,8 +37,8 @@ public class SpaceByLastUpdateTimestampIndexer extends SpaceIndexerBase {
 	 * Create and configure indexer.
 	 * 
 	 * @param spaceKey to be indexed by this indexer.
-	 * @param fullUpdate true to request full index update
-	 * @param simpleGetDocuments true to run simple indexing mode - "List Documents" is called only once in this run
+	 * @param fullUpdate true to request full index update (it may be changed from false to true by this indexer if
+	 *          necessary)
 	 * @param remoteSystemClient configured client to be used to obtain informations from remote system.
 	 * @param esIntegrationComponent to be used to call River component and ElasticSearch functions
 	 * @param documentIndexStructureBuilder to be used during indexing

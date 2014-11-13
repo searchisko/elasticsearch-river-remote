@@ -96,9 +96,9 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	protected long indexUpdatePeriod;
 
 	/**
-	 * Config - <code>true</code> to run simple indexing mode - "List Documents" is called only once in this run
+	 * Config - mode used for space indexing
 	 */
-	protected boolean simpleGetDocuments = false;
+	protected SpaceIndexingMode spaceIndexingMode = SpaceIndexingMode.UPDATE_TIMESTAMP;
 
 	/**
 	 * Config - index full update period [ms]
@@ -221,7 +221,13 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 					throw new SettingsException("Cron expression in indexFullUpdateCronExpression is invalid: " + e.getMessage());
 				}
 			}
-			simpleGetDocuments = XContentMapValues.nodeBooleanValue(remoteSettings.get("simpleGetDocuments"), false);
+
+			SpaceIndexingMode sim = SpaceIndexingMode.parseConfiguration((String) remoteSettings.get("listDocumentsMode"));
+			if (sim != null)
+				spaceIndexingMode = sim;
+			else if (XContentMapValues.nodeBooleanValue(remoteSettings.get("simpleGetDocuments"), false))
+				spaceIndexingMode = SpaceIndexingMode.SIMPLE;
+
 			if (remoteSettings.containsKey("spacesIndexed")) {
 				allIndexedSpacesKeys = Utils.parseCsvString(XContentMapValues.nodeStringValue(
 						remoteSettings.get("spacesIndexed"), null));
@@ -275,7 +281,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 		}
 
 		documentIndexStructureBuilder = new DocumentWithCommentsIndexStructureBuilder(riverName.getName(), indexName,
-				typeName, indexSettings, !simpleGetDocuments);
+				typeName, indexSettings, spaceIndexingMode.isUpdateDateMandatory());
 		preparePreprocessors(indexSettings, documentIndexStructureBuilder);
 
 		remoteSystemClient.setIndexStructureBuilder(documentIndexStructureBuilder);
@@ -340,7 +346,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 		closed = false;
 		lastRestartDate = new Date();
 		coordinatorInstance = new SpaceIndexerCoordinator(remoteSystemClient, this, documentIndexStructureBuilder,
-				indexUpdatePeriod, maxIndexingThreads, indexFullUpdatePeriod, simpleGetDocuments, indexFullUpdateCronExpression);
+				indexUpdatePeriod, maxIndexingThreads, indexFullUpdatePeriod, indexFullUpdateCronExpression, spaceIndexingMode);
 		coordinatorThread = acquireIndexingThread("remote_river_coordinator", coordinatorInstance);
 		coordinatorThread.start();
 	}

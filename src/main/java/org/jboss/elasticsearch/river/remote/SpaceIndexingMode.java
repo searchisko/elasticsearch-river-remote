@@ -14,14 +14,17 @@ import org.elasticsearch.common.settings.SettingsException;
  * @see SpaceIndexerCoordinator#prepareSpaceIndexer(String, boolean)
  */
 public enum SpaceIndexingMode {
-	SIMPLE("simple", false), PAGINATION("pagination", false), UPDATE_TIMESTAMP("updateTimestamp", true);
+	SIMPLE("simple", false, false), PAGINATION("pagination", false, false), UPDATE_TIMESTAMP("updateTimestamp", true,
+			true);
 
 	private String configValue;
+	private boolean incrementalUpdateSupported;
 	private boolean updateDateMandatory;
 
-	private SpaceIndexingMode(String configValue, boolean updateDateMandatory) {
+	private SpaceIndexingMode(String configValue, boolean updateDateMandatory, boolean incrementalUpdateSupported) {
 		this.configValue = configValue;
 		this.updateDateMandatory = updateDateMandatory;
+		this.incrementalUpdateSupported = incrementalUpdateSupported;
 	}
 
 	/**
@@ -40,6 +43,13 @@ public enum SpaceIndexingMode {
 	 */
 	public boolean isUpdateDateMandatory() {
 		return updateDateMandatory;
+	}
+
+	/**
+	 * @return true if this mode supports incremental updates.
+	 */
+	public boolean isIncrementalUpdateSupported() {
+		return incrementalUpdateSupported;
 	}
 
 	/**

@@ -91,7 +91,6 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		remoteSettingsAdd.put("maxIssuesPerRequest", 20);
 		remoteSettingsAdd.put("timeout", "5s");
 		remoteSettingsAdd.put("jqlTimeZone", "Europe/Prague");
-		remoteSettingsAdd.put("simpleGetDocuments", "true");
 		Map<String, Object> indexSettings = (Map<String, Object>) toplevelSettingsAdd.get("index");
 		indexSettings.put("index", "my_index_name");
 		indexSettings.put("type", "type_test");
@@ -103,7 +102,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		Assert.assertEquals("0 0 10 * * ?", tested.indexFullUpdateCronExpression.toString());
 		Assert.assertEquals("my_index_name", tested.indexName);
 		Assert.assertEquals("type_test", tested.typeName);
-		Assert.assertEquals(SpaceIndexingMode.SIMPLE, tested.spaceIndexingMode);
+		Assert.assertEquals(SpaceIndexingMode.UPDATE_TIMESTAMP, tested.spaceIndexingMode);
 		// assert index structure builder initialization
 		Assert.assertEquals(tested.documentIndexStructureBuilder, tested.remoteSystemClient.getIndexStructureBuilder());
 		Assert.assertEquals(tested.indexName,
@@ -113,11 +112,17 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		Assert.assertEquals(tested.riverName().getName(),
 				((DocumentWithCommentsIndexStructureBuilder) tested.documentIndexStructureBuilder).riverName);
 
+		remoteSettingsAdd.put("simpleGetDocuments", "true");
+		tested = prepareRiverInstanceForTest("https://issues.jboss.org", remoteSettingsAdd, toplevelSettingsAdd, false);
+		Assert.assertEquals(SpaceIndexingMode.SIMPLE, tested.spaceIndexingMode);
+		Assert.assertEquals(0, tested.indexUpdatePeriod);
+
 		// case - #50 - listDocumentsMode config reading test
 		remoteSettingsAdd.put("simpleGetDocuments", "true");
 		remoteSettingsAdd.put("listDocumentsMode", SpaceIndexingMode.PAGINATION.getConfigValue());
 		tested = prepareRiverInstanceForTest("https://issues.jboss.org", remoteSettingsAdd, toplevelSettingsAdd, false);
 		Assert.assertEquals(SpaceIndexingMode.PAGINATION, tested.spaceIndexingMode);
+		Assert.assertEquals(0, tested.indexUpdatePeriod);
 
 		// case - #49 - invalid cron expression
 		try {

@@ -83,11 +83,20 @@ River can be created using:
 
 The example above lists all the main options controlling the creation and behavior of a Remote river. Full list of options with description is here:
 
-* `remote/spacesIndexed` comma separated list of keys for remote system spaces to be indexed. Optional, list of spaces is obtained from remote system if omitted (so new spaces are indexed automatically).
-* `remote/spaceKeysExcluded` comma separated list of keys for remote system spaces to be excluded from indexing if list is obtained from remote system (so used only if no `remote/spacesIndexed` is defined). Optional.
-* `remote/indexUpdatePeriod`  time value, defines how often is search index updated from remote system. Optional, default 5 minutes.
-* `remote/indexFullUpdatePeriod` time value, defines how often is search index updated from remote system in full update mode. Optional, default 12 hours. You can use `0` to disable automatic full updates. Full update updates all documents in search index from remote system, and removes documents deleted in remote system from search index also. This brings more load to both remote system and Elasticsearch servers, and may run for long time in case of remote systems with many documents. Incremental updates are performed between full updates as defined by `indexUpdatePeriod` parameter.
-* `remote/indexFullUpdateCronExpression` contains [Quartz Cron Expression](http://www.quartz-scheduler.org/documentation/quartz-1.x/tutorials/crontrigger) defining when is full index update performed. Optional, if defined then `indexFullUpdatePeriod` is not used. Available from version 1.5.3.
+* `remote/spacesIndexed` comma separated list of keys for remote system spaces to be indexed. Optional, list of spaces is 
+   obtained from remote system if omitted (so new spaces are indexed automatically).
+* `remote/spaceKeysExcluded` comma separated list of keys for remote system spaces to be excluded from indexing if list is 
+   obtained from remote system (so used only if no `remote/spacesIndexed` is defined). Optional.
+* `remote/indexUpdatePeriod`  time value, defines how often is search index updated from remote system. Optional, default 5 minutes. 
+   You can use `0` here to disable incremental updates and perform only full updates controlled by any of next two params. 
+   This configuration is ignored for `listDocumentsMode` which do not support incremental updates. 
+* `remote/indexFullUpdatePeriod` time value, defines how often is search index updated from remote system in full update mode. 
+   Optional, default 12 hours. You can use `0` to disable automatic full updates. Full update updates all documents in search 
+   index from remote system, and removes documents deleted in remote system from search index also. This brings more load 
+   to both remote system and Elasticsearch servers, and may run for long time in case of remote systems with many documents. 
+   Incremental updates are performed between full updates as defined by `indexUpdatePeriod` parameter.
+* `remote/indexFullUpdateCronExpression` contains [Quartz Cron Expression](http://www.quartz-scheduler.org/documentation/quartz-1.x/tutorials/crontrigger) 
+   defining when is full index update performed. Optional, if defined then `indexFullUpdatePeriod` is not used. Available from version 1.5.3.
 * `remote/maxIndexingThreads` defines maximal number of parallel indexing threads running for this river. Optional, default 1. This setting influences load on both JIRA and Elasticsearch servers during indexing. Threads are started per JIRA project update. If there is more threads allowed, then one is always dedicated for incremental updates only (so full updates do not block incremental updates for another projects).
 * `remote/remoteClientClass` class implementing *remote system API client* used to pull data from remote system. See dedicated chapter later. Optional, *GET JSON remote system API client* used by default. Client class must implement [`org.jboss.elasticsearch.river.remote.IRemoteSystemClient`](/src/main/java/org/jboss/elasticsearch/river/remote/IRemoteSystemClient.java) interface.
 * `remote/listDocumentsMode` defines indexing mode for one space, so how *List Documents* URL of remote system is called to obtain all necessary data from it. Available values are `updateTimestamp`, `pagination`, `simple`, see description later in *Remote system API to obtain data from* chapter. Optional, default value is `updateTimestamp`.
@@ -357,7 +366,7 @@ Example river configuration to index whole HTML content only:
 }
 ````
 
-Example river configuration to index parts of HTML as separate fields:
+Example river configuration to index parts of HTML as separate fields and run daily at 23:00:
 
 ````
 {
@@ -368,7 +377,8 @@ Example river configuration to index parts of HTML as separate fields:
         "timeout"               : "5s",
         "spacesIndexed"         : "MAIN",
         "listDocumentsMode"     : "simple",
-        "indexUpdatePeriod"     : "1h",
+        "indexUpdatePeriod"     : "0",
+        "indexFullUpdateCronExpression" : "0 0 23 * * ?"
         "maxIndexingThreads"    : 1,
         "htmlMapping"           : {
             "title"       : {"cssSelector" : "head title", "stripHtml" : true},

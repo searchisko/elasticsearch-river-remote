@@ -210,7 +210,18 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 		if (settings.containsKey("remote")) {
 			Map<String, Object> remoteSettings = (Map<String, Object>) settings.get("remote");
 			maxIndexingThreads = XContentMapValues.nodeIntegerValue(remoteSettings.get("maxIndexingThreads"), 1);
-			indexUpdatePeriod = Utils.parseTimeValue(remoteSettings, "indexUpdatePeriod", 5, TimeUnit.MINUTES);
+
+			SpaceIndexingMode sim = SpaceIndexingMode.parseConfiguration((String) remoteSettings.get("listDocumentsMode"));
+			if (sim != null)
+				spaceIndexingMode = sim;
+			else if (XContentMapValues.nodeBooleanValue(remoteSettings.get("simpleGetDocuments"), false))
+				spaceIndexingMode = SpaceIndexingMode.SIMPLE;
+
+			if (spaceIndexingMode.isIncrementalUpdateSupported())
+				indexUpdatePeriod = Utils.parseTimeValue(remoteSettings, "indexUpdatePeriod", 5, TimeUnit.MINUTES);
+			else
+				indexUpdatePeriod = 0;
+
 			indexFullUpdatePeriod = Utils.parseTimeValue(remoteSettings, "indexFullUpdatePeriod", 12, TimeUnit.HOURS);
 
 			String ifuce = Utils.trimToNull((String) remoteSettings.get("indexFullUpdateCronExpression"));
@@ -221,12 +232,6 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 					throw new SettingsException("Cron expression in indexFullUpdateCronExpression is invalid: " + e.getMessage());
 				}
 			}
-
-			SpaceIndexingMode sim = SpaceIndexingMode.parseConfiguration((String) remoteSettings.get("listDocumentsMode"));
-			if (sim != null)
-				spaceIndexingMode = sim;
-			else if (XContentMapValues.nodeBooleanValue(remoteSettings.get("simpleGetDocuments"), false))
-				spaceIndexingMode = SpaceIndexingMode.SIMPLE;
 
 			if (remoteSettings.containsKey("spacesIndexed")) {
 				allIndexedSpacesKeys = Utils.parseCsvString(XContentMapValues.nodeStringValue(

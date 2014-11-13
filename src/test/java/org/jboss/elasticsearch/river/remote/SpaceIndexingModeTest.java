@@ -42,4 +42,11 @@ public class SpaceIndexingModeTest {
 		Assert.assertTrue(SpaceIndexingMode.UPDATE_TIMESTAMP.isUpdateDateMandatory());
 	}
 
+	@Test
+	public void isIncrementalUpdateSupported() {
+		Assert.assertFalse(SpaceIndexingMode.SIMPLE.isIncrementalUpdateSupported());
+		Assert.assertFalse(SpaceIndexingMode.PAGINATION.isIncrementalUpdateSupported());
+		Assert.assertTrue(SpaceIndexingMode.UPDATE_TIMESTAMP.isIncrementalUpdateSupported());
+	}
+
 }

@@ -303,7 +303,8 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 		if (logger.isDebugEnabled())
 			logger.debug("Space {} last indexing start date is {}. We perform next indexing after {}ms.", spaceKey,
 					lastIndexing, indexUpdatePeriod);
-		if (lastIndexing == null || lastIndexing.getTime() < ((System.currentTimeMillis() - indexUpdatePeriod))) {
+		if (lastIndexing == null
+				|| (indexUpdatePeriod > 0 && lastIndexing.getTime() < ((System.currentTimeMillis() - indexUpdatePeriod)))) {
 			return true;
 		}
 		if (indexFullUpdateCronExpression != null || indexFullUpdatePeriod > 0) {

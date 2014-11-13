@@ -169,6 +169,18 @@ public class SpaceIndexerCoordinatorTest {
 			Assert.assertFalse(tested.spaceIndexUpdateNecessary(SPACE_KEY));
 		}
 
+		// case - update not necessary - date of last update stored but index update period is 0
+		{
+			reset(esIntegrationMock);
+			when(
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
+							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE)).thenReturn(
+					new Date(System.currentTimeMillis() - indexUpdatePeriod - 100));
+			tested.indexUpdatePeriod = 0;
+			tested.indexFullUpdateCronExpression = null;
+			Assert.assertFalse(tested.spaceIndexUpdateNecessary(SPACE_KEY));
+		}
+
 	}
 
 	@Test

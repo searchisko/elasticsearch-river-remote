@@ -196,7 +196,7 @@ Remote system API to obtain data from
 ###Remote system API requirements
 Remote river uses these operations to obtain necessary data from remote system.
 
-#####List Spaces
+####List Spaces
 This operation is used to obtain list of Space keys from remote system. 
 Each Space is then indexed independently, and partially in parallel, by the river.
 Space key is passed to the "List documents" operation so remote system can return documents for given space. 
@@ -278,7 +278,7 @@ Data returned from this call are stored into document structure under `detail` k
 You can use remote API clients provided by the river to use distinct remote system access technology and protocols, 
 or you can create a new one by implementing [`org.jboss.elasticsearch.river.remote.IRemoteSystemClient`](/src/main/java/org/jboss/elasticsearch/river/remote/IRemoteSystemClient.java) interface.
 
-#####GET JSON remote system API client
+####GET JSON remote system API client
 This is default remote system client implementation provided by river. 
 Uses http/s GET requests to the target remote system and handles JSON response data. 
 Configuration parameters for this client type:
@@ -302,7 +302,7 @@ Password can be stored outside of river configuration by using:
 	curl -XPUT localhost:9200/_river/my_remote_river/_pwd -d '{"pwd" : "mypassword"}'
 
 
-#####Website indexing remote system API client
+####Website indexing remote system API client
 This remote client allows you to index content of html website pages. 
 List of url's for webpages to be indexed is obtained from [sitemap](http://www.sitemaps.org) file. 
 HTML content of webpages can be indexed 'as is', or you can configure advanced mapping with use of css 

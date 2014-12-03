@@ -13,6 +13,8 @@ import java.util.Map;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.logging.ESLoggerFactory;
+import org.elasticsearch.river.RiverName;
 import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
 import org.junit.Assert;
 import org.junit.Test;
@@ -36,7 +38,7 @@ public class SpacePaginatingIndexerTest {
 	public void init() {
 		IRemoteSystemClient remoteClient = new GetJSONClient();
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
-		SpacePaginatingIndexer tested = new SpacePaginatingIndexer("ORG", remoteClient, null,
+		SpacePaginatingIndexer tested = new SpacePaginatingIndexer("ORG", remoteClient, mockEsIntegrationComponent(),
 				documentIndexStructureBuilderMock);
 		Assert.assertEquals("ORG", tested.spaceKey);
 		Assert.assertNotNull(tested.indexingInfo);
@@ -261,7 +263,7 @@ public class SpacePaginatingIndexerTest {
 
 	protected SpacePaginatingIndexer getTested() {
 		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpacePaginatingIndexer tested = new SpacePaginatingIndexer("ORG", remoteClientMock, esIntegrationMock,
 				documentIndexStructureBuilderMock);
@@ -294,6 +296,15 @@ public class SpacePaginatingIndexerTest {
 			}
 		});
 
+	}
+
+	protected static IESIntegration mockEsIntegrationComponent() {
+		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		Mockito.when(esIntegrationMock.createLogger(Mockito.any(Class.class))).thenReturn(
+				ESLoggerFactory.getLogger(SpacePaginatingIndexer.class.getName()));
+		RiverName riverName = new RiverName("remote", "river_name");
+		Mockito.when(esIntegrationMock.riverName()).thenReturn(riverName);
+		return esIntegrationMock;
 	}
 
 }

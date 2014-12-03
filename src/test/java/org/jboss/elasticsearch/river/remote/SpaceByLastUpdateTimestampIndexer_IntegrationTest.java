@@ -18,6 +18,7 @@ import junit.framework.Assert;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.query.FilterBuilder;
 import org.elasticsearch.index.query.FilterBuilders;
@@ -131,7 +132,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 	private DocumentWithCommentsIndexStructureBuilder prepareStructureBuilder() {
 		DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
-				CFG_RIVER_NAME, CFG_INDEX_NAME, CFG_TYPE_DOCUMENT,
+				mockEsIntegrationComponent(), CFG_INDEX_NAME, CFG_TYPE_DOCUMENT,
 				DocumentWithCommentsIndexStructureBuilderTest.createSettingsWithMandatoryFilled(), true);
 		structureBuilder.remoteDataFieldForDocumentId = "key";
 		structureBuilder.remoteDataFieldForUpdated = "fields.updated";
@@ -141,6 +142,15 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 		structureBuilder.commentTypeName = CFG_TYPE_COMMENT;
 		structureBuilder.commentFieldsConfig = new HashMap<String, Map<String, String>>();
 		return structureBuilder;
+	}
+
+	protected IESIntegration mockEsIntegrationComponent() {
+		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		Mockito.when(esIntegrationMock.createLogger(Mockito.any(Class.class))).thenReturn(
+				ESLoggerFactory.getLogger(SpaceIndexerCoordinator.class.getName()));
+		RiverName riverName = new RiverName("remote", CFG_RIVER_NAME);
+		Mockito.when(esIntegrationMock.riverName()).thenReturn(riverName);
+		return esIntegrationMock;
 	}
 
 	@Test

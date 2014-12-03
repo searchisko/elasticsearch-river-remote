@@ -19,7 +19,9 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.joda.time.format.ISODateTimeFormat;
+import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.text.StringText;
+import org.elasticsearch.river.RiverName;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.internal.InternalSearchHit;
 import org.elasticsearch.search.internal.InternalSearchHits;
@@ -55,11 +57,10 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 	public static void main(String[] args) throws Exception {
 
 		IRemoteSystemClient remoteClient = new GetJSONClient();
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, remoteClient,
-				esIntegrationMock, documentIndexStructureBuilderMock);
+				mockEsIntegrationComponent(), documentIndexStructureBuilderMock);
 		tested.run();
 	}
 
@@ -67,8 +68,8 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 	public void init() {
 		IRemoteSystemClient remoteClient = new GetJSONClient();
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
-		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", true, remoteClient, null,
-				documentIndexStructureBuilderMock);
+		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", true, remoteClient,
+				mockEsIntegrationComponent(), documentIndexStructureBuilderMock);
 		Assert.assertEquals("ORG", tested.spaceKey);
 		Assert.assertTrue(tested.indexingInfo.fullUpdate);
 		Assert.assertEquals(remoteClient, tested.remoteSystemClient);
@@ -81,13 +82,14 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 	public void processUpdate_Basic() throws Exception {
 
 		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, remoteClientMock,
 				esIntegrationMock, documentIndexStructureBuilderMock);
 		Client client = Mockito.mock(Client.class);
 
 		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
+		Mockito.verify(esIntegrationMock).createLogger(SpaceByLastUpdateTimestampIndexer.class);
 
 		// test case with empty result list from remote system search method
 		// test case of 'last update date' reading from store and passing to the remote system search method
@@ -166,7 +168,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		// test for issue #42
 
 		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, remoteClientMock,
 				esIntegrationMock, documentIndexStructureBuilderMock);
@@ -226,7 +228,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		// test for issue #42
 
 		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, remoteClientMock,
 				esIntegrationMock, documentIndexStructureBuilderMock);
@@ -288,7 +290,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 	public void processUpdate_RemoteDocumentsMissing_onepage() throws Exception {
 
 		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, remoteClientMock,
 				esIntegrationMock, documentIndexStructureBuilderMock);
@@ -352,7 +354,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		// pagination in
 		// remote system is used. "same updated dates" means on millis precise basis!!!
 		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, remoteClientMock,
 				esIntegrationMock, documentIndexStructureBuilderMock);
@@ -429,7 +431,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 	public void processUpdate_NoLastIssueIndexedAgain() throws Exception {
 
 		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, remoteClientMock,
 				esIntegrationMock, documentIndexStructureBuilderMock);
@@ -481,7 +483,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 
 		// test case with more than one "page" of results from remote system search method with different updated dates
 		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, remoteClientMock,
 				esIntegrationMock, documentIndexStructureBuilderMock);
@@ -559,7 +561,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 		// pagination in
 		// remote system is used. "same updated dates" means on millis precise basis!!!
 		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, remoteClientMock,
 				esIntegrationMock, documentIndexStructureBuilderMock);
@@ -620,7 +622,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 	@Test
 	public void run() throws Exception {
 		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", false, remoteClientMock,
 				esIntegrationMock, documentIndexStructureBuilderMock);
@@ -669,7 +671,7 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 
 		// case - run documents delete on full update!!!
 		{
-			reset(esIntegrationMock);
+			esIntegrationMock = mockEsIntegrationComponent();
 			reset(remoteClientMock);
 
 			tested = new SpaceByLastUpdateTimestampIndexer("ORG", true, remoteClientMock, esIntegrationMock,
@@ -734,11 +736,13 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 	@Test
 	public void processDelete() throws Exception {
 		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("ORG", true, remoteClientMock,
 				esIntegrationMock, documentIndexStructureBuilderMock);
 		Client client = Mockito.mock(Client.class);
+
+		Mockito.verify(esIntegrationMock).createLogger(SpaceByLastUpdateTimestampIndexer.class);
 
 		try {
 			tested.processDelete(null);
@@ -846,6 +850,15 @@ public class SpaceByLastUpdateTimestampIndexerTest {
 			Mockito.verifyNoMoreInteractions(esIntegrationMock);
 			Mockito.verifyNoMoreInteractions(documentIndexStructureBuilderMock);
 		}
+	}
+
+	protected static IESIntegration mockEsIntegrationComponent() {
+		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		Mockito.when(esIntegrationMock.createLogger(Mockito.any(Class.class))).thenReturn(
+				ESLoggerFactory.getLogger(SpaceByLastUpdateTimestampIndexer.class.getName()));
+		RiverName riverName = new RiverName("remote", "river_name");
+		Mockito.when(esIntegrationMock.riverName()).thenReturn(riverName);
+		return esIntegrationMock;
 	}
 
 	private SearchResponse prepareSearchResponse(String scrollId, InternalSearchHit... hits) {

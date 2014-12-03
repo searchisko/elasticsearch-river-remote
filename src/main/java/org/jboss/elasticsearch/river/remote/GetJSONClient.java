@@ -48,7 +48,7 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 
 	protected static final String CFG_HEADER_ACCEPT = "headerAccept";
 
-	private static final ESLogger logger = Loggers.getLogger(GetJSONClient.class);
+	private ESLogger logger = Loggers.getLogger(GetJSONClient.class);
 
 	protected String urlGetSpaces;
 
@@ -69,7 +69,9 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	protected Map<String, String> headers = new HashMap<String, String>();
 
 	@Override
-	public void init(Map<String, Object> config, boolean spaceListLoadingEnabled, IPwdLoader pwdLoader) {
+	public void init(IESIntegration esIntegration, Map<String, Object> config, boolean spaceListLoadingEnabled,
+			IPwdLoader pwdLoader) {
+		logger = esIntegration.createLogger(GetJSONClient.class);
 		urlGetDocuments = getUrlFromConfig(config, CFG_URL_GET_DOCUMENTS, true);
 		urlGetDocumentDetails = getUrlFromConfig(config, CFG_URL_GET_DOCUMENT_DETAILS, false);
 		urlGetDocumentDetailsField = Utils.trimToNull(XContentMapValues.nodeStringValue(

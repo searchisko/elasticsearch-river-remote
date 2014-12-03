@@ -53,7 +53,7 @@ public class GetSitemapHtmlClient extends HttpRemoteSystemClientBase {
 	protected static final String CFG_URL_GET_SITEMAP = "urlGetSitemap";
 	protected static final String CFG_HTML_MAPPING = "htmlMapping";
 
-	private static final ESLogger logger = Loggers.getLogger(GetSitemapHtmlClient.class);
+	private ESLogger logger = Loggers.getLogger(GetSitemapHtmlClient.class);
 
 	public static final String DOC_FIELD_ID = "id";
 	public static final String DOC_FIELD_URL = "url";
@@ -90,7 +90,9 @@ public class GetSitemapHtmlClient extends HttpRemoteSystemClientBase {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void init(Map<String, Object> config, boolean spaceListLoadingEnabled, IPwdLoader pwdLoader) {
+	public void init(IESIntegration esIntegration, Map<String, Object> config, boolean spaceListLoadingEnabled,
+			IPwdLoader pwdLoader) {
+		logger = esIntegration.createLogger(GetSitemapHtmlClient.class);
 		urlGetSitemap = getUrlFromConfig(config, CFG_URL_GET_SITEMAP, true);
 
 		try {

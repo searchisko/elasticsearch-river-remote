@@ -25,9 +25,6 @@ import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundExce
  */
 public abstract class SpaceIndexerBase implements Runnable {
 
-	/**
-	 * 
-	 */
 	public static final String KEY_DETAIL = "detail";
 
 	protected ESLogger logger;

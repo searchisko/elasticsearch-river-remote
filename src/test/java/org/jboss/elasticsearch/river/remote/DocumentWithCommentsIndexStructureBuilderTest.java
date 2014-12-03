@@ -19,10 +19,12 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.xcontent.XContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentGenerator;
+import org.elasticsearch.river.RiverName;
 import org.jboss.elasticsearch.river.remote.testtools.TestUtils;
 import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessor;
 import org.junit.Assert;
@@ -70,7 +72,9 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void configuration_read_ok() {
 
-		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_name",
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
+
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(esIntegrationMock,
 				"index_name", "type_name", loadTestSettings("/index_structure_configuration_test_ok.json"), true);
 		Assert.assertEquals("river_name", tested.riverName);
 		Assert.assertEquals("index_name", tested.indexName);
@@ -106,6 +110,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		assertFieldConfiguration(tested.commentFieldsConfig, "comment_updater", "updateAuthor", "user2");
 		assertFieldConfiguration(tested.commentFieldsConfig, "comment_created", "created", null);
 
+		Mockito.verify(esIntegrationMock).createLogger(DocumentWithCommentsIndexStructureBuilder.class);
+
 	}
 
 	@Test
@@ -114,8 +120,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		Map<String, Object> settings = loadTestSettings("/index_structure_configuration_test_ok.json");
 		settings.remove(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_UPDATED);
 
-		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_name",
-				"index_name", "type_name", settings, false);
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(
+				mockEsIntegrationComponent(), "index_name", "type_name", settings, false);
 		Assert.assertEquals("river_name", tested.riverName);
 		Assert.assertEquals("index_name", tested.indexName);
 		Assert.assertEquals("type_name", tested.issueTypeName);
@@ -163,7 +169,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		try {
 			Map<String, Object> config = loadTestSettings("/index_structure_configuration_test_ok.json");
 			config.remove(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_DOCUMENTID);
-			new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name", "type_name", config, true);
+			new DocumentWithCommentsIndexStructureBuilder(mockEsIntegrationComponent(), "index_name", "type_name", config,
+					true);
 			Assert.fail("SettingsException must be thrown");
 		} catch (SettingsException e) {
 			System.out.println(e.getMessage());
@@ -174,7 +181,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		try {
 			Map<String, Object> config = loadTestSettings("/index_structure_configuration_test_ok.json");
 			config.put(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_DOCUMENTID, " ");
-			new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name", "type_name", config, true);
+			new DocumentWithCommentsIndexStructureBuilder(mockEsIntegrationComponent(), "index_name", "type_name", config,
+					true);
 			Assert.fail("SettingsException must be thrown");
 		} catch (SettingsException e) {
 			System.out.println(e.getMessage());
@@ -189,8 +197,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@Test
 	public void configuration_defaultLoading() {
 		Map<String, Object> settings = createSettingsWithMandatoryFilled();
-		assertDefaultConfigurationLoaded(new DocumentWithCommentsIndexStructureBuilder("river_name", "index_name",
-				"type_name", settings, true));
+		assertDefaultConfigurationLoaded(new DocumentWithCommentsIndexStructureBuilder(mockEsIntegrationComponent(),
+				"index_name", "type_name", settings, true));
 
 	}
 
@@ -229,8 +237,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 	@Test
 	public void addIssueDataPreprocessor() {
-		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(null, null, null,
-				createSettingsWithMandatoryFilled(), true);
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(
+				mockEsIntegrationComponent(), null, null, createSettingsWithMandatoryFilled(), true);
 
 		// case - not NPE
 		tested.addDataPreprocessor(null);
@@ -248,8 +256,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 	@Test
 	public void preprocessIssueData() {
-		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(null, null, null,
-				createSettingsWithMandatoryFilled(), true);
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(
+				mockEsIntegrationComponent(), null, null, createSettingsWithMandatoryFilled(), true);
 
 		Map<String, Object> issue = null;
 		// case - no NPE and change when no preprocessors defined and issue data are null
@@ -308,8 +316,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 		Map<String, Object> settings = (Map<String, Object>) Utils.loadJSONFromJarPackagedFile(
 				"/index_structure_configuration_test_ok.json").get("index");
-		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
-				"search_index", "issue_type", settings, true);
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(
+				mockEsIntegrationComponent(), "search_index", "issue_type", settings, true);
 		tested.commentTypeName = "comment_type";
 
 		// case - comments NONE
@@ -373,8 +381,9 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 	@Test
 	public void prepareIssueIndexedDocument() throws Exception {
-		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
-				"search_index", "issue_type", loadTestSettings("/index_structure_configuration_test_ok.json"), true);
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(
+				mockEsIntegrationComponent(), "search_index", "issue_type",
+				loadTestSettings("/index_structure_configuration_test_ok.json"), true);
 
 		// case - no comments
 		{
@@ -447,8 +456,9 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 	@Test
 	public void prepareCommentIndexedDocument() throws Exception {
-		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
-				"search_index", "issue_type", loadTestSettings("/index_structure_configuration_test_ok.json"), true);
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(
+				mockEsIntegrationComponent(), "search_index", "issue_type",
+				loadTestSettings("/index_structure_configuration_test_ok.json"), true);
 		tested.remoteDataFieldForComments = "fields.comment.comments";
 		Map<String, Object> issue = TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1501");
 		List<Map<String, Object>> comments = tested.extractComments(issue);
@@ -464,8 +474,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 	@Test
 	public void extractDocumentId() {
-		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_remote",
-				"search_index", "doc_type", createSettingsWithMandatoryFilled(), true);
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(
+				mockEsIntegrationComponent(), "search_index", "doc_type", createSettingsWithMandatoryFilled(), true);
 		tested.remoteDataFieldForDocumentId = null;
 
 		Map<String, Object> document = new HashMap<String, Object>();
@@ -501,8 +511,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 	@Test
 	public void extractDocumentUpdated() {
-		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_remote",
-				"search_index", "doc_type", createSettingsWithMandatoryFilled(), true);
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(
+				mockEsIntegrationComponent(), "search_index", "doc_type", createSettingsWithMandatoryFilled(), true);
 		tested.remoteDataFieldForUpdated = null;
 
 		Map<String, Object> document = new HashMap<String, Object>();
@@ -556,8 +566,9 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void indexDocument() throws Exception {
-		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder("river_jira",
-				"search_index", "issue_type", loadTestSettings("/index_structure_configuration_test_ok.json"), true);
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(
+				mockEsIntegrationComponent(), "search_index", "issue_type",
+				loadTestSettings("/index_structure_configuration_test_ok.json"), true);
 		tested.remoteDataFieldForComments = "fields.comment.comments";
 		Client client = Mockito.mock(Client.class);
 
@@ -625,8 +636,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 	@Test
 	public void addValueToTheIndex() throws Exception {
-		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(null, null, null,
-				createSettingsWithMandatoryFilled(), true);
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(
+				mockEsIntegrationComponent(), null, null, createSettingsWithMandatoryFilled(), true);
 
 		XContentGenerator xContentGeneratorMock = mock(XContentGenerator.class);
 		XContentBuilder out = XContentBuilder.builder(preparexContentMock(xContentGeneratorMock));
@@ -739,8 +750,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 	@Test
 	public void addValueToTheIndexField() throws Exception {
-		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(null, null, null,
-				createSettingsWithMandatoryFilled(), true);
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(
+				mockEsIntegrationComponent(), null, null, createSettingsWithMandatoryFilled(), true);
 
 		XContentGenerator xContentGeneratorMock = mock(XContentGenerator.class);
 		XContentBuilder out = XContentBuilder.builder(preparexContentMock(xContentGeneratorMock));
@@ -773,5 +784,14 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		XContent xContentMock = mock(XContent.class);
 		when(xContentMock.createGenerator(Mockito.any(OutputStream.class))).thenReturn(xContentGeneratorMock);
 		return xContentMock;
+	}
+
+	protected IESIntegration mockEsIntegrationComponent() {
+		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		Mockito.when(esIntegrationMock.createLogger(Mockito.any(Class.class))).thenReturn(
+				ESLoggerFactory.getLogger(SpaceIndexerCoordinator.class.getName()));
+		RiverName riverName = new RiverName("remote", "river_name");
+		Mockito.when(esIntegrationMock.riverName()).thenReturn(riverName);
+		return esIntegrationMock;
 	}
 }

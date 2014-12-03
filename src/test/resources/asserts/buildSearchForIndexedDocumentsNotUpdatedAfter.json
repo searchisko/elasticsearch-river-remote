@@ -19,7 +19,7 @@
         }
       }, {
         "term" : {
-          "river_name" : "river_jira"
+          "river_name" : "river_name"
         }
       } ]
     }

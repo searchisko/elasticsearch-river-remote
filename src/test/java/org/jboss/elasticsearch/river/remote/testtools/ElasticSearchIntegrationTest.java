@@ -38,15 +38,15 @@ public abstract class ElasticSearchIntegrationTest {
 		try {
 			client.addTransportAddress(new InetSocketTransportAddress("localhost", 9300));
 			Map<String, Object> settings = new HashMap<String, Object>();
-			Map<String, Object> jiraSettings = new HashMap<String, Object>();
-			settings.put("jira", jiraSettings);
-			jiraSettings.put("urlBase", "http://issues-stg.jboss.org");
+			Map<String, Object> remoteSettings = new HashMap<String, Object>();
+			settings.put("remote", remoteSettings);
+			remoteSettings.put("urlGetDocuments", "http://issues-stg.jboss.org");
 			Settings gs = mock(Settings.class);
 			RiverSettings rs = new RiverSettings(gs, settings);
 
-			RemoteRiver jr = new RemoteRiver(new RiverName("rt", "my_jira_river"), rs, client);
-			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(
-					"my_jira_river", "my_jira_index", "jira_issue", null, true);
+			RemoteRiver jr = new RemoteRiver(new RiverName("rt", "my_river"), rs, client);
+			DocumentWithCommentsIndexStructureBuilder structureBuilder = new DocumentWithCommentsIndexStructureBuilder(jr,
+					"my_index", "document", null, true);
 
 			String spaceKey = "ORG";
 			// Date date = new Date();

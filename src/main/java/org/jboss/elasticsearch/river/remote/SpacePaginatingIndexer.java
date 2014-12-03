@@ -8,7 +8,6 @@ package org.jboss.elasticsearch.river.remote;
 import java.util.Map;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.common.logging.Loggers;
 
 /**
  * Class used to run one index update process for one Space. Full update indexing process with paginating support.
@@ -31,7 +30,7 @@ public class SpacePaginatingIndexer extends SpaceIndexerBase {
 	public SpacePaginatingIndexer(String spaceKey, IRemoteSystemClient remoteSystemClient,
 			IESIntegration esIntegrationComponent, IDocumentIndexStructureBuilder documentIndexStructureBuilder) {
 		super(spaceKey, remoteSystemClient, esIntegrationComponent, documentIndexStructureBuilder);
-		logger = Loggers.getLogger(SpacePaginatingIndexer.class);
+		logger = esIntegrationComponent.createLogger(SpacePaginatingIndexer.class);
 		indexingInfo = new SpaceIndexingInfo(spaceKey, true);
 	}
 

@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
+import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.settings.SettingsException;
 import org.jboss.elasticsearch.river.remote.HttpRemoteSystemClientBase.HttpCallException;
 import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
@@ -19,6 +20,8 @@ import org.jsoup.Jsoup;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import static org.mockito.Mockito.mock;
 
 /**
  * Unit test for {@link GetSitemapHtmlClient}.
@@ -33,7 +36,7 @@ public class GetSitemapHtmlClientTest {
 		try {
 			Map<String, Object> config = new HashMap<String, Object>();
 			GetSitemapHtmlClient tested = new GetSitemapHtmlClient();
-			tested.init(config, false, null);
+			tested.init(mockEsIntegrationComponent(), config, false, null);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			// OK
@@ -43,7 +46,7 @@ public class GetSitemapHtmlClientTest {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "bad url format");
 			GetSitemapHtmlClient tested = new GetSitemapHtmlClient();
-			tested.init(config, false, null);
+			tested.init(mockEsIntegrationComponent(), config, false, null);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			// OK
@@ -51,12 +54,14 @@ public class GetSitemapHtmlClientTest {
 
 		// case - basic config, no authentication
 		{
+			IESIntegration esMock = mockEsIntegrationComponent();
 			GetSitemapHtmlClient tested = new GetSitemapHtmlClient();
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/documents");
-			tested.init(config, false, null);
+			tested.init(esMock, config, false, null);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetSitemap);
 			Assert.assertFalse(tested.isAuthConfigured);
+			Mockito.verify(esMock).createLogger(GetSitemapHtmlClient.class);
 		}
 
 		// case - error - bad sitemap url
@@ -64,7 +69,7 @@ public class GetSitemapHtmlClientTest {
 			GetSitemapHtmlClient tested = new GetSitemapHtmlClient();
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "aaa");
-			tested.init(config, false, null);
+			tested.init(mockEsIntegrationComponent(), config, false, null);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			// OK
@@ -73,7 +78,7 @@ public class GetSitemapHtmlClientTest {
 			GetSitemapHtmlClient tested = new GetSitemapHtmlClient();
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "");
-			tested.init(config, false, null);
+			tested.init(mockEsIntegrationComponent(), config, false, null);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			// OK
@@ -87,7 +92,7 @@ public class GetSitemapHtmlClientTest {
 			config.put(GetSitemapHtmlClient.CFG_USERNAME, "myuser");
 			config.put(GetSitemapHtmlClient.CFG_PASSWORD, "paaswd");
 			IPwdLoader pwdLoaderMock = Mockito.mock(IPwdLoader.class);
-			tested.init(config, false, pwdLoaderMock);
+			tested.init(mockEsIntegrationComponent(), config, false, pwdLoaderMock);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetSitemap);
 			Assert.assertTrue(tested.isAuthConfigured);
 			Mockito.verifyZeroInteractions(pwdLoaderMock);
@@ -101,7 +106,7 @@ public class GetSitemapHtmlClientTest {
 			config.put(GetSitemapHtmlClient.CFG_USERNAME, "myuser");
 			IPwdLoader pwdLoaderMock = Mockito.mock(IPwdLoader.class);
 			Mockito.when(pwdLoaderMock.loadPassword("myuser")).thenReturn("paaswd");
-			tested.init(config, false, pwdLoaderMock);
+			tested.init(mockEsIntegrationComponent(), config, false, pwdLoaderMock);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetSitemap);
 			Assert.assertTrue(tested.isAuthConfigured);
 			Mockito.verify(pwdLoaderMock).loadPassword("myuser");
@@ -113,7 +118,7 @@ public class GetSitemapHtmlClientTest {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/documents");
 			config.put(GetSitemapHtmlClient.CFG_USERNAME, "myuser");
-			tested.init(config, false, null);
+			tested.init(mockEsIntegrationComponent(), config, false, null);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetSitemap);
 			Assert.assertFalse(tested.isAuthConfigured);
 		}
@@ -123,7 +128,7 @@ public class GetSitemapHtmlClientTest {
 			GetSitemapHtmlClient tested = new GetSitemapHtmlClient();
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/documents");
-			tested.init(config, true, null);
+			tested.init(mockEsIntegrationComponent(), config, true, null);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			Assert
@@ -138,7 +143,7 @@ public class GetSitemapHtmlClientTest {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/documents");
 			config.put(GetSitemapHtmlClient.CFG_HTML_MAPPING, "no map");
-			tested.init(config, false, null);
+			tested.init(mockEsIntegrationComponent(), config, false, null);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			Assert.assertEquals("'remote/htmlMapping' configuration section is invalid", e.getMessage());
@@ -460,7 +465,7 @@ public class GetSitemapHtmlClientTest {
 			};
 
 		};
-		tested.init(config, false, null);
+		tested.init(mockEsIntegrationComponent(), config, false, null);
 		return tested;
 	}
 
@@ -473,8 +478,15 @@ public class GetSitemapHtmlClientTest {
 			};
 
 		};
-		tested.init(config, false, null);
+		tested.init(mockEsIntegrationComponent(), config, false, null);
 		return tested;
+	}
+
+	protected static IESIntegration mockEsIntegrationComponent() {
+		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		Mockito.when(esIntegrationMock.createLogger(Mockito.any(Class.class))).thenReturn(
+				ESLoggerFactory.getLogger(GetJSONClient.class.getName()));
+		return esIntegrationMock;
 	}
 
 }

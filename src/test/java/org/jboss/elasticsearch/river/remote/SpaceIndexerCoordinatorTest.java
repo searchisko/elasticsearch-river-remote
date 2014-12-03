@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.settings.SettingsException;
 import org.jboss.elasticsearch.river.remote.testtools.MockThread;
 import org.junit.Assert;
@@ -33,7 +34,7 @@ public class SpaceIndexerCoordinatorTest {
 
 	@Test
 	public void prepareSpaceIndexer() {
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		IRemoteSystemClient remoteSystemClientMock = Mockito.mock(IRemoteSystemClient.class);
 		IDocumentIndexStructureBuilder documentIndexStructureBuilder = Mockito.mock(IDocumentIndexStructureBuilder.class);
 		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(remoteSystemClientMock, esIntegrationMock,
@@ -94,7 +95,7 @@ public class SpaceIndexerCoordinatorTest {
 	public void spaceIndexUpdateNecessary() throws Exception {
 		int indexUpdatePeriod = 60 * 1000;
 
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2,
 				-1, null, SpaceIndexingMode.SIMPLE);
 
@@ -187,7 +188,7 @@ public class SpaceIndexerCoordinatorTest {
 	public void spaceIndexFullUpdateNecessary() throws Exception {
 		int indexFullUpdatePeriod = 60 * 1000;
 
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		// simpleGetDocument is on true to check tested operation is not affected by this (as it is used in indexer later)
 		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 1000, 2, -1, null,
 				SpaceIndexingMode.SIMPLE);
@@ -408,7 +409,7 @@ public class SpaceIndexerCoordinatorTest {
 	@Test
 	public void fillSpaceKeysToIndexQueue() throws Exception {
 		int indexUpdatePeriod = 60 * 1000;
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2,
 				-1, null, SpaceIndexingMode.SIMPLE);
 		Assert.assertTrue(tested.spaceKeysToIndexQueue.isEmpty());
@@ -463,7 +464,7 @@ public class SpaceIndexerCoordinatorTest {
 		// case - some space available for index update, but in processing already, so do not schedule it for processing
 		// now
 		{
-			reset(esIntegrationMock);
+			esIntegrationMock = mockEsIntegrationComponent();
 			tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2, -1, null,
 					SpaceIndexingMode.SIMPLE);
 			tested.spaceIndexerThreads.put(SPACE_KEY, new Thread());
@@ -484,7 +485,7 @@ public class SpaceIndexerCoordinatorTest {
 
 		// case - some space available for index update, but in queue already, so do not schedule it for processing now
 		{
-			reset(esIntegrationMock);
+			esIntegrationMock = mockEsIntegrationComponent();
 			tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2, -1, null,
 					SpaceIndexingMode.SIMPLE);
 			tested.spaceKeysToIndexQueue.add(SPACE_KEY);
@@ -505,7 +506,10 @@ public class SpaceIndexerCoordinatorTest {
 
 		// case - exception when interrupted from ES server
 		{
-			reset(esIntegrationMock);
+			esIntegrationMock = mockEsIntegrationComponent();
+			tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, indexUpdatePeriod, 2, -1, null,
+					SpaceIndexingMode.SIMPLE);
+			tested.spaceKeysToIndexQueue.add(SPACE_KEY);
 			when(esIntegrationMock.getAllIndexedSpaceKeys()).thenReturn(Utils.parseCsvString("ORG,AAA,BBB,CCC,DDD"));
 			when(esIntegrationMock.isClosed()).thenReturn(true);
 			try {
@@ -654,7 +658,7 @@ public class SpaceIndexerCoordinatorTest {
 	@Test
 	public void startIndexers_reserveIndexingThreadSlotForIncremental() throws Exception {
 
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1, null,
 				SpaceIndexingMode.SIMPLE);
 		Assert.assertTrue(tested.spaceKeysToIndexQueue.isEmpty());
@@ -779,7 +783,7 @@ public class SpaceIndexerCoordinatorTest {
 
 	@Test
 	public void run() throws Exception {
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1, null,
 				SpaceIndexingMode.SIMPLE);
 		when(esIntegrationMock.acquireIndexingThread(Mockito.any(String.class), Mockito.any(Runnable.class))).thenReturn(
@@ -831,7 +835,7 @@ public class SpaceIndexerCoordinatorTest {
 
 	@Test
 	public void processLoopTask() throws Exception {
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 100000, 2, -1, null,
 				SpaceIndexingMode.SIMPLE);
 		when(esIntegrationMock.acquireIndexingThread(Mockito.any(String.class), Mockito.any(Runnable.class))).thenReturn(
@@ -919,7 +923,8 @@ public class SpaceIndexerCoordinatorTest {
 
 	@Test
 	public void reportIndexingFinished() throws Exception {
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
+
 		SpaceIndexerCoordinator tested = new SpaceIndexerCoordinator(null, esIntegrationMock, null, 10, 2, -1, null,
 				SpaceIndexingMode.SIMPLE);
 		tested.spaceIndexerThreads.put(SPACE_KEY, new Thread());
@@ -927,6 +932,9 @@ public class SpaceIndexerCoordinatorTest {
 		tested.spaceIndexers.put(SPACE_KEY, new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, false, null,
 				esIntegrationMock, null));
 		tested.spaceIndexers.put("AAA", new SpaceByLastUpdateTimestampIndexer("AAA", false, null, esIntegrationMock, null));
+
+		Mockito.verify(esIntegrationMock).createLogger(SpaceIndexerCoordinator.class);
+		Mockito.verify(esIntegrationMock, Mockito.times(2)).createLogger(SpaceByLastUpdateTimestampIndexer.class);
 
 		// case - incremental indexing with success
 		{
@@ -936,7 +944,7 @@ public class SpaceIndexerCoordinatorTest {
 			Assert.assertEquals(1, tested.spaceIndexers.size());
 			Assert.assertFalse(tested.spaceIndexers.containsKey(SPACE_KEY));
 			// no full reindex date stored
-			Mockito.verifyZeroInteractions(esIntegrationMock);
+			Mockito.verifyNoMoreInteractions(esIntegrationMock);
 		}
 
 		// case - full indexing without success, full reindex is enabled
@@ -946,7 +954,7 @@ public class SpaceIndexerCoordinatorTest {
 			Assert.assertEquals(0, tested.spaceIndexerThreads.size());
 			Assert.assertEquals(0, tested.spaceIndexers.size());
 			// no full reindex date stored
-			Mockito.verifyZeroInteractions(esIntegrationMock);
+			Mockito.verifyNoMoreInteractions(esIntegrationMock);
 		}
 
 		// case - full indexing without success, full reindex is disabled so we have to force it
@@ -959,7 +967,7 @@ public class SpaceIndexerCoordinatorTest {
 					Mockito.eq(SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE), Mockito.any(Date.class),
 					(BulkRequestBuilder) Mockito.isNull());
 			// no full reindex date stored
-			Mockito.verifyZeroInteractions(esIntegrationMock);
+			Mockito.verifyNoMoreInteractions(esIntegrationMock);
 		}
 
 		// case - full indexing with success
@@ -975,6 +983,7 @@ public class SpaceIndexerCoordinatorTest {
 					(BulkRequestBuilder) Mockito.isNull());
 			verify(esIntegrationMock).deleteDatetimeValue(Mockito.eq("AAA"),
 					Mockito.eq(SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE));
+			verify(esIntegrationMock, times(3)).createLogger(SpaceByLastUpdateTimestampIndexer.class);
 			Mockito.verifyNoMoreInteractions(esIntegrationMock);
 		}
 	}
@@ -1004,4 +1013,10 @@ public class SpaceIndexerCoordinatorTest {
 		}
 	}
 
+	protected IESIntegration mockEsIntegrationComponent() {
+		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		Mockito.when(esIntegrationMock.createLogger(Mockito.any(Class.class))).thenReturn(
+				ESLoggerFactory.getLogger(SpaceIndexerCoordinator.class.getName()));
+		return esIntegrationMock;
+	}
 }

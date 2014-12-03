@@ -22,6 +22,7 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.transport.DummyTransportAddress;
@@ -48,6 +49,8 @@ import static org.mockito.Mockito.when;
  * @author Vlastimil Elias (velias at redhat dot com)
  */
 public class RemoteRiverTest extends ESRealClientTestBase {
+
+	private static final String RIVER_NAME = "my_remote_river";
 
 	@SuppressWarnings("unchecked")
 	@Test
@@ -78,7 +81,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		Assert.assertEquals(5 * 60 * 1000, tested.indexUpdatePeriod);
 		Assert.assertEquals(12 * 60 * 60 * 1000, tested.indexFullUpdatePeriod);
 		Assert.assertNull(tested.indexFullUpdateCronExpression);
-		Assert.assertEquals("my_remote_river", tested.indexName);
+		Assert.assertEquals(RIVER_NAME, tested.indexName);
 		Assert.assertEquals(RemoteRiver.INDEX_DOCUMENT_TYPE_NAME_DEFAULT, tested.typeName);
 		Assert.assertEquals(tested.documentIndexStructureBuilder, tested.remoteSystemClient.getIndexStructureBuilder());
 		Assert.assertEquals(SpaceIndexingMode.UPDATE_TIMESTAMP, tested.spaceIndexingMode);
@@ -746,6 +749,27 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		}
 	}
 
+	@Test
+	public void createLogger() throws Exception {
+
+		RemoteRiver tested = prepareRiverInstanceForTest(null);
+
+		ESLogger logger = tested.createLogger(SpaceIndexerCoordinator.class);
+		Assert.assertNotNull(logger);
+		Assert.assertEquals("org.elasticsearch.org.jboss.elasticsearch.river.remote.SpaceIndexerCoordinator",
+				logger.getName());
+		Assert.assertEquals(" [remote][" + RIVER_NAME + "] ", logger.getPrefix());
+	}
+
+	@Test
+	public void riverName() throws Exception {
+		RemoteRiver tested = prepareRiverInstanceForTest(null);
+
+		RiverName rn = tested.riverName();
+		Assert.assertEquals(RIVER_NAME, rn.getName());
+		Assert.assertEquals("remote", rn.getType());
+	}
+
 	/**
 	 * Prepare {@link RemoteRiver} instance for unit test, with Mockito moceked jiraClient and elasticSearchClient.
 	 * 
@@ -805,7 +829,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		Settings gs = mock(Settings.class);
 		RiverSettings rs = new RiverSettings(gs, settings);
 		Client clientMock = mock(Client.class);
-		RemoteRiver tested = new RemoteRiver(new RiverName("remote", "my_remote_river"), rs, clientMock);
+		RemoteRiver tested = new RemoteRiver(new RiverName("remote", RIVER_NAME), rs, clientMock);
 		if (initRemoteClientMock) {
 			IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
 			tested.remoteSystemClient = remoteClientMock;

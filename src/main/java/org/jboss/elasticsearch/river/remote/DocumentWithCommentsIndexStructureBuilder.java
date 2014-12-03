@@ -37,7 +37,7 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
  */
 public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndexStructureBuilder {
 
-	private static final ESLogger logger = Loggers.getLogger(DocumentWithCommentsIndexStructureBuilder.class);
+	private ESLogger logger = Loggers.getLogger(DocumentWithCommentsIndexStructureBuilder.class);
 
 	/**
 	 * Name of River to be stored in document to mark indexing source
@@ -166,10 +166,11 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	 * @throws SettingsException
 	 */
 	@SuppressWarnings("unchecked")
-	public DocumentWithCommentsIndexStructureBuilder(String riverName, String indexName, String issueTypeName,
-			Map<String, Object> settings, boolean dateOfUpdateFieldMandatory) throws SettingsException {
+	public DocumentWithCommentsIndexStructureBuilder(IESIntegration esIntegrationComponent, String indexName,
+			String issueTypeName, Map<String, Object> settings, boolean dateOfUpdateFieldMandatory) throws SettingsException {
 		super();
-		this.riverName = riverName;
+		logger = esIntegrationComponent.createLogger(DocumentWithCommentsIndexStructureBuilder.class);
+		this.riverName = esIntegrationComponent.riverName().getName();
 		this.indexName = indexName;
 		this.issueTypeName = issueTypeName;
 

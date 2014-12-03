@@ -12,6 +12,8 @@ import java.util.Map;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.logging.ESLoggerFactory;
+import org.elasticsearch.river.RiverName;
 import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
 import org.junit.Assert;
 import org.junit.Test;
@@ -37,7 +39,8 @@ public class SpaceSimpleIndexerTest {
 	public void init() {
 		IRemoteSystemClient remoteClient = new GetJSONClient();
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
-		SpaceSimpleIndexer tested = new SpaceSimpleIndexer("ORG", remoteClient, null, documentIndexStructureBuilderMock);
+		SpaceSimpleIndexer tested = new SpaceSimpleIndexer("ORG", remoteClient, mockEsIntegrationComponent(),
+				documentIndexStructureBuilderMock);
 		Assert.assertEquals("ORG", tested.spaceKey);
 		Assert.assertTrue(tested.indexingInfo.fullUpdate);
 		Assert.assertEquals(remoteClient, tested.remoteSystemClient);
@@ -49,6 +52,7 @@ public class SpaceSimpleIndexerTest {
 	public void processUpdate_emptyList() throws Exception {
 
 		SpaceSimpleIndexer tested = getTested();
+		Mockito.verify(tested.esIntegrationComponent).createLogger(SpaceSimpleIndexer.class);
 
 		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
 
@@ -119,7 +123,7 @@ public class SpaceSimpleIndexerTest {
 
 	protected SpaceSimpleIndexer getTested() {
 		IRemoteSystemClient remoteClientMock = mock(IRemoteSystemClient.class);
-		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		IESIntegration esIntegrationMock = mockEsIntegrationComponent();
 		IDocumentIndexStructureBuilder documentIndexStructureBuilderMock = mock(IDocumentIndexStructureBuilder.class);
 		SpaceSimpleIndexer tested = new SpaceSimpleIndexer("ORG", remoteClientMock, esIntegrationMock,
 				documentIndexStructureBuilderMock);
@@ -152,6 +156,15 @@ public class SpaceSimpleIndexerTest {
 			}
 		});
 
+	}
+
+	protected static IESIntegration mockEsIntegrationComponent() {
+		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		Mockito.when(esIntegrationMock.createLogger(Mockito.any(Class.class))).thenReturn(
+				ESLoggerFactory.getLogger(SpaceSimpleIndexer.class.getName()));
+		RiverName riverName = new RiverName("remote", "river_name");
+		Mockito.when(esIntegrationMock.riverName()).thenReturn(riverName);
+		return esIntegrationMock;
 	}
 
 }

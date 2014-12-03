@@ -23,6 +23,8 @@ import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
@@ -258,7 +260,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 			} else {
 				remoteSystemClient = new GetJSONClient();
 			}
-			remoteSystemClient.init(remoteSettings, allIndexedSpacesKeysNextRefresh != Long.MAX_VALUE, this);
+			remoteSystemClient.init(this, remoteSettings, allIndexedSpacesKeysNextRefresh != Long.MAX_VALUE, this);
 		} else {
 			throw new SettingsException("'remote' element of river configuration structure not found");
 		}
@@ -286,8 +288,8 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 					INDEX_ACTIVITY_TYPE_NAME_DEFAULT));
 		}
 
-		documentIndexStructureBuilder = new DocumentWithCommentsIndexStructureBuilder(riverName.getName(), indexName,
-				typeName, indexSettings, spaceIndexingMode.isUpdateDateMandatory());
+		documentIndexStructureBuilder = new DocumentWithCommentsIndexStructureBuilder(this, indexName, typeName,
+				indexSettings, spaceIndexingMode.isUpdateDateMandatory());
 		preparePreprocessors(indexSettings, documentIndexStructureBuilder);
 
 		remoteSystemClient.setIndexStructureBuilder(documentIndexStructureBuilder);
@@ -854,6 +856,11 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 			ret = XContentMapValues.nodeStringValue(newset.get("pwd"), null);
 		}
 		return ret;
+	}
+
+	@Override
+	public ESLogger createLogger(Class<?> clazz) {
+		return Loggers.getLogger(clazz, settings.globalSettings(), riverName);
 	}
 
 }

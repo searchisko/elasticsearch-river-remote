@@ -10,7 +10,6 @@ import java.util.Date;
 import java.util.Map;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.common.logging.Loggers;
 
 /**
  * Class used to run one index update process for one Space. Incremental indexing process is based on date of last
@@ -46,7 +45,7 @@ public class SpaceByLastUpdateTimestampIndexer extends SpaceIndexerBase {
 	public SpaceByLastUpdateTimestampIndexer(String spaceKey, boolean fullUpdate, IRemoteSystemClient remoteSystemClient,
 			IESIntegration esIntegrationComponent, IDocumentIndexStructureBuilder documentIndexStructureBuilder) {
 		super(spaceKey, remoteSystemClient, esIntegrationComponent, documentIndexStructureBuilder);
-		logger = Loggers.getLogger(SpaceByLastUpdateTimestampIndexer.class);
+		logger = esIntegrationComponent.createLogger(SpaceByLastUpdateTimestampIndexer.class);
 		indexingInfo = new SpaceIndexingInfo(spaceKey, fullUpdate);
 	}
 

@@ -27,7 +27,7 @@ import org.elasticsearch.common.settings.SettingsException;
  */
 public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 
-	private static final ESLogger logger = Loggers.getLogger(SpaceIndexerCoordinator.class);
+	private ESLogger logger = Loggers.getLogger(SpaceIndexerCoordinator.class);
 
 	/**
 	 * Property value where "last index update start date" is stored for Space
@@ -112,6 +112,7 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	/**
 	 * Constructor with parameters.
 	 * 
+	 * @param contextProvider
 	 * @param remoteSystemClient configured remote system access client to be passed into
 	 *          {@link SpaceByLastUpdateTimestampIndexer} instances started from coordinator
 	 * @param esIntegrationComponent to be used to call River component and ElasticSearch functions
@@ -126,6 +127,7 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 			IDocumentIndexStructureBuilder documentIndexStructureBuilder, long indexUpdatePeriod, int maxIndexingThreads,
 			long indexFullUpdatePeriod, CronExpression indexFullUpdateCronExpression, SpaceIndexingMode spaceIndexingMode) {
 		super();
+		this.logger = esIntegrationComponent.createLogger(SpaceIndexerCoordinator.class);
 		this.remoteSystemClient = remoteSystemClient;
 		this.esIntegrationComponent = esIntegrationComponent;
 		this.indexUpdatePeriod = indexUpdatePeriod;

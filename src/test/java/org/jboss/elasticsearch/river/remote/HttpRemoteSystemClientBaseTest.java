@@ -259,8 +259,8 @@ public class HttpRemoteSystemClientBaseTest {
 		HttpRemoteSystemClientBase ret = new HttpRemoteSystemClientBase() {
 
 			@Override
-			public void init(Map<String, Object> config, boolean spaceListLoadingEnabled, IPwdLoader pwdLoader)
-					throws SettingsException {
+			public void init(IESIntegration es, Map<String, Object> config, boolean spaceListLoadingEnabled,
+					IPwdLoader pwdLoader) throws SettingsException {
 			}
 
 			@Override

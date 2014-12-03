@@ -14,6 +14,8 @@ import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.IndicesAdminClient;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.river.RiverName;
 
 /**
  * Interface for component which allows integration of indexer components into ElasticSearch River instance.
@@ -148,5 +150,20 @@ public interface IESIntegration {
 	 * @see #executeESSearchRequest(SearchRequestBuilder)
 	 */
 	SearchResponse executeESScrollSearchNextRequest(SearchResponse scrollResp);
+
+	/**
+	 * Get name of the river.
+	 * 
+	 * @return name of the river.
+	 */
+	public RiverName riverName();
+
+	/**
+	 * Create logger for given class with all necessary context settings (eg. river name etc).
+	 * 
+	 * @param clazz to create logger for
+	 * @return logger
+	 */
+	public ESLogger createLogger(Class<?> clazz);
 
 }

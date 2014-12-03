@@ -8,7 +8,6 @@ package org.jboss.elasticsearch.river.remote;
 import java.util.Map;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.common.logging.Loggers;
 
 /**
  * Class used to run one index update process for one Space. Full indexing is done always with one call to get list of
@@ -35,7 +34,7 @@ public class SpaceSimpleIndexer extends SpaceIndexerBase {
 	public SpaceSimpleIndexer(String spaceKey, IRemoteSystemClient remoteSystemClient,
 			IESIntegration esIntegrationComponent, IDocumentIndexStructureBuilder documentIndexStructureBuilder) {
 		super(spaceKey, remoteSystemClient, esIntegrationComponent, documentIndexStructureBuilder);
-		logger = Loggers.getLogger(SpaceSimpleIndexer.class);
+		logger = esIntegrationComponent.createLogger(SpaceSimpleIndexer.class);
 		indexingInfo = new SpaceIndexingInfo(spaceKey, true);
 	}
 

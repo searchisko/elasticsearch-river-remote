@@ -16,11 +16,14 @@ import junit.framework.Assert;
 
 import org.apache.http.HttpStatus;
 import org.elasticsearch.common.jackson.core.JsonParseException;
+import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.settings.SettingsException;
 import org.jboss.elasticsearch.river.remote.HttpRemoteSystemClientBase.HttpCallException;
 import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import static org.mockito.Mockito.mock;
 
 /**
  * Unit test for {@link GetJSONClient}.
@@ -41,7 +44,7 @@ public class GetJSONClientTest {
 		config.put(GetJSONClient.CFG_TIMEOUT, "50s");
 		config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_DOCUMENTS, "issues");
 		config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_TOTALCOUNT, "total");
-		tested.init(config, false, null);
+		tested.init(mockEsIntegrationComponent(), config, false, null);
 
 		ChangedDocumentsResults ret = tested.getChangedDocuments("ORG", 0, null);
 
@@ -55,7 +58,7 @@ public class GetJSONClientTest {
 		try {
 			Map<String, Object> config = new HashMap<String, Object>();
 			GetJSONClient tested = new GetJSONClient();
-			tested.init(config, false, null);
+			tested.init(mockEsIntegrationComponent(), config, false, null);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			// OK
@@ -65,7 +68,7 @@ public class GetJSONClientTest {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "bad url format");
 			GetJSONClient tested = new GetJSONClient();
-			tested.init(config, false, null);
+			tested.init(mockEsIntegrationComponent(), config, false, null);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			// OK
@@ -73,15 +76,17 @@ public class GetJSONClientTest {
 
 		// case - basic config, no getSpaces required, no authentication
 		{
+			IESIntegration esMock = mockEsIntegrationComponent();
 			GetJSONClient tested = new GetJSONClient();
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
-			tested.init(config, false, null);
+			tested.init(esMock, config, false, null);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertNull(tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
 			Assert.assertFalse(tested.isAuthConfigured);
 			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headers.get("Accept"));
+			Mockito.verify(esMock).createLogger(GetJSONClient.class);
 		}
 
 		// case - error - getSpaces is required but not configured!
@@ -89,7 +94,7 @@ public class GetJSONClientTest {
 			GetJSONClient tested = new GetJSONClient();
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
-			tested.init(config, true, null);
+			tested.init(mockEsIntegrationComponent(), config, true, null);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			// OK
@@ -99,7 +104,7 @@ public class GetJSONClientTest {
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
 			config.put(GetJSONClient.CFG_URL_GET_SPACES, "bad url format");
-			tested.init(config, true, null);
+			tested.init(mockEsIntegrationComponent(), config, true, null);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			// OK
@@ -116,7 +121,7 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_PASSWORD, "paaswd");
 			config.put(GetJSONClient.CFG_HEADER_ACCEPT, "app/json");
 			IPwdLoader pwdLoaderMock = Mockito.mock(IPwdLoader.class);
-			tested.init(config, true, pwdLoaderMock);
+			tested.init(mockEsIntegrationComponent(), config, true, pwdLoaderMock);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
@@ -134,7 +139,7 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_USERNAME, "myuser");
 			IPwdLoader pwdLoaderMock = Mockito.mock(IPwdLoader.class);
 			Mockito.when(pwdLoaderMock.loadPassword("myuser")).thenReturn("paaswd");
-			tested.init(config, true, pwdLoaderMock);
+			tested.init(mockEsIntegrationComponent(), config, true, pwdLoaderMock);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
@@ -150,7 +155,7 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
 			config.put(GetJSONClient.CFG_URL_GET_SPACES, "http://test.org/spaces");
 			config.put(GetJSONClient.CFG_USERNAME, "myuser");
-			tested.init(config, true, null);
+			tested.init(mockEsIntegrationComponent(), config, true, null);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
@@ -165,7 +170,7 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/documents");
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS_FIELD, "detailfield");
-			tested.init(config, false, null);
+			tested.init(mockEsIntegrationComponent(), config, false, null);
 			Assert.fail("SettingsException not thrown");
 		} catch (SettingsException e) {
 			// OK
@@ -270,7 +275,7 @@ public class GetJSONClientTest {
 			};
 
 		};
-		tested.init(config, true, null);
+		tested.init(mockEsIntegrationComponent(), config, true, null);
 		return tested;
 	}
 
@@ -335,7 +340,7 @@ public class GetJSONClientTest {
 			};
 
 		};
-		tested.init(config, false, null);
+		tested.init(mockEsIntegrationComponent(), config, false, null);
 		return tested;
 	}
 
@@ -349,7 +354,7 @@ public class GetJSONClientTest {
 			};
 
 		};
-		tested.init(config, false, null);
+		tested.init(mockEsIntegrationComponent(), config, false, null);
 		return tested;
 	}
 
@@ -583,6 +588,13 @@ public class GetJSONClientTest {
 						"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}", "my&space",
 						null, 125));
 
+	}
+
+	protected static IESIntegration mockEsIntegrationComponent() {
+		IESIntegration esIntegrationMock = mock(IESIntegration.class);
+		Mockito.when(esIntegrationMock.createLogger(Mockito.any(Class.class))).thenReturn(
+				ESLoggerFactory.getLogger(GetJSONClient.class.getName()));
+		return esIntegrationMock;
 	}
 
 }

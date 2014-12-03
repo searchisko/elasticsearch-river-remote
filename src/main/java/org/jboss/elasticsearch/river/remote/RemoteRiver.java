@@ -217,11 +217,6 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 			else if (XContentMapValues.nodeBooleanValue(remoteSettings.get("simpleGetDocuments"), false))
 				spaceIndexingMode = SpaceIndexingMode.SIMPLE;
 
-			if (spaceIndexingMode.isIncrementalUpdateSupported())
-				indexUpdatePeriod = Utils.parseTimeValue(remoteSettings, "indexUpdatePeriod", 5, TimeUnit.MINUTES);
-			else
-				indexUpdatePeriod = 0;
-
 			indexFullUpdatePeriod = Utils.parseTimeValue(remoteSettings, "indexFullUpdatePeriod", 12, TimeUnit.HOURS);
 
 			String ifuce = Utils.trimToNull((String) remoteSettings.get("indexFullUpdateCronExpression"));
@@ -232,6 +227,12 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 					throw new SettingsException("Cron expression in indexFullUpdateCronExpression is invalid: " + e.getMessage());
 				}
 			}
+
+			if (spaceIndexingMode.isIncrementalUpdateSupported()
+					|| (indexFullUpdatePeriod < 1 && indexFullUpdateCronExpression == null))
+				indexUpdatePeriod = Utils.parseTimeValue(remoteSettings, "indexUpdatePeriod", 5, TimeUnit.MINUTES);
+			else
+				indexUpdatePeriod = 0;
 
 			if (remoteSettings.containsKey("spacesIndexed")) {
 				allIndexedSpacesKeys = Utils.parseCsvString(XContentMapValues.nodeStringValue(
@@ -291,8 +292,9 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 		remoteSystemClient.setIndexStructureBuilder(documentIndexStructureBuilder);
 
-		logger.info("Configured Remote River '{}'. Search index name '{}', document type for issues '{}'.",
-				riverName.getName(), indexName, typeName);
+		logger.info(
+				"Configured Remote River '{}'. Search index name '{}', document type for issues '{}'. Indexing mode '{}'.",
+				riverName.getName(), indexName, typeName, spaceIndexingMode.getConfigValue());
 		if (activityLogIndexName != null) {
 			logger
 					.info(

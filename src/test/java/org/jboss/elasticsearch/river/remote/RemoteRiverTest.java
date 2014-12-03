@@ -124,6 +124,19 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		Assert.assertEquals(SpaceIndexingMode.PAGINATION, tested.spaceIndexingMode);
 		Assert.assertEquals(0, tested.indexUpdatePeriod);
 
+		// case - #50 - listDocumentsMode config reading test, simple mode and backward compatibility of update period
+		// config
+		remoteSettingsAdd.remove("simpleGetDocuments");
+		remoteSettingsAdd.put("indexUpdatePeriod", "20m");
+		remoteSettingsAdd.put("indexFullUpdatePeriod", "0");
+		remoteSettingsAdd.remove("indexFullUpdateCronExpression");
+		remoteSettingsAdd.put("listDocumentsMode", SpaceIndexingMode.SIMPLE.getConfigValue());
+		tested = prepareRiverInstanceForTest("https://issues.jboss.org", remoteSettingsAdd, toplevelSettingsAdd, false);
+		Assert.assertEquals(SpaceIndexingMode.SIMPLE, tested.spaceIndexingMode);
+		Assert.assertEquals(20 * 60 * 1000, tested.indexUpdatePeriod);
+		Assert.assertEquals(0, tested.indexFullUpdatePeriod);
+		Assert.assertNull(tested.indexFullUpdateCronExpression);
+
 		// case - #49 - invalid cron expression
 		try {
 			remoteSettingsAdd.put("indexFullUpdateCronExpression", "0 0 10 * ? ?");

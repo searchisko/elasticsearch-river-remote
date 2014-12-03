@@ -52,9 +52,18 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	 * 
 	 * @see IESIntegration#storeDatetimeValue(String, String, Date, BulkRequestBuilder)
 	 * @see IESIntegration#readDatetimeValue(String, String)
-	 * @see #spaceIndexFullUpdateNecessary(String)
+	 * @see #forceFullReindex(String)
 	 */
 	protected static final String STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE = "forceIndexFullUpdateDate";
+
+	/**
+	 * Property value where "incremental index force date" is stored for Space
+	 * 
+	 * @see IESIntegration#storeDatetimeValue(String, String, Date, BulkRequestBuilder)
+	 * @see IESIntegration#readDatetimeValue(String, String)
+	 * @see #forceIncrementalReindex(String)
+	 */
+	protected static final String STORE_PROPERTYNAME_FORCE_INDEX_INCREMENTAL_UPDATE_DATE = "forceIndexIncrementalUpdateDate";
 
 	protected static final int COORDINATOR_THREAD_WAITS_QUICK = 2 * 1000;
 	protected static final int COORDINATOR_THREAD_WAITS_SLOW = 15 * 1000;
@@ -158,8 +167,10 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 				try {
 					if (esIntegrationComponent.isClosed())
 						return;
-					logger.debug("Remote river coordinator task is going to sleep for {} ms", coordinatorThreadWaits);
-					Thread.sleep(coordinatorThreadWaits);
+					logger.debug("Remote river coordinator task is going to wait for {} ms", coordinatorThreadWaits);
+					synchronized (this) {
+						wait(coordinatorThreadWaits);
+					}
 				} catch (InterruptedException e1) {
 					return;
 				}
@@ -297,7 +308,8 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	 * @throws IOException
 	 */
 	protected boolean spaceIndexUpdateNecessary(String spaceKey) throws Exception {
-		if (esIntegrationComponent.readDatetimeValue(spaceKey, STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE) != null)
+		if (esIntegrationComponent.readDatetimeValue(spaceKey, STORE_PROPERTYNAME_FORCE_INDEX_INCREMENTAL_UPDATE_DATE) != null
+				|| esIntegrationComponent.readDatetimeValue(spaceKey, STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE) != null)
 			return true;
 
 		Date lastIndexing = esIntegrationComponent.readDatetimeValue(spaceKey,
@@ -350,9 +362,17 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 	}
 
 	@Override
-	public void forceFullReindex(String spaceKey) throws Exception {
+	public synchronized void forceFullReindex(String spaceKey) throws Exception {
 		esIntegrationComponent.storeDatetimeValue(spaceKey, STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE, new Date(),
 				null);
+		notify();
+	}
+
+	@Override
+	public synchronized void forceIncrementalReindex(String spaceKey) throws Exception {
+		esIntegrationComponent.storeDatetimeValue(spaceKey, STORE_PROPERTYNAME_FORCE_INDEX_INCREMENTAL_UPDATE_DATE,
+				new Date(), null);
+		notify();
 	}
 
 	@Override
@@ -361,6 +381,15 @@ public class SpaceIndexerCoordinator implements ISpaceIndexerCoordinator {
 			spaceIndexerThreads.remove(spaceKey);
 			spaceIndexers.remove(spaceKey);
 		}
+
+		try {
+			// delete always as some indexers run full update always
+			esIntegrationComponent.deleteDatetimeValue(spaceKey, STORE_PROPERTYNAME_FORCE_INDEX_INCREMENTAL_UPDATE_DATE);
+		} catch (Exception e) {
+			logger.error("Can't delete {} value due: {}", STORE_PROPERTYNAME_FORCE_INDEX_INCREMENTAL_UPDATE_DATE,
+					e.getMessage());
+		}
+
 		if (fullUpdate) {
 			if (finishedOK) {
 				try {

@@ -29,6 +29,14 @@ public interface ISpaceIndexerCoordinator extends Runnable {
 	void forceFullReindex(String spaceKey) throws Exception;
 
 	/**
+	 * Force incremental reindex for given Space.
+	 * 
+	 * @param spaceKey to force reindex for
+	 * @throws Exception
+	 */
+	void forceIncrementalReindex(String spaceKey) throws Exception;
+
+	/**
 	 * Get info about current indexings in process.
 	 * 
 	 * @return list of currently processed indexings.

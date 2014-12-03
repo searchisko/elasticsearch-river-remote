@@ -127,6 +127,21 @@ public class SpaceIndexerCoordinatorTest {
 			Assert.assertFalse(tested.spaceIndexUpdateNecessary(SPACE_KEY));
 		}
 
+		// case - update necessary - date of last update stored and is newer than index update period, but incremental
+		// update is forced
+		{
+			reset(esIntegrationMock);
+			when(
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
+							SpaceIndexerCoordinator.STORE_PROPERTYNAME_LAST_INDEX_UPDATE_START_DATE)).thenReturn(
+					new Date(System.currentTimeMillis() - indexUpdatePeriod + 1000));
+			when(
+					esIntegrationMock.readDatetimeValue(SPACE_KEY,
+							SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_INCREMENTAL_UPDATE_DATE)).thenReturn(
+					new Date(System.currentTimeMillis() - 1000));
+			Assert.assertTrue(tested.spaceIndexUpdateNecessary(SPACE_KEY));
+		}
+
 		// case - update necessary - date of last update stored and is newer than index update period, but full reindex is
 		// forced now, so we have to start it ASAP
 		{
@@ -943,6 +958,8 @@ public class SpaceIndexerCoordinatorTest {
 			Assert.assertFalse(tested.spaceIndexerThreads.containsKey(SPACE_KEY));
 			Assert.assertEquals(1, tested.spaceIndexers.size());
 			Assert.assertFalse(tested.spaceIndexers.containsKey(SPACE_KEY));
+			verify(esIntegrationMock).deleteDatetimeValue(Mockito.eq(SPACE_KEY),
+					Mockito.eq(SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_INCREMENTAL_UPDATE_DATE));
 			// no full reindex date stored
 			Mockito.verifyNoMoreInteractions(esIntegrationMock);
 		}
@@ -950,16 +967,20 @@ public class SpaceIndexerCoordinatorTest {
 		// case - full indexing without success, full reindex is enabled
 		tested.indexFullUpdatePeriod = 10;
 		{
+			Mockito.reset(esIntegrationMock);
 			tested.reportIndexingFinished("AAA", false, true);
 			Assert.assertEquals(0, tested.spaceIndexerThreads.size());
 			Assert.assertEquals(0, tested.spaceIndexers.size());
 			// no full reindex date stored
+			verify(esIntegrationMock).deleteDatetimeValue(Mockito.eq("AAA"),
+					Mockito.eq(SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_INCREMENTAL_UPDATE_DATE));
 			Mockito.verifyNoMoreInteractions(esIntegrationMock);
 		}
 
 		// case - full indexing without success, full reindex is disabled so we have to force it
 		tested.indexFullUpdatePeriod = -1;
 		{
+			Mockito.reset(esIntegrationMock);
 			tested.reportIndexingFinished("AAA", false, true);
 			Assert.assertEquals(0, tested.spaceIndexerThreads.size());
 			Assert.assertEquals(0, tested.spaceIndexers.size());
@@ -967,11 +988,14 @@ public class SpaceIndexerCoordinatorTest {
 					Mockito.eq(SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE), Mockito.any(Date.class),
 					(BulkRequestBuilder) Mockito.isNull());
 			// no full reindex date stored
+			verify(esIntegrationMock).deleteDatetimeValue(Mockito.eq("AAA"),
+					Mockito.eq(SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_INCREMENTAL_UPDATE_DATE));
 			Mockito.verifyNoMoreInteractions(esIntegrationMock);
 		}
 
 		// case - full indexing with success
 		{
+			Mockito.reset(esIntegrationMock);
 			tested.spaceIndexerThreads.put("AAA", new Thread());
 			tested.spaceIndexers.put("AAA",
 					new SpaceByLastUpdateTimestampIndexer("AAA", false, null, esIntegrationMock, null));
@@ -983,7 +1007,9 @@ public class SpaceIndexerCoordinatorTest {
 					(BulkRequestBuilder) Mockito.isNull());
 			verify(esIntegrationMock).deleteDatetimeValue(Mockito.eq("AAA"),
 					Mockito.eq(SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_FULL_UPDATE_DATE));
-			verify(esIntegrationMock, times(3)).createLogger(SpaceByLastUpdateTimestampIndexer.class);
+			verify(esIntegrationMock).deleteDatetimeValue(Mockito.eq("AAA"),
+					Mockito.eq(SpaceIndexerCoordinator.STORE_PROPERTYNAME_FORCE_INDEX_INCREMENTAL_UPDATE_DATE));
+			verify(esIntegrationMock, times(1)).createLogger(SpaceByLastUpdateTimestampIndexer.class);
 			Mockito.verifyNoMoreInteractions(esIntegrationMock);
 		}
 	}

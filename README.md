@@ -588,6 +588,14 @@ Force full index update of documents for Space with key provided in `spaceKey`:
 
 	curl -XPOST localhost:9200/_river/my_remote_river/_mgm_rr/fullupdate/spaceKey
 
+Force incremental index update for all document spaces:
+
+	curl -XPOST localhost:9200/_river/my_remote_river/_mgm_rr/incrementalupdate
+
+Force incremental index update of documents for Space with key provided in `spaceKey`:
+
+	curl -XPOST localhost:9200/_river/my_remote_river/_mgm_rr/incrementalupdate/spaceKey
+
 List names of all Remote Rivers running in ES cluster:
 
 	curl -XGET localhost:9200/_remote_river/list

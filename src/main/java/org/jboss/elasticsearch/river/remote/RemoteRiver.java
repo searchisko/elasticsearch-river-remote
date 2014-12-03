@@ -459,14 +459,6 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 		return closed;
 	}
 
-	/**
-	 * Force full index update for some Space(s) in this river. Used for REST management operations handling.
-	 * 
-	 * @param spaceKey optional key of space to reindex, if null or empty then all spaces are forced to full reindex
-	 * @return CSV list of spaces forced to reindex. <code>null</code> if space passed over <code>spaceKey</code>
-	 *         parameter was not found in this indexer
-	 * @throws Exception
-	 */
 	@Override
 	public String forceFullReindex(String spaceKey) throws Exception {
 		if (coordinatorInstance == null)
@@ -481,10 +473,33 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 			} else {
 				return "";
 			}
-
 		} else {
 			if (pkeys != null && pkeys.contains(spaceKey)) {
 				coordinatorInstance.forceFullReindex(spaceKey);
+				return spaceKey;
+			} else {
+				return null;
+			}
+		}
+	}
+
+	@Override
+	public String forceIncrementalReindex(String spaceKey) throws Exception {
+		if (coordinatorInstance == null)
+			return null;
+		List<String> pkeys = getAllIndexedSpaceKeys();
+		if (Utils.isEmpty(spaceKey)) {
+			if (pkeys != null) {
+				for (String k : pkeys) {
+					coordinatorInstance.forceIncrementalReindex(k);
+				}
+				return Utils.createCsvString(pkeys);
+			} else {
+				return "";
+			}
+		} else {
+			if (pkeys != null && pkeys.contains(spaceKey)) {
+				coordinatorInstance.forceIncrementalReindex(spaceKey);
 				return spaceKey;
 			} else {
 				return null;

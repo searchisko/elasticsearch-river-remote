@@ -721,6 +721,54 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 	}
 
 	@Test
+	public void forceIncrementalReindex() throws Exception {
+
+		RemoteRiver tested = prepareRiverInstanceForTest(null);
+		ISpaceIndexerCoordinator coordinatorMock = mock(ISpaceIndexerCoordinator.class);
+		tested.coordinatorInstance = coordinatorMock;
+
+		// case - all spaces but no any exists
+		{
+			tested.allIndexedSpacesKeys = null;
+			Assert.assertEquals("", tested.forceIncrementalReindex(null));
+			Mockito.verifyNoMoreInteractions(coordinatorMock);
+		}
+
+		// case - all spaces and some exists
+		{
+			reset(coordinatorMock);
+			tested.allIndexedSpacesKeys = new ArrayList<String>();
+			tested.allIndexedSpacesKeys.add("ORG");
+			tested.allIndexedSpacesKeys.add("AAA");
+			Assert.assertEquals("ORG,AAA", tested.forceIncrementalReindex(null));
+			verify(coordinatorMock).forceIncrementalReindex("ORG");
+			verify(coordinatorMock).forceIncrementalReindex("AAA");
+			Mockito.verifyNoMoreInteractions(coordinatorMock);
+		}
+
+		// case - one space not exists
+		{
+			reset(coordinatorMock);
+			Assert.assertNull(tested.forceIncrementalReindex("BBB"));
+			Mockito.verifyNoMoreInteractions(coordinatorMock);
+
+		}
+
+		// case - one space which exists
+		{
+			reset(coordinatorMock);
+			Assert.assertEquals("ORG", tested.forceIncrementalReindex("ORG"));
+			verify(coordinatorMock).forceIncrementalReindex("ORG");
+			Mockito.verifyNoMoreInteractions(coordinatorMock);
+
+			reset(coordinatorMock);
+			Assert.assertEquals("AAA", tested.forceIncrementalReindex("AAA"));
+			verify(coordinatorMock).forceIncrementalReindex("AAA");
+			Mockito.verifyNoMoreInteractions(coordinatorMock);
+		}
+	}
+
+	@Test
 	public void loadPassword() throws Exception {
 
 		// case - password document not defined

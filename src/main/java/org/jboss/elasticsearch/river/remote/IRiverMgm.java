@@ -29,12 +29,22 @@ public interface IRiverMgm {
 	/**
 	 * Force full index update for some Space(s) in this river. Used for REST management operations handling.
 	 * 
-	 * @param spacetKey optional key of space to reindex, if null or empty then all spaces are forced to full reindex
+	 * @param spaceKey optional key of space to reindex, if null or empty then all spaces are forced to full reindex
 	 * @return CSV list of spaces forced to reindex. <code>null</code> if space passed over <code>spaceKey</code>
 	 *         parameter was not found in this indexer
 	 * @throws Exception
 	 */
-	public abstract String forceFullReindex(String spacetKey) throws Exception;
+	public abstract String forceFullReindex(String spaceKey) throws Exception;
+
+	/**
+	 * Force incremental index update for some Space(s) in this river. Used for REST management operations handling.
+	 * 
+	 * @param spaceKey optional key of space to reindex, if null or empty then all spaces are forced to reindex
+	 * @return CSV list of spaces forced to reindex. <code>null</code> if space passed over <code>spaceKey</code>
+	 *         parameter was not found in this indexer
+	 * @throws Exception
+	 */
+	public abstract String forceIncrementalReindex(String spaceKey) throws Exception;
 
 	/**
 	 * Get info about current operation of this river. Used for REST management operations handling.

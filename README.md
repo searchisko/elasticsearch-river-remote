@@ -15,12 +15,14 @@ In order to install the plugin into Elasticsearch 1.3.x, simply run:
 `bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.5.4/elasticsearch-river-remote-1.5.4.zip -install elasticsearch-river-remote`.
 
 In order to install the plugin into Elasticsearch 1.4.x, simply run: 
-`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.6.0/elasticsearch-river-remote-1.6.0.zip -install elasticsearch-river-remote`.
+`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.6.1/elasticsearch-river-remote-1.6.1.zip -install elasticsearch-river-remote`.
 
     --------------------------------------------------
     | Remote River | Elasticsearch    | Release date |
     --------------------------------------------------
     | master       | 1.4.0            |              |
+    --------------------------------------------------
+    | 1.6.1        | 1.4.0            | 15.12.2014   |
     --------------------------------------------------
     | 1.6.0        | 1.4.0            |  4.12.2014   |
     --------------------------------------------------

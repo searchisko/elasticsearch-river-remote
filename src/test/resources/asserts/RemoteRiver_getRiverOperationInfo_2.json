@@ -14,6 +14,7 @@
     "start_date" : "2012-09-27T09:21:25.422Z",
     "documents_updated" : 256,
     "documents_deleted" : 10,
+    "comments_deleted" : 0,
     "documents_with_error" : 0
   }, {
     "space_key" : "AAA",
@@ -21,6 +22,7 @@
     "start_date" : "2012-09-27T09:21:24.422Z",
     "documents_updated" : 15,
     "documents_deleted" : 0,
+    "comments_deleted" : 0,
     "documents_with_error" : 0
   } ],
   "indexed_spaces" : [ {
@@ -30,6 +32,7 @@
       "start_date" : "2012-09-27T09:15:25.422Z",
       "documents_updated" : 125,
       "documents_deleted" : 10,
+      "comments_deleted" : 0,
       "documents_with_error" : 0,
       "result" : "OK",
       "time_elapsed" : "1500ms"
@@ -43,6 +46,7 @@
       "start_date" : "2012-09-27T09:12:25.422Z",
       "documents_updated" : 12,
       "documents_deleted" : 0,
+      "comments_deleted" : 0,
       "documents_with_error" : 0,
       "result" : "ERROR",
       "time_elapsed" : "1800ms",
@@ -55,6 +59,7 @@
       "start_date" : "2012-09-27T08:11:25.422Z",
       "documents_updated" : 125,
       "documents_deleted" : 0,
+      "comments_deleted" : 0,
       "documents_with_error" : 0,
       "result" : "OK",
       "time_elapsed" : "1810ms"

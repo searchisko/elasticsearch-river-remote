@@ -86,8 +86,7 @@ public class SpaceIndexingInfoTest {
 		Assert.assertEquals(src.documentsUpdated, result.documentsUpdated);
 		Assert.assertEquals(src.documentsDeleted, result.documentsDeleted);
 		Assert.assertEquals(src.documentsWithError, result.documentsWithError);
-		// not stored and read for now!
-		Assert.assertEquals(0, result.commentsDeleted);
+		Assert.assertEquals(src.commentsDeleted, result.commentsDeleted);
 		Assert.assertEquals(src.startDate, result.startDate);
 		Assert.assertEquals(src.finishedOK, result.finishedOK);
 		Assert.assertEquals(src.timeElapsed, result.timeElapsed);

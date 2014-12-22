@@ -37,6 +37,8 @@ import org.jboss.elasticsearch.tools.content.StructuredContentPreprocessor;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -50,6 +52,14 @@ import static org.mockito.Mockito.when;
  */
 public class RemoteRiverTest extends ESRealClientTestBase {
 
+	/**
+	 * 
+	 */
+	private static final String KEY_2 = "AAB";
+	/**
+	 * 
+	 */
+	private static final String KEY_1 = "AAA";
 	private static final String RIVER_NAME = "my_remote_river";
 
 	@SuppressWarnings("unchecked")
@@ -426,10 +436,10 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		}
 
 		{
-			Map<String, Object> out = TestUtils.getJSONMapFromString(tested.storeDatetimeValueBuildDocument("AAA",
+			Map<String, Object> out = TestUtils.getJSONMapFromString(tested.storeDatetimeValueBuildDocument(KEY_1,
 					"my_property", d).string());
 			Assert.assertEquals(3, out.size());
-			Assert.assertEquals("AAA", out.get("spaceKey"));
+			Assert.assertEquals(KEY_1, out.get("spaceKey"));
 			Assert.assertEquals("my_property", out.get("propertyName"));
 			Assert.assertEquals(d.getTime(), DateTimeUtils.parseISODateTime((String) out.get("value")).getTime());
 		}
@@ -531,8 +541,8 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		}
 		{
 			reset(coordMock);
-			tested.reportIndexingFinished(new SpaceIndexingInfo("AAA", true, 10, 0, 0, null, false, 10, null));
-			verify(coordMock, times(1)).reportIndexingFinished("AAA", false, true);
+			tested.reportIndexingFinished(new SpaceIndexingInfo(KEY_1, true, 10, 0, 0, null, false, 10, null));
+			verify(coordMock, times(1)).reportIndexingFinished(KEY_1, false, true);
 			Mockito.verifyZeroInteractions(clientMock);
 		}
 
@@ -584,14 +594,14 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		List<SpaceIndexingInfo> currentIndexings = new ArrayList<SpaceIndexingInfo>();
 		currentIndexings.add(new SpaceIndexingInfo("ORG", true, 256, 10, 0, DateTimeUtils
 				.parseISODateTime("2012-09-27T09:21:25.422Z"), false, 0, null));
-		currentIndexings.add(new SpaceIndexingInfo("AAA", false, 15, 0, 0, DateTimeUtils
+		currentIndexings.add(new SpaceIndexingInfo(KEY_1, false, 15, 0, 0, DateTimeUtils
 				.parseISODateTime("2012-09-27T09:21:24.422Z"), false, 0, null));
 		when(coordMock.getCurrentSpaceIndexingInfo()).thenReturn(currentIndexings);
 
 		tested.allIndexedSpacesKeysNextRefresh = Long.MAX_VALUE;
 		tested.allIndexedSpacesKeys = new ArrayList<String>();
 		tested.allIndexedSpacesKeys.add("ORG");
-		tested.allIndexedSpacesKeys.add("AAA");
+		tested.allIndexedSpacesKeys.add(KEY_1);
 		tested.allIndexedSpacesKeys.add("JJJ");
 		tested.allIndexedSpacesKeys.add("FFF");
 
@@ -627,14 +637,14 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 			List<SpaceIndexingInfo> currentIndexings = new ArrayList<SpaceIndexingInfo>();
 			currentIndexings.add(new SpaceIndexingInfo("ORG", true, 256, 10, 0, DateTimeUtils
 					.parseISODateTime("2012-09-27T09:21:25.422Z"), false, 0, null));
-			currentIndexings.add(new SpaceIndexingInfo("AAA", false, 15, 0, 0, DateTimeUtils
+			currentIndexings.add(new SpaceIndexingInfo(KEY_1, false, 15, 0, 0, DateTimeUtils
 					.parseISODateTime("2012-09-27T09:21:24.422Z"), false, 0, null));
 			when(coordMock.getCurrentSpaceIndexingInfo()).thenReturn(currentIndexings);
 
 			tested.allIndexedSpacesKeysNextRefresh = Long.MAX_VALUE;
 			tested.allIndexedSpacesKeys = new ArrayList<String>();
 			tested.allIndexedSpacesKeys.add("ORG");
-			tested.allIndexedSpacesKeys.add("AAA");
+			tested.allIndexedSpacesKeys.add(KEY_1);
 			tested.allIndexedSpacesKeys.add("JJJ");
 			tested.allIndexedSpacesKeys.add("FFF");
 
@@ -691,10 +701,10 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 			reset(coordinatorMock);
 			tested.allIndexedSpacesKeys = new ArrayList<String>();
 			tested.allIndexedSpacesKeys.add("ORG");
-			tested.allIndexedSpacesKeys.add("AAA");
+			tested.allIndexedSpacesKeys.add(KEY_1);
 			Assert.assertEquals("ORG,AAA", tested.forceFullReindex(null));
 			verify(coordinatorMock).forceFullReindex("ORG");
-			verify(coordinatorMock).forceFullReindex("AAA");
+			verify(coordinatorMock).forceFullReindex(KEY_1);
 			Mockito.verifyNoMoreInteractions(coordinatorMock);
 		}
 
@@ -714,8 +724,8 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 			Mockito.verifyNoMoreInteractions(coordinatorMock);
 
 			reset(coordinatorMock);
-			Assert.assertEquals("AAA", tested.forceFullReindex("AAA"));
-			verify(coordinatorMock).forceFullReindex("AAA");
+			Assert.assertEquals(KEY_1, tested.forceFullReindex(KEY_1));
+			verify(coordinatorMock).forceFullReindex(KEY_1);
 			Mockito.verifyNoMoreInteractions(coordinatorMock);
 		}
 	}
@@ -739,10 +749,10 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 			reset(coordinatorMock);
 			tested.allIndexedSpacesKeys = new ArrayList<String>();
 			tested.allIndexedSpacesKeys.add("ORG");
-			tested.allIndexedSpacesKeys.add("AAA");
+			tested.allIndexedSpacesKeys.add(KEY_1);
 			Assert.assertEquals("ORG,AAA", tested.forceIncrementalReindex(null));
 			verify(coordinatorMock).forceIncrementalReindex("ORG");
-			verify(coordinatorMock).forceIncrementalReindex("AAA");
+			verify(coordinatorMock).forceIncrementalReindex(KEY_1);
 			Mockito.verifyNoMoreInteractions(coordinatorMock);
 		}
 
@@ -762,8 +772,8 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 			Mockito.verifyNoMoreInteractions(coordinatorMock);
 
 			reset(coordinatorMock);
-			Assert.assertEquals("AAA", tested.forceIncrementalReindex("AAA"));
-			verify(coordinatorMock).forceIncrementalReindex("AAA");
+			Assert.assertEquals(KEY_1, tested.forceIncrementalReindex(KEY_1));
+			verify(coordinatorMock).forceIncrementalReindex(KEY_1);
 			Mockito.verifyNoMoreInteractions(coordinatorMock);
 		}
 	}
@@ -816,6 +826,69 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 		RiverName rn = tested.riverName();
 		Assert.assertEquals(RIVER_NAME, rn.getName());
 		Assert.assertEquals("remote", rn.getType());
+	}
+
+	@Test
+	public void writeActivityLogRecord_getLastSpaceIndexingInfo() throws Exception {
+		RemoteRiver tested = prepareRiverInstanceForTest(null);
+		tested.activityLogIndexName = "alindex";
+		tested.activityLogTypeName = "altype";
+		try {
+			tested.client = prepareESClientForUnitTest();
+
+			indexCreate(tested.activityLogIndexName);
+			indexCreateMapping(tested.activityLogIndexName, tested.activityLogTypeName, "{\n" + "	    \""
+					+ tested.activityLogTypeName + "\" : {\n" + "	        \"properties\" : {\n"
+					+ "	            \"river_name\"  : {\"type\" : \"string\", \"analyzer\" : \"keyword\"},\n"
+					+ "	            \"space_key\"   : {\"type\" : \"string\", \"analyzer\" : \"keyword\"},\n"
+					+ "	            \"update_type\" : {\"type\" : \"string\", \"analyzer\" : \"keyword\"},\n"
+					+ "	            \"result\"      : {\"type\" : \"string\", \"analyzer\" : \"keyword\"}\n" + "	         }\n"
+					+ "	    }\n" + "	}");
+
+			// older record to be sure latest one is readed
+			SpaceIndexingInfo indexingInfo1Older = new SpaceIndexingInfo(KEY_1, false, 5, 2, 1,
+					DateTimeUtils.parseISODateTimeWithMinutePrecise("2014-12-22T12:53"), true, 60000, null);
+			indexingInfo1Older.finishedOK = true;
+			tested.writeActivityLogRecord(indexingInfo1Older);
+
+			SpaceIndexingInfo indexingInfo1 = new SpaceIndexingInfo(KEY_1, false, 5, 2, 1,
+					DateTimeUtils.parseISODateTimeWithMinutePrecise("2014-12-22T12:55"), true, 60000, null);
+			indexingInfo1.finishedOK = true;
+			tested.writeActivityLogRecord(indexingInfo1);
+
+			// #56 - newer record from another river name to be sure correct one is readed
+			SpaceIndexingInfo indexingInfo1OtherRiver = new SpaceIndexingInfo(KEY_1, false, 5, 2, 1,
+					DateTimeUtils.parseISODateTimeWithMinutePrecise("2014-12-22T12:56"), true, 60000, null);
+			indexingInfo1OtherRiver.finishedOK = true;
+			tested.client.prepareIndex(tested.activityLogIndexName, tested.activityLogTypeName)
+					.setSource(indexingInfo1OtherRiver.buildDocument(jsonBuilder(), "other_river", true, true)).execute()
+					.actionGet();
+
+			SpaceIndexingInfo indexingInfo2 = new SpaceIndexingInfo(KEY_2, false, 8, 1, 0,
+					DateTimeUtils.parseISODateTimeWithMinutePrecise("2014-12-22T12:56"), false, 60000, "error");
+			indexingInfo2.finishedOK = true;
+			tested.writeActivityLogRecord(indexingInfo2);
+
+			assertLastInfo(tested, indexingInfo1);
+			assertLastInfo(tested, indexingInfo2);
+
+		} finally {
+			finalizeESClientForUnitTest();
+		}
+	}
+
+	private void assertLastInfo(RemoteRiver tested, SpaceIndexingInfo indexingInfoExpected) {
+		SpaceIndexingInfo indexingInfoReal = tested.getLastSpaceIndexingInfo(indexingInfoExpected.spaceKey);
+		Assert.assertNotNull(indexingInfoReal);
+		Assert.assertEquals(indexingInfoExpected.startDate, indexingInfoReal.startDate);
+		Assert.assertEquals(indexingInfoExpected.commentsDeleted, indexingInfoReal.commentsDeleted);
+		Assert.assertEquals(indexingInfoExpected.documentsDeleted, indexingInfoReal.documentsDeleted);
+		Assert.assertEquals(indexingInfoExpected.documentsUpdated, indexingInfoReal.documentsUpdated);
+		Assert.assertEquals(indexingInfoExpected.documentsWithError, indexingInfoReal.documentsWithError);
+		Assert.assertEquals(indexingInfoExpected.finishedOK, indexingInfoReal.finishedOK);
+		Assert.assertEquals(indexingInfoExpected.fullUpdate, indexingInfoReal.fullUpdate);
+		Assert.assertEquals(indexingInfoExpected.timeElapsed, indexingInfoReal.timeElapsed);
+		Assert.assertEquals(indexingInfoExpected.getErrorMessage(), indexingInfoReal.getErrorMessage());
 	}
 
 	/**

@@ -19,6 +19,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 public class SpaceIndexingInfo {
 
 	private static final String DOCFIELD_DOCUMENTS_DELETED = "documents_deleted";
+	private static final String DOCFIELD_COMMENTS_DELETED = "comments_deleted";
 	private static final String DOCVAL_RESULT_OK = "OK";
 	private static final String DOCVAL_TYPE_FULL = "FULL";
 	public static final String DOCFIELD_ERROR_MESSAGE = "error_message";
@@ -29,6 +30,8 @@ public class SpaceIndexingInfo {
 	public static final String DOCFIELD_UPDATE_TYPE = "update_type";
 	public static final String DOCFIELD_START_DATE = "start_date";
 	public static final String DOCFIELD_SPACE_KEY = "space_key";
+	public static final String DOCFIELD_RIVER_NAME = "river_name";
+
 	/**
 	 * Key of Space this indexing is for.
 	 */
@@ -142,21 +145,25 @@ public class SpaceIndexingInfo {
 	 * Add object with space indexing info to given document builder.
 	 * 
 	 * @param builder to add information Object into
+	 * @param riverName to be added into data. Not added if null
 	 * @param printSpaceKey set to true to print Space key into document
 	 * @param printFinalStatus set to true to print final status info into document
 	 * @return builder same as on input.
 	 * @throws IOException
 	 */
-	public XContentBuilder buildDocument(XContentBuilder builder, boolean printSpaceKey, boolean printFinalStatus)
-			throws IOException {
+	public XContentBuilder buildDocument(XContentBuilder builder, String riverName, boolean printSpaceKey,
+			boolean printFinalStatus) throws IOException {
 		builder.startObject();
-		if (printSpaceKey)
+		if (riverName != null)
+			builder.field(DOCFIELD_RIVER_NAME, riverName);
+		if (printSpaceKey) {
 			builder.field(DOCFIELD_SPACE_KEY, spaceKey);
-
+		}
 		builder.field(DOCFIELD_UPDATE_TYPE, fullUpdate ? DOCVAL_TYPE_FULL : "INCREMENTAL");
 		builder.field(DOCFIELD_START_DATE, startDate);
 		builder.field(DOCFIELD_DOCUMENTS_UPDATED, documentsUpdated);
 		builder.field(DOCFIELD_DOCUMENTS_DELETED, documentsDeleted);
+		builder.field(DOCFIELD_COMMENTS_DELETED, commentsDeleted);
 		builder.field(DOCFIELD_DOCUMENTS_WITH_ERROR, documentsWithError);
 		if (printFinalStatus) {
 			builder.field(DOCFIELD_RESULT, finishedOK ? DOCVAL_RESULT_OK : "ERROR");
@@ -183,6 +190,7 @@ public class SpaceIndexingInfo {
 		ret.startDate = DateTimeUtils.parseISODateTime((String) document.get(DOCFIELD_START_DATE));
 		ret.documentsUpdated = Utils.nodeIntegerValue(document.get(DOCFIELD_DOCUMENTS_UPDATED));
 		ret.documentsDeleted = Utils.nodeIntegerValue(document.get(DOCFIELD_DOCUMENTS_DELETED));
+		ret.commentsDeleted = Utils.nodeIntegerValue(document.get(DOCFIELD_COMMENTS_DELETED));
 		ret.documentsWithError = Utils.nodeIntegerValue(document.get(DOCFIELD_DOCUMENTS_WITH_ERROR));
 		ret.finishedOK = DOCVAL_RESULT_OK.equals(document.get(DOCFIELD_RESULT));
 		ret.timeElapsed = Long.parseLong(((String) document.get(DOCFIELD_TIME_ELAPSED)).replace("ms", ""));

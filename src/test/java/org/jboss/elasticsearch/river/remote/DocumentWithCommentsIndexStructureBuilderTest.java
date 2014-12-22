@@ -81,6 +81,10 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		Assert.assertEquals("type_name", tested.issueTypeName);
 		Assert.assertEquals("document_id", tested.remoteDataFieldForDocumentId);
 		Assert.assertEquals("updated", tested.remoteDataFieldForUpdated);
+
+		Assert.assertEquals("delFlag", tested.remoteDataFieldForDeleted);
+		Assert.assertEquals("true", tested.remoteDataValueForDeleted);
+
 		Assert.assertEquals("river_name", tested.indexFieldForRiverName);
 		Assert.assertEquals("space_key_field", tested.indexFieldForSpaceKey);
 		Assert.assertEquals("document_id_field", tested.indexFieldForRemoteDocumentId);
@@ -119,6 +123,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 
 		Map<String, Object> settings = loadTestSettings("/index_structure_configuration_test_ok.json");
 		settings.remove(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_UPDATED);
+		settings.remove(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_DELETED);
+		settings.remove(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_DELETEDVALUE);
 
 		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(
 				mockEsIntegrationComponent(), "index_name", "type_name", settings, false);
@@ -127,6 +133,8 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		Assert.assertEquals("type_name", tested.issueTypeName);
 		Assert.assertEquals("document_id", tested.remoteDataFieldForDocumentId);
 		Assert.assertEquals(null, tested.remoteDataFieldForUpdated);
+		Assert.assertNull(tested.remoteDataFieldForDeleted);
+		Assert.assertNull(tested.remoteDataValueForDeleted);
 		Assert.assertEquals("river_name", tested.indexFieldForRiverName);
 		Assert.assertEquals("space_key_field", tested.indexFieldForSpaceKey);
 		Assert.assertEquals("document_id_field", tested.indexFieldForRemoteDocumentId);
@@ -190,6 +198,19 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 					e.getMessage());
 		}
 
+		try {
+			Map<String, Object> config = loadTestSettings("/index_structure_configuration_test_ok.json");
+			config.remove(DocumentWithCommentsIndexStructureBuilder.CONFIG_REMOTEFIELD_DELETEDVALUE);
+			new DocumentWithCommentsIndexStructureBuilder(mockEsIntegrationComponent(), "index_name", "type_name", config,
+					true);
+			Assert.fail("SettingsException must be thrown");
+		} catch (SettingsException e) {
+			System.out.println(e.getMessage());
+			Assert
+					.assertEquals(
+							"Configuration fields 'index/remote_field_deleted' and 'index/remote_field_deleted_value' must be both set or both empty",
+							e.getMessage());
+		}
 		// TODO other validation tests
 
 	}
@@ -556,6 +577,58 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		try {
 			tested.remoteDataFieldForUpdated = "key4";
 			tested.extractDocumentUpdated(document);
+			Assert.fail("SettingsException expected");
+		} catch (SettingsException e) {
+			// OK
+		}
+
+	}
+
+	@Test
+	public void extractDocumentDeleted() {
+		DocumentWithCommentsIndexStructureBuilder tested = new DocumentWithCommentsIndexStructureBuilder(
+				mockEsIntegrationComponent(), "search_index", "doc_type", createSettingsWithMandatoryFilled(), true);
+		tested.remoteDataFieldForDeleted = null;
+		tested.remoteDataValueForDeleted = null;
+		Map<String, Object> document = new HashMap<String, Object>();
+
+		Assert.assertFalse(tested.extractDocumentDeleted(null));
+		Assert.assertFalse(tested.extractDocumentDeleted(document));
+
+		tested.remoteDataFieldForDeleted = "delflag";
+		tested.remoteDataValueForDeleted = "true";
+
+		Assert.assertFalse(tested.extractDocumentDeleted(null));
+		Assert.assertFalse(tested.extractDocumentDeleted(document));
+
+		document.put(tested.remoteDataFieldForDeleted, Boolean.TRUE);
+		Assert.assertTrue(tested.extractDocumentDeleted(document));
+
+		document.put(tested.remoteDataFieldForDeleted, tested.remoteDataValueForDeleted);
+		Assert.assertTrue(tested.extractDocumentDeleted(document));
+
+		// case sensitive evaluation of the value
+		document.put(tested.remoteDataFieldForDeleted, "True");
+		Assert.assertFalse(tested.extractDocumentDeleted(document));
+
+		// Integer value from remote data
+		tested.remoteDataValueForDeleted = "1";
+		document.put(tested.remoteDataFieldForDeleted, new Integer(0));
+		Assert.assertFalse(tested.extractDocumentDeleted(document));
+		document.put(tested.remoteDataFieldForDeleted, new Integer(1));
+		Assert.assertTrue(tested.extractDocumentDeleted(document));
+
+		// bad type in remote data
+		try {
+			document.put(tested.remoteDataFieldForDeleted, new ArrayList<>());
+			tested.extractDocumentDeleted(document);
+			Assert.fail("SettingsException expected");
+		} catch (SettingsException e) {
+			// OK
+		}
+		try {
+			document.put(tested.remoteDataFieldForDeleted, new HashMap<>());
+			tested.extractDocumentDeleted(document);
 			Assert.fail("SettingsException expected");
 		} catch (SettingsException e) {
 			// OK

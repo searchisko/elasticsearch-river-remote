@@ -106,6 +106,7 @@ public class SpacePaginatingIndexerTest {
 		verify(tested.remoteSystemClient, times(3)).getChangedDocumentDetails(Mockito.eq("ORG"), Mockito.anyString(),
 				Mockito.anyMap());
 		verify(tested.documentIndexStructureBuilder, times(3)).extractDocumentId(Mockito.anyMap());
+		verify(tested.documentIndexStructureBuilder, times(2)).extractDocumentDeleted(Mockito.anyMap());
 		verify(tested.documentIndexStructureBuilder, times(2)).indexDocument(Mockito.eq(brb), Mockito.eq("ORG"),
 				Mockito.any(Map.class));
 
@@ -150,6 +151,7 @@ public class SpacePaginatingIndexerTest {
 		verify(tested.remoteSystemClient, times(3)).getChangedDocumentDetails(Mockito.eq("ORG"), Mockito.anyString(),
 				Mockito.anyMap());
 		verify(tested.documentIndexStructureBuilder, times(3)).extractDocumentId(Mockito.anyMap());
+		verify(tested.documentIndexStructureBuilder, times(2)).extractDocumentDeleted(Mockito.anyMap());
 		verify(tested.documentIndexStructureBuilder, times(2)).indexDocument(Mockito.eq(brb), Mockito.eq("ORG"),
 				Mockito.any(Map.class));
 
@@ -201,6 +203,7 @@ public class SpacePaginatingIndexerTest {
 		verify(tested.remoteSystemClient, times(5)).getChangedDocumentDetails(Mockito.eq("ORG"), Mockito.anyString(),
 				Mockito.anyMap());
 		verify(tested.documentIndexStructureBuilder, times(5)).extractDocumentId(Mockito.anyMap());
+		verify(tested.documentIndexStructureBuilder, times(4)).extractDocumentDeleted(Mockito.anyMap());
 		verify(tested.documentIndexStructureBuilder, times(4)).indexDocument(Mockito.eq(brb), Mockito.eq("ORG"),
 				Mockito.any(Map.class));
 
@@ -250,6 +253,7 @@ public class SpacePaginatingIndexerTest {
 		verify(tested.remoteSystemClient, times(5)).getChangedDocumentDetails(Mockito.eq("ORG"), Mockito.anyString(),
 				Mockito.anyMap());
 		verify(tested.documentIndexStructureBuilder, times(5)).extractDocumentId(Mockito.anyMap());
+		verify(tested.documentIndexStructureBuilder, times(4)).extractDocumentDeleted(Mockito.anyMap());
 		verify(tested.documentIndexStructureBuilder, times(4)).indexDocument(Mockito.eq(brb), Mockito.eq("ORG"),
 				Mockito.any(Map.class));
 

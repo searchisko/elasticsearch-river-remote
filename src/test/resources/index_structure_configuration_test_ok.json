@@ -2,6 +2,8 @@
   "index" : {
   	"remote_field_document_id":"document_id",
     "remote_field_updated" : "updated",
+    "remote_field_deleted" : "delFlag",
+	  "remote_field_deleted_value" : true,
     "field_river_name"  : "river_name",
     "field_space_key"   : "space_key_field",
     "field_document_id" : "document_id_field",

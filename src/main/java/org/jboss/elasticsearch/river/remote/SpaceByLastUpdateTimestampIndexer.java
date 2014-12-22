@@ -84,6 +84,7 @@ public class SpaceByLastUpdateTimestampIndexer extends SpaceIndexerBase {
 
 				Date firstDocumentUpdatedDate = null;
 				int updatedInThisBulk = 0;
+				boolean deletedInThisBulk = false;
 				BulkRequestBuilder esBulk = esIntegrationComponent.prepareESBulkRequestBuilder();
 				for (Map<String, Object> document : res.getDocuments()) {
 					String documentId = getDocumentIdChecked(document);
@@ -97,9 +98,12 @@ public class SpaceByLastUpdateTimestampIndexer extends SpaceIndexerBase {
 							firstDocumentUpdatedDate = lastDocumentUpdatedDate;
 						}
 
-						documentIndexStructureBuilder.indexDocument(esBulk, spaceKey, document);
-						updatedInThisBulk++;
-
+						if (documentIndexStructureBuilder.extractDocumentDeleted(document)) {
+							deletedInThisBulk = prepareDeleteByRemoteDocumentId(esBulk, documentId) || deletedInThisBulk;
+						} else {
+							documentIndexStructureBuilder.indexDocument(esBulk, spaceKey, document);
+							updatedInThisBulk++;
+						}
 					}
 					if (isClosed())
 						throw new InterruptedException("Interrupted because River is closed");
@@ -108,7 +112,7 @@ public class SpaceByLastUpdateTimestampIndexer extends SpaceIndexerBase {
 				if (lastDocumentUpdatedDate != null)
 					storeLastDocumentUpdatedDate(esBulk, spaceKey, lastDocumentUpdatedDate);
 
-				if (updatedInThisBulk > 0) {
+				if (updatedInThisBulk > 0 || deletedInThisBulk) {
 					executeBulkUpdate(esBulk);
 					indexingInfo.documentsUpdated += updatedInThisBulk;
 				}

@@ -59,19 +59,24 @@ public class SpacePaginatingIndexer extends SpaceIndexerBase {
 					throw new InterruptedException("Interrupted because River is closed");
 
 				int updatedInThisBulk = 0;
+				boolean deletedInThisBulk = false;
 				BulkRequestBuilder esBulk = esIntegrationComponent.prepareESBulkRequestBuilder();
 				for (Map<String, Object> document : res.getDocuments()) {
 					String documentId = getDocumentIdChecked(document);
 					if (getDocumentDetail(documentId, document)) {
 						logger.debug("Go to update index for document '{}'", documentId);
-						documentIndexStructureBuilder.indexDocument(esBulk, spaceKey, document);
-						updatedInThisBulk++;
+						if (documentIndexStructureBuilder.extractDocumentDeleted(document)) {
+							deletedInThisBulk = prepareDeleteByRemoteDocumentId(esBulk, documentId) || deletedInThisBulk;
+						} else {
+							documentIndexStructureBuilder.indexDocument(esBulk, spaceKey, document);
+							updatedInThisBulk++;
+						}
 					}
 					if (isClosed())
 						throw new InterruptedException("Interrupted because River is closed");
 				}
 
-				if (updatedInThisBulk > 0) {
+				if (updatedInThisBulk > 0 || deletedInThisBulk) {
 					executeBulkUpdate(esBulk);
 					indexingInfo.documentsUpdated += updatedInThisBulk;
 				}

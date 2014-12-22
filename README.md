@@ -115,6 +115,8 @@ The example above lists all the main options controlling the creation and behavi
 * `index/field_river_name`, `index/field_space_key`, `index/field_document_id`, `index/fields`, `index/value_filters` are used to define structure of indexed document. See 'Index document structure' chapter.
 * `index/remote_field_document_id` is used to define field in remote system document data where unique document identifier is stored. Dot notation may be used for deeper nesting in document data.
 * `index/remote_field_updated` is used to define field in remote system document data where timestamp of last update is stored - timestamp may be formatted by ISO format or number representing millis from 1.1.1970. Dot notation may be used for deeper nesting in document data. Timestamp is mandatory unless you use `simpleGetDocuments` mode.  
+* `index/remote_field_deleted` is used to define field in remote system document data where deleted flag is stored. If this flag is set to value configured in `index/remote_field_deleted_value` config param then document is deleted from elasticsearch index even during incremental updates.
+* `index/remote_field_deleted_value` see description of previous config property
 * `index/comment_mode` defines mode of issue comments indexing: `none` - no comments indexed, `embedded` - comments indexed as array in document, `child` - comment indexed as separate document with [parent-child relation](http://www.elasticsearch.org/guide/reference/mapping/parent-field.html) to the document, `standalone` - comment indexed as separate document. Setting is optional, `none` value is default if not provided.
 * `index/comment_type` defines [type](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/glossary.html#glossary-type) used when issue comment is stored into search index in `child` or `standalone` mode. See related notes later!
 * `index/field_comments`, `index/comment_fields` can be used to change structure comment information in indexed documents. See 'index document structure' chapter.
@@ -148,7 +150,9 @@ Type [Mapping](http://www.elasticsearch.org/guide/en/elasticsearch/reference/cur
 is not explicitly created by river code for configured document type. The river 
 REQUIRES [Automatic Timestamp Field](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/mapping-timestamp-field.html) 
 and `keyword` analyzer for `space_key` and `source` fields to be able to 
-correctly remove documents deleted in remote system from index during full update! 
+correctly remove documents deleted in remote system from index during full update!
+If you use deleted during incremental updates you also have to use `keyword` analyzer 
+for field where remote document id is stored, which is `document_id` by default.   
 So you have to create document type mapping manually BEFORE river creation, with next content at least:
 
 	curl -XPUT localhost:9200/my_remote_index/remote_document/_mapping -d '
@@ -157,6 +161,7 @@ So you have to create document type mapping manually BEFORE river creation, with
 	        "_timestamp" : { "enabled" : true },
 	        "properties" : {
 	            "space_key" : {"type" : "string", "analyzer" : "keyword"},
+	            "document_id" : {"type" : "string", "analyzer" : "keyword"},
 	            "source"    : {"type" : "string", "analyzer" : "keyword"}
 	        }
 	    }
@@ -171,6 +176,7 @@ Same apply for 'comment' mapping if you use `child` or `standalone` mode!
 	        "_timestamp" : { "enabled" : true },
 	        "properties" : {
 	            "space_key" : {"type" : "string", "analyzer" : "keyword"},
+	            "document_id" : {"type" : "string", "analyzer" : "keyword"},
 	            "source"      : {"type" : "string", "analyzer" : "keyword"}
 	        }
 	    }

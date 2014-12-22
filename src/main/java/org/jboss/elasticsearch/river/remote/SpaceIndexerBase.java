@@ -176,9 +176,6 @@ public abstract class SpaceIndexerBase implements Runnable {
 		if (boundDate == null)
 			throw new IllegalArgumentException("boundDate must be set");
 
-		indexingInfo.documentsDeleted = 0;
-		indexingInfo.commentsDeleted = 0;
-
 		if (!indexingInfo.fullUpdate)
 			return;
 
@@ -188,7 +185,7 @@ public abstract class SpaceIndexerBase implements Runnable {
 		String indexName = documentIndexStructureBuilder.getDocumentSearchIndexName(spaceKey);
 		esIntegrationComponent.refreshSearchIndex(indexName);
 
-		logger.debug("go to delete indexed issues for space {} not updated after {}", spaceKey, boundDate);
+		logger.debug("go to delete indexed documents for space {} not updated after {}", spaceKey, boundDate);
 		SearchRequestBuilder srb = esIntegrationComponent.prepareESScrollSearchRequestBuilder(indexName);
 		documentIndexStructureBuilder.buildSearchForIndexedDocumentsNotUpdatedAfter(srb, spaceKey, boundDate);
 
@@ -214,6 +211,47 @@ public abstract class SpaceIndexerBase implements Runnable {
 			}
 			esIntegrationComponent.executeESBulkRequest(esBulk);
 		}
+	}
+
+	/**
+	 * Prepare delete of es index documents based on remote document id.
+	 * 
+	 * @param esBulk to prepare delete into
+	 * @param documentId to prepare delete for
+	 * @return true if at least one delete has been prepared in the method
+	 * @throws InterruptedException
+	 * @throws Exception
+	 */
+	protected boolean prepareDeleteByRemoteDocumentId(BulkRequestBuilder esBulk, String documentId)
+			throws InterruptedException, Exception {
+		boolean deletedInThisBulk = false;
+		String indexName = documentIndexStructureBuilder.getDocumentSearchIndexName(spaceKey);
+		esIntegrationComponent.refreshSearchIndex(indexName);
+
+		logger.debug("go to delete indexed documents for space {} and remote id {}", spaceKey, documentId);
+		SearchRequestBuilder srb = esIntegrationComponent.prepareESScrollSearchRequestBuilder(indexName);
+		documentIndexStructureBuilder.buildSearchForIndexedDocumentsWithRemoteId(srb, spaceKey, documentId);
+
+		SearchResponse scrollResp = esIntegrationComponent.executeESSearchRequest(srb);
+
+		if (scrollResp.getHits().getTotalHits() > 0) {
+			if (isClosed())
+				throw new InterruptedException("Interrupted because River is closed");
+			scrollResp = esIntegrationComponent.executeESScrollSearchNextRequest(scrollResp);
+			while (scrollResp.getHits().getHits().length > 0) {
+				for (SearchHit hit : scrollResp.getHits()) {
+					logger.debug("Go to delete indexed document for ES document id {}", hit.getId());
+					if (documentIndexStructureBuilder.deleteESDocument(esBulk, hit)) {
+						indexingInfo.documentsDeleted++;
+					} else {
+						indexingInfo.commentsDeleted++;
+					}
+					deletedInThisBulk = true;
+				}
+				scrollResp = esIntegrationComponent.executeESScrollSearchNextRequest(scrollResp);
+			}
+		}
+		return deletedInThisBulk;
 	}
 
 	/**

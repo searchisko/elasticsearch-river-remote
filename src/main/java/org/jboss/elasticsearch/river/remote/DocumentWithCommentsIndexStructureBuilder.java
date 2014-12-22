@@ -60,6 +60,8 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	protected static final String CONFIG_FILTERS = "value_filters";
 	protected static final String CONFIG_REMOTEFIELD_DOCUMENTID = "remote_field_document_id";
 	protected static final String CONFIG_REMOTEFIELD_UPDATED = "remote_field_updated";
+	protected static final String CONFIG_REMOTEFIELD_DELETED = "remote_field_deleted";
+	protected static final String CONFIG_REMOTEFIELD_DELETEDVALUE = "remote_field_deleted_value";
 	protected static final String CONFIG_REMOTEFIELD_COMMENTS = "remote_field_comments";
 	protected static final String CONFIG_REMOTEFIELD_COMMENTID = "remote_field_comment_id";
 	protected static final String CONFIG_FIELDRIVERNAME = "field_river_name";
@@ -79,6 +81,21 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	 * Field in remote document data to get indexed document last update timestamp from.
 	 */
 	protected String remoteDataFieldForUpdated = null;
+
+	/**
+	 * Field in remote document data to get delete flag for document from.
+	 * 
+	 * @see DocumentWithCommentsIndexStructureBuilder#extractDocumentDeleted(Map)
+	 */
+	protected String remoteDataFieldForDeleted;
+
+	/**
+	 * Value of deleted flag in remote document which means document is deleted.
+	 * 
+	 * @see #remoteDataFieldForDeleted
+	 * @see DocumentWithCommentsIndexStructureBuilder#extractDocumentDeleted(Map)
+	 */
+	protected String remoteDataValueForDeleted;
 
 	/**
 	 * Field in remote document data to get array of comments from.
@@ -184,6 +201,11 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 			remoteDataFieldForCommentId = Utils.trimToNull(XContentMapValues.nodeStringValue(
 					settings.get(CONFIG_REMOTEFIELD_COMMENTID), null));
 
+			remoteDataFieldForDeleted = Utils.trimToNull(XContentMapValues.nodeStringValue(
+					settings.get(CONFIG_REMOTEFIELD_DELETED), null));
+			remoteDataValueForDeleted = Utils.trimToNull(XContentMapValues.nodeStringValue(
+					settings.get(CONFIG_REMOTEFIELD_DELETEDVALUE), null));
+
 			indexFieldForRiverName = XContentMapValues.nodeStringValue(settings.get(CONFIG_FIELDRIVERNAME), null);
 			indexFieldForSpaceKey = XContentMapValues.nodeStringValue(settings.get(CONFIG_FIELDSPACEKEY), null);
 			indexFieldForRemoteDocumentId = XContentMapValues.nodeStringValue(settings.get(CONFIG_FIELDDOCUMENTID), null);
@@ -223,6 +245,12 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 		validateConfigurationString(remoteDataFieldForDocumentId, "index/" + CONFIG_REMOTEFIELD_DOCUMENTID);
 		if (dateOfUpdateMandatory)
 			validateConfigurationString(remoteDataFieldForUpdated, "index/" + CONFIG_REMOTEFIELD_UPDATED);
+
+		if ((remoteDataFieldForDeleted == null && remoteDataValueForDeleted != null)
+				|| (remoteDataFieldForDeleted != null && remoteDataValueForDeleted == null)) {
+			throw new SettingsException("Configuration fields 'index/" + CONFIG_REMOTEFIELD_DELETED + "' and 'index/"
+					+ CONFIG_REMOTEFIELD_DELETEDVALUE + "' must be both set or both empty");
+		}
 
 		validateConfigurationObject(filtersConfig, "index/value_filters");
 		validateConfigurationObject(fieldsConfig, "index/fields");
@@ -295,15 +323,11 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 		Object id = XContentMapValues.extractValue(idFieldName, document);
 		if (id == null)
 			return null;
-		if (!isSimpleValue(id))
+		if (!Utils.isSimpleValue(id))
 			throw new SettingsException("Remote data field '" + idFieldName + "' defined in 'index/"
 					+ idFieldConfigPropertyName + "' config param must provide simple value, but value is " + id);
 
 		return id.toString();
-	}
-
-	private boolean isSimpleValue(Object value) {
-		return (value instanceof String || value instanceof Integer || value instanceof Long || value instanceof Date);
 	}
 
 	@Override
@@ -311,7 +335,7 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 		Object val = XContentMapValues.extractValue(remoteDataFieldForUpdated, document);
 		if (val == null)
 			return null;
-		if (!isSimpleValue(val))
+		if (!Utils.isSimpleValue(val))
 			throw new SettingsException("Remote data field '" + remoteDataFieldForUpdated
 					+ "' must provide simple value, but value is " + val);
 
@@ -330,6 +354,29 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 						+ "' is not reecognized as timestamp value (ISO format or number with millis from 1.1.1970): " + val);
 			}
 		}
+	}
+
+	@Override
+	public boolean extractDocumentDeleted(Map<String, Object> document) {
+		if (document == null || remoteDataFieldForDeleted == null)
+			return false;
+
+		Object val = XContentMapValues.extractValue(remoteDataFieldForDeleted, document);
+		if (val == null)
+			return false;
+
+		if (!Utils.isSimpleValue(val))
+			throw new SettingsException("Remote data field '" + remoteDataFieldForDeleted
+					+ "' must provide simple value, but value is " + val);
+
+		String v = null;
+		if (val instanceof String) {
+			v = (String) val;
+		} else {
+			v = val.toString();
+		}
+
+		return v.equals(remoteDataValueForDeleted);
 	}
 
 	protected String extractCommentId(Map<String, Object> comment) {
@@ -360,9 +407,22 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	@Override
 	public void buildSearchForIndexedDocumentsNotUpdatedAfter(SearchRequestBuilder srb, String spaceKey, Date date) {
 		FilterBuilder filterTime = FilterBuilders.rangeFilter("_timestamp").lt(date);
-		FilterBuilder filterProject = FilterBuilders.termFilter(indexFieldForSpaceKey, spaceKey);
+		FilterBuilder filterSpaceKey = FilterBuilders.termFilter(indexFieldForSpaceKey, spaceKey);
 		FilterBuilder filterSource = FilterBuilders.termFilter(indexFieldForRiverName, riverName);
-		FilterBuilder filter = FilterBuilders.boolFilter().must(filterTime).must(filterProject).must(filterSource);
+		FilterBuilder filter = FilterBuilders.boolFilter().must(filterTime, filterSpaceKey, filterSource);
+		srb.setQuery(QueryBuilders.matchAllQuery()).addField("_id").setPostFilter(filter);
+		if (commentIndexingMode.isExtraDocumentIndexed())
+			srb.setTypes(issueTypeName, commentTypeName);
+		else
+			srb.setTypes(issueTypeName);
+	}
+
+	@Override
+	public void buildSearchForIndexedDocumentsWithRemoteId(SearchRequestBuilder srb, String spaceKey, String remoteId) {
+		FilterBuilder filterRemoteId = FilterBuilders.termFilter(indexFieldForRemoteDocumentId, remoteId);
+		FilterBuilder filterSpaceKey = FilterBuilders.termFilter(indexFieldForSpaceKey, spaceKey);
+		FilterBuilder filterSource = FilterBuilders.termFilter(indexFieldForRiverName, riverName);
+		FilterBuilder filter = FilterBuilders.boolFilter().must(filterRemoteId, filterSpaceKey, filterSource);
 		srb.setQuery(QueryBuilders.matchAllQuery()).addField("_id").setPostFilter(filter);
 		if (commentIndexingMode.isExtraDocumentIndexed())
 			srb.setTypes(issueTypeName, commentTypeName);

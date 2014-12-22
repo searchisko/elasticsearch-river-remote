@@ -8,6 +8,7 @@ package org.jboss.elasticsearch.river.remote;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -307,6 +308,16 @@ public class Utils {
 			return url.substring(id + 1).toLowerCase();
 		}
 		return null;
+	}
+
+	/**
+	 * Check if object is simple JSON value (not Array nor List nor Map)
+	 * 
+	 * @param value to check
+	 * @return true if it is an simple value
+	 */
+	public static boolean isSimpleValue(Object value) {
+		return (value instanceof String || value instanceof Integer || value instanceof Boolean || value instanceof Long || value instanceof Date);
 	}
 
 }

@@ -42,7 +42,7 @@ public interface IDocumentIndexStructureBuilder {
 	 * @param document data obtained from remote system to be indexed (JSON parsed into Map of Map structure)
 	 * @return
 	 */
-	String extractDocumentId(Map<String, Object> issue);
+	String extractDocumentId(Map<String, Object> document);
 
 	/**
 	 * Get date of last document update from data obtained from remote system.
@@ -50,7 +50,15 @@ public interface IDocumentIndexStructureBuilder {
 	 * @param document data obtained from remote system to be indexed (JSON parsed into Map of Map structure)
 	 * @return date of last update
 	 */
-	Date extractDocumentUpdated(Map<String, Object> issue);
+	Date extractDocumentUpdated(Map<String, Object> document);
+
+	/**
+	 * Get deleted flag from data obtained from remote system.
+	 * 
+	 * @param document data obtained from remote system to be indexed (JSON parsed into Map of Map structure)
+	 * @return true if document is marked as deleted in remote data.
+	 */
+	boolean extractDocumentDeleted(Map<String, Object> document);
 
 	/**
 	 * Store/Update document obtained from remote system into search index.
@@ -73,6 +81,17 @@ public interface IDocumentIndexStructureBuilder {
 	 *          constructed query
 	 */
 	void buildSearchForIndexedDocumentsNotUpdatedAfter(SearchRequestBuilder srb, String spaceKey, Date date);
+
+	/**
+	 * Construct search request to find remote document and comments indexed documents for given remote id. Used to delete
+	 * documents marked with deleted flag in remote data. Results from this query are processed by
+	 * {@link #deleteESDocument(BulkRequestBuilder, SearchHit)}
+	 * 
+	 * @param srb search request builder to add necessary conditions into
+	 * @param spaceKey to search documents for
+	 * @param remoteId all documents in ES index belonging to this remote id must be found by constructed query
+	 */
+	void buildSearchForIndexedDocumentsWithRemoteId(SearchRequestBuilder srb, String spaceKey, String remoteId);
 
 	/**
 	 * Delete remote doc related es document (document or comment) from search index. Query to obtain documents to be

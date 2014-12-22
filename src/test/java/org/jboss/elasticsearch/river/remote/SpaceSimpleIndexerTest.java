@@ -116,6 +116,11 @@ public class SpaceSimpleIndexerTest {
 		verify(tested.remoteSystemClient).getChangedDocumentDetails("ORG", "ORG-46", doc2);
 		verify(tested.remoteSystemClient).getChangedDocumentDetails("ORG", "ORG-47", doc3);
 		verify(tested.remoteSystemClient).getChangedDocumentDetails("ORG", "ORG-48", doc4);
+
+		verify(tested.documentIndexStructureBuilder).extractDocumentDeleted(doc1);
+		verify(tested.documentIndexStructureBuilder).extractDocumentDeleted(doc3);
+		verify(tested.documentIndexStructureBuilder).extractDocumentDeleted(doc4);
+
 		Mockito.verifyNoMoreInteractions(tested.remoteSystemClient);
 		Mockito.verifyNoMoreInteractions(tested.esIntegrationComponent);
 		Mockito.verifyNoMoreInteractions(tested.documentIndexStructureBuilder);

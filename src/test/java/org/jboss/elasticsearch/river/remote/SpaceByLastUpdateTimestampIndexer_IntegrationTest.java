@@ -50,7 +50,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 	private static final String CFG_TYPE_ACTIVITY = "jira_river_indexupdate";
 	private static final String CFG_INDEX_NAME_ACTIVITY = "activity_index";
 
-	private static final String PROJECT_KEY = "ORG";
+	private static final String SPACE_KEY = "ORG";
 
 	@Test
 	public void incrementalUpdateCommentsEMBEDDED() throws Exception {
@@ -69,14 +69,14 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 			// run 1 to insert documents
 			Date dateStartRun1 = new Date();
-			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false,
+			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, false,
 					remoteClientMock, remoteRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
-			tested.storeLastDocumentUpdatedDate(null, PROJECT_KEY, lastIssueUpdatedDate);
-			when(remoteClientMock.getChangedDocuments(PROJECT_KEY, 0, lastIssueUpdatedDate)).thenReturn(
+			tested.storeLastDocumentUpdatedDate(null, SPACE_KEY, lastIssueUpdatedDate);
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, lastIssueUpdatedDate)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501", "ORG-1513", "ORG-1514"));
 			when(
-					remoteClientMock.getChangedDocuments(Mockito.eq(PROJECT_KEY), Mockito.eq(0),
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0),
 							Mockito.eq(DateTimeUtils.parseISODateTime("2012-09-06T03:27:25.000-0400")))).thenReturn(
 					new ChangedDocumentsResults(null, 0, null));
 
@@ -84,11 +84,12 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 			Assert.assertEquals(3, tested.indexingInfo.documentsUpdated);
 			Assert.assertEquals(0, tested.indexingInfo.documentsDeleted);
+			Assert.assertEquals(0, tested.indexingInfo.commentsDeleted);
 			Assert.assertEquals(false, tested.indexingInfo.fullUpdate);
 			Assert.assertNotNull(tested.startTime);
 
 			Date lastIssueUpdatedDate2 = DateTimeUtils.parseISODateTime("2012-09-06T03:27:25.000-0400");
-			Assert.assertEquals(lastIssueUpdatedDate2, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
+			Assert.assertEquals(lastIssueUpdatedDate2, tested.readLastDocumentUpdatedDate(SPACE_KEY));
 
 			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "ORG-1514");
 			assertDocumentsInIndex(client, CFG_TYPE_COMMENT);
@@ -99,12 +100,12 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Thread.sleep(100);
 			Date dateStartRun2 = new Date();
 			Mockito.reset(remoteClientMock);
-			tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false, remoteClientMock, remoteRiverMock,
+			tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, false, remoteClientMock, remoteRiverMock,
 					structureBuilder);
-			when(remoteClientMock.getChangedDocuments(PROJECT_KEY, 0, lastIssueUpdatedDate2)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, lastIssueUpdatedDate2)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501-updated"));
 			when(
-					remoteClientMock.getChangedDocuments(Mockito.eq(PROJECT_KEY), Mockito.eq(0),
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0),
 							Mockito.eq(DateTimeUtils.parseISODateTime("2012-09-06T03:28:22.000-0400")))).thenReturn(
 					new ChangedDocumentsResults(null, 0, null));
 
@@ -112,11 +113,12 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 			Assert.assertEquals(1, tested.indexingInfo.documentsUpdated);
 			Assert.assertEquals(0, tested.indexingInfo.documentsDeleted);
+			Assert.assertEquals(0, tested.indexingInfo.commentsDeleted);
 			Assert.assertEquals(false, tested.indexingInfo.fullUpdate);
 			Assert.assertNotNull(tested.startTime);
 
 			Date lastIssueUpdatedDate3 = DateTimeUtils.parseISODateTime("2012-09-06T03:28:21.000-0400");
-			Assert.assertEquals(lastIssueUpdatedDate3, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
+			Assert.assertEquals(lastIssueUpdatedDate3, tested.readLastDocumentUpdatedDate(SPACE_KEY));
 
 			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "ORG-1514");
 			assertDocumentsInIndex(client, CFG_TYPE_COMMENT);
@@ -124,6 +126,37 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_DOCUMENT, dateStartRun2, "ORG-1513", "ORG-1514");
 
 			assertNumDocumentsInIndex(client, CFG_INDEX_NAME_ACTIVITY, CFG_TYPE_ACTIVITY, 2);
+
+			// run 3 to delete one document
+			Thread.sleep(100);
+			Date dateStartRun3 = new Date();
+			Mockito.reset(remoteClientMock);
+			tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, false, remoteClientMock, remoteRiverMock,
+					structureBuilder);
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, lastIssueUpdatedDate3)).thenReturn(
+					prepareChangedDocumentsCallResults("ORG-1513-deleted"));
+			when(
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0),
+							Mockito.eq(DateTimeUtils.parseISODateTime("2012-09-06T06:52:06.000-0400")))).thenReturn(
+					new ChangedDocumentsResults(null, 0, null));
+
+			tested.run();
+
+			Assert.assertEquals(0, tested.indexingInfo.documentsUpdated);
+			Assert.assertEquals(1, tested.indexingInfo.documentsDeleted);
+			Assert.assertEquals(0, tested.indexingInfo.commentsDeleted);
+			Assert.assertEquals(false, tested.indexingInfo.fullUpdate);
+			Assert.assertNotNull(tested.startTime);
+
+			Date lastIssueUpdatedDate4 = DateTimeUtils.parseISODateTime("2012-09-06T06:52:05.000-0400");
+			Assert.assertEquals(lastIssueUpdatedDate4, tested.readLastDocumentUpdatedDate(SPACE_KEY));
+
+			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1514");
+			assertDocumentsInIndex(client, CFG_TYPE_COMMENT);
+			assertDocumentsUpdatedAfterDate(client, CFG_TYPE_DOCUMENT, dateStartRun3);
+			assertDocumentsUpdatedBeforeDate(client, CFG_TYPE_DOCUMENT, dateStartRun3, "ORG-1501", "ORG-1514");
+
+			assertNumDocumentsInIndex(client, CFG_INDEX_NAME_ACTIVITY, CFG_TYPE_ACTIVITY, 3);
 
 		} finally {
 			finalizeESClientForUnitTest();
@@ -136,6 +169,8 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 				DocumentWithCommentsIndexStructureBuilderTest.createSettingsWithMandatoryFilled(), true);
 		structureBuilder.remoteDataFieldForDocumentId = "key";
 		structureBuilder.remoteDataFieldForUpdated = "fields.updated";
+		structureBuilder.remoteDataFieldForDeleted = "fields.deleted";
+		structureBuilder.remoteDataValueForDeleted = "true";
 		structureBuilder.remoteDataFieldForComments = "fields.comment.comments";
 		structureBuilder.remoteDataFieldForCommentId = "id";
 		structureBuilder.indexFieldForComments = "comments";
@@ -167,14 +202,14 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 			// run 1 to insert documents
 			Date dateStartRun1 = new Date();
-			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false,
+			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, false,
 					remoteClientMock, remoteRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
-			tested.storeLastDocumentUpdatedDate(null, PROJECT_KEY, lastIssueUpdatedDate);
-			when(remoteClientMock.getChangedDocuments(PROJECT_KEY, 0, lastIssueUpdatedDate)).thenReturn(
+			tested.storeLastDocumentUpdatedDate(null, SPACE_KEY, lastIssueUpdatedDate);
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, lastIssueUpdatedDate)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501", "ORG-1513", "ORG-1514"));
 			when(
-					remoteClientMock.getChangedDocuments(Mockito.eq(PROJECT_KEY), Mockito.eq(0),
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0),
 							Mockito.eq(DateTimeUtils.parseISODateTime("2012-09-06T03:27:25.000-0400")))).thenReturn(
 					new ChangedDocumentsResults(null, 0, null));
 
@@ -186,7 +221,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Assert.assertNotNull(tested.startTime);
 
 			Date lastIssueUpdatedDate2 = DateTimeUtils.parseISODateTime("2012-09-06T03:27:25.000-0400");
-			Assert.assertEquals(lastIssueUpdatedDate2, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
+			Assert.assertEquals(lastIssueUpdatedDate2, tested.readLastDocumentUpdatedDate(SPACE_KEY));
 
 			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "ORG-1514");
 			assertDocumentsInIndex(client, CFG_TYPE_COMMENT, "12714153", "12714252", "12716241");
@@ -199,12 +234,12 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Thread.sleep(100);
 			Date dateStartRun2 = new Date();
 			Mockito.reset(remoteClientMock);
-			tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, false, remoteClientMock, remoteRiverMock,
+			tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, false, remoteClientMock, remoteRiverMock,
 					structureBuilder);
-			when(remoteClientMock.getChangedDocuments(PROJECT_KEY, 0, lastIssueUpdatedDate2)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, lastIssueUpdatedDate2)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501-updated"));
 			when(
-					remoteClientMock.getChangedDocuments(Mockito.eq(PROJECT_KEY), Mockito.eq(0),
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0),
 							Mockito.eq(DateTimeUtils.parseISODateTime("2012-09-06T03:28:22.000-0400")))).thenReturn(
 					new ChangedDocumentsResults(null, 0, null));
 
@@ -216,7 +251,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Assert.assertNotNull(tested.startTime);
 
 			Date lastIssueUpdatedDate3 = DateTimeUtils.parseISODateTime("2012-09-06T03:28:21.000-0400");
-			Assert.assertEquals(lastIssueUpdatedDate3, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
+			Assert.assertEquals(lastIssueUpdatedDate3, tested.readLastDocumentUpdatedDate(SPACE_KEY));
 
 			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "ORG-1514");
 			assertDocumentsInIndex(client, CFG_TYPE_COMMENT, "12714153", "12714252", "12716241", "12714253");
@@ -251,13 +286,13 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 			// run 1 to insert documents
 			Date dateStartRun1 = new Date();
-			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true,
+			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, true,
 					remoteClientMock, remoteRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
-			tested.storeLastDocumentUpdatedDate(null, PROJECT_KEY, lastIssueUpdatedDate);
-			when(remoteClientMock.getChangedDocuments(PROJECT_KEY, 0, null)).thenReturn(
+			tested.storeLastDocumentUpdatedDate(null, SPACE_KEY, lastIssueUpdatedDate);
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501", "ORG-1513", "ORG-1514"));
-			when(remoteClientMock.getChangedDocuments(Mockito.eq(PROJECT_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
+			when(remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
 					.thenReturn(new ChangedDocumentsResults(null, 0, null));
 
 			tested.run();
@@ -268,7 +303,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Assert.assertNotNull(tested.startTime);
 
 			Date lastIssueUpdatedDate2 = DateTimeUtils.parseISODateTime("2012-09-06T03:27:25.000-0400");
-			Assert.assertEquals(lastIssueUpdatedDate2, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
+			Assert.assertEquals(lastIssueUpdatedDate2, tested.readLastDocumentUpdatedDate(SPACE_KEY));
 
 			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "ORG-1514", "AAA-1", "AAA-2");
 			assertDocumentsInIndex(client, CFG_TYPE_COMMENT);
@@ -278,11 +313,11 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Thread.sleep(100);
 			Date dateStartRun2 = new Date();
 			Mockito.reset(remoteClientMock);
-			tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, remoteClientMock, remoteRiverMock,
+			tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, true, remoteClientMock, remoteRiverMock,
 					structureBuilder);
-			when(remoteClientMock.getChangedDocuments(PROJECT_KEY, 0, null)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1513", "ORG-1501-updated"));
-			when(remoteClientMock.getChangedDocuments(Mockito.eq(PROJECT_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
+			when(remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
 					.thenReturn(new ChangedDocumentsResults(null, 0, null));
 			tested.run();
 
@@ -292,7 +327,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Assert.assertNotNull(tested.startTime);
 
 			Date lastIssueUpdatedDate3 = DateTimeUtils.parseISODateTime("2012-09-06T03:28:21.000-0400");
-			Assert.assertEquals(lastIssueUpdatedDate3, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
+			Assert.assertEquals(lastIssueUpdatedDate3, tested.readLastDocumentUpdatedDate(SPACE_KEY));
 
 			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "AAA-1", "AAA-2");
 			assertDocumentsInIndex(client, CFG_TYPE_COMMENT);
@@ -319,13 +354,13 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 			// run 1 to insert documents
 			Date dateStartRun1 = new Date();
-			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true,
+			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, true,
 					remoteClientMock, remoteRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
-			tested.storeLastDocumentUpdatedDate(null, PROJECT_KEY, lastIssueUpdatedDate);
-			when(remoteClientMock.getChangedDocuments(PROJECT_KEY, 0, null)).thenReturn(
+			tested.storeLastDocumentUpdatedDate(null, SPACE_KEY, lastIssueUpdatedDate);
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501", "ORG-1513", "ORG-1514"));
-			when(remoteClientMock.getChangedDocuments(Mockito.eq(PROJECT_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
+			when(remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
 					.thenReturn(new ChangedDocumentsResults(null, 0, null));
 
 			tested.run();
@@ -336,7 +371,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Assert.assertNotNull(tested.startTime);
 
 			Date lastIssueUpdatedDate2 = DateTimeUtils.parseISODateTime("2012-09-06T03:27:25.000-0400");
-			Assert.assertEquals(lastIssueUpdatedDate2, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
+			Assert.assertEquals(lastIssueUpdatedDate2, tested.readLastDocumentUpdatedDate(SPACE_KEY));
 
 			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "ORG-1514", "AAA-1", "AAA-2");
 			assertDocumentsInIndex(client, CFG_TYPE_COMMENT, "12714153", "12714252", "12716241");
@@ -349,11 +384,11 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Thread.sleep(100);
 			Date dateStartRun2 = new Date();
 			Mockito.reset(remoteClientMock);
-			tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, remoteClientMock, remoteRiverMock,
+			tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, true, remoteClientMock, remoteRiverMock,
 					structureBuilder);
-			when(remoteClientMock.getChangedDocuments(PROJECT_KEY, 0, null)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1513", "ORG-1501-updated"));
-			when(remoteClientMock.getChangedDocuments(Mockito.eq(PROJECT_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
+			when(remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
 					.thenReturn(new ChangedDocumentsResults(null, 0, null));
 
 			tested.run();
@@ -365,7 +400,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Assert.assertNotNull(tested.startTime);
 
 			Date lastIssueUpdatedDate3 = DateTimeUtils.parseISODateTime("2012-09-06T03:28:21.000-0400");
-			Assert.assertEquals(lastIssueUpdatedDate3, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
+			Assert.assertEquals(lastIssueUpdatedDate3, tested.readLastDocumentUpdatedDate(SPACE_KEY));
 
 			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "AAA-1", "AAA-2");
 			// note comment "12714252" was removed and "12714253" was added in "ORG-1501-updated"
@@ -399,13 +434,13 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 
 			// run 1 to insert documents
 			Date dateStartRun1 = new Date();
-			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true,
+			SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, true,
 					remoteClientMock, remoteRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
-			tested.storeLastDocumentUpdatedDate(null, PROJECT_KEY, lastIssueUpdatedDate);
-			when(remoteClientMock.getChangedDocuments(PROJECT_KEY, 0, null)).thenReturn(
+			tested.storeLastDocumentUpdatedDate(null, SPACE_KEY, lastIssueUpdatedDate);
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501", "ORG-1513", "ORG-1514"));
-			when(remoteClientMock.getChangedDocuments(Mockito.eq(PROJECT_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
+			when(remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
 					.thenReturn(new ChangedDocumentsResults(null, 0, null));
 
 			tested.run();
@@ -416,7 +451,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Assert.assertNotNull(tested.startTime);
 
 			Date lastIssueUpdatedDate2 = DateTimeUtils.parseISODateTime("2012-09-06T03:27:25.000-0400");
-			Assert.assertEquals(lastIssueUpdatedDate2, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
+			Assert.assertEquals(lastIssueUpdatedDate2, tested.readLastDocumentUpdatedDate(SPACE_KEY));
 
 			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "ORG-1514", "AAA-1", "AAA-2");
 			assertDocumentsInIndex(client, CFG_TYPE_COMMENT, "12714153", "12714252", "12716241");
@@ -429,11 +464,11 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Thread.sleep(100);
 			Date dateStartRun2 = new Date();
 			Mockito.reset(remoteClientMock);
-			tested = new SpaceByLastUpdateTimestampIndexer(PROJECT_KEY, true, remoteClientMock, remoteRiverMock,
+			tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, true, remoteClientMock, remoteRiverMock,
 					structureBuilder);
-			when(remoteClientMock.getChangedDocuments(PROJECT_KEY, 0, null)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1513", "ORG-1501-updated"));
-			when(remoteClientMock.getChangedDocuments(Mockito.eq(PROJECT_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
+			when(remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
 					.thenReturn(new ChangedDocumentsResults(null, 0, null));
 
 			tested.run();
@@ -445,7 +480,7 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends ESRealCli
 			Assert.assertNotNull(tested.startTime);
 
 			Date lastIssueUpdatedDate3 = DateTimeUtils.parseISODateTime("2012-09-06T03:28:21.000-0400");
-			Assert.assertEquals(lastIssueUpdatedDate3, tested.readLastDocumentUpdatedDate(PROJECT_KEY));
+			Assert.assertEquals(lastIssueUpdatedDate3, tested.readLastDocumentUpdatedDate(SPACE_KEY));
 
 			assertDocumentsInIndex(client, CFG_TYPE_DOCUMENT, "ORG-1501", "ORG-1513", "AAA-1", "AAA-2");
 			// note comment "12714252" was removed and "12714253" was added in "ORG-1501-updated"

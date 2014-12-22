@@ -6,6 +6,7 @@
 package org.jboss.elasticsearch.river.remote;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -25,6 +26,20 @@ import org.junit.Test;
  * @author Vlastimil Elias (velias at redhat dot com)
  */
 public class UtilsTest {
+
+	@Test
+	public void isSimpleValue() {
+		Assert.assertTrue(Utils.isSimpleValue("A"));
+		Assert.assertTrue(Utils.isSimpleValue(new Integer(1)));
+		Assert.assertTrue(Utils.isSimpleValue(new Long(1)));
+		Assert.assertTrue(Utils.isSimpleValue(new Date()));
+		Assert.assertTrue(Utils.isSimpleValue(Boolean.TRUE));
+
+		Assert.assertFalse(Utils.isSimpleValue(null));
+		Assert.assertFalse(Utils.isSimpleValue(new ArrayList<>()));
+		Assert.assertFalse(Utils.isSimpleValue(new HashMap<>()));
+		Assert.assertFalse(Utils.isSimpleValue(new String[] {}));
+	}
 
 	@Test
 	public void isEmpty() {

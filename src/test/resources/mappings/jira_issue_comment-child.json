@@ -4,6 +4,7 @@
         "_parent"    : { "type" : "jira_issue" },
         "properties" : {
             "space_key" : {"type" : "string", "analyzer" : "keyword"},
+            "document_id" : {"type" : "string", "analyzer" : "keyword"},
             "source"      : {"type" : "string", "analyzer" : "keyword"}
         }
     }

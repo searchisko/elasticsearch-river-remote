@@ -463,14 +463,14 @@ public class DocumentWithCommentsIndexStructureBuilderTest {
 		{
 			tested.commentIndexingMode = CommentIndexingMode.EMBEDDED;
 
-			String res = tested.prepareIndexedDocument("ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1513"))
+			String res = tested.prepareIndexedDocument("ORG", TestUtils.readDocumentJsonDataFromClasspathFile("ORG-1523"))
 					.string();
 			System.out.println(res);
 			assertTrue(
 					"Should equals",
 					toJsonNode(res).equals(
 							toJsonNode(TestUtils
-									.readStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1513_NOCOMMENTS.json"))));
+									.readStringFromClasspathFile("/asserts/prepareIssueIndexedDocument_ORG-1523_NOCOMMENTS.json"))));
 		}
 
 	}

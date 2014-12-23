@@ -49,9 +49,7 @@ For info about older releases, detailed changelog, planned milestones/enhancemen
 
 The river indexes documents with comments from remote system, and makes them searchable
 by Elasticsearch. Remote system is pooled periodically to detect changed documents and 
-update search index in incremental update mode. 
-Periodical full update may be configured too to completely refresh search index and 
-remove documents deleted in remote system (deletes are not catch by incremental updates).
+update search index. The river supports few modes with full and incremental updates to cover distinct types of REST APIs.
 
 River can be created using:
 
@@ -100,8 +98,8 @@ The example above lists all the main options controlling the creation and behavi
    This configuration is ignored for `listDocumentsMode` which do not support incremental updates. 
 * `remote/indexFullUpdatePeriod` time value, defines how often is search index updated from remote system in full update mode. 
    Optional, default 12 hours. You can use `0` to disable automatic full updates. Full update updates all documents in search 
-   index from remote system, and removes documents deleted in remote system from search index also. This brings more load 
-   to both remote system and Elasticsearch servers, and may run for long time in case of remote systems with many documents. 
+   index from remote system, and removes documents deleted in remote system (not present in REST API responses) from search index also. 
+   This brings more load to both remote system and Elasticsearch servers, and may run for long time in case of remote systems with many documents. 
    Incremental updates are performed between full updates as defined by `indexUpdatePeriod` parameter.
 * `remote/indexFullUpdateCronExpression` contains [Quartz Cron Expression](http://www.quartz-scheduler.org/documentation/quartz-1.x/tutorials/crontrigger) 
    defining when is full index update performed. Optional, if defined then `indexFullUpdatePeriod` is not used. Available from version 1.5.3.
@@ -115,8 +113,8 @@ The example above lists all the main options controlling the creation and behavi
 * `index/field_river_name`, `index/field_space_key`, `index/field_document_id`, `index/fields`, `index/value_filters` are used to define structure of indexed document. See 'Index document structure' chapter.
 * `index/remote_field_document_id` is used to define field in remote system document data where unique document identifier is stored. Dot notation may be used for deeper nesting in document data.
 * `index/remote_field_updated` is used to define field in remote system document data where timestamp of last update is stored - timestamp may be formatted by ISO format or number representing millis from 1.1.1970. Dot notation may be used for deeper nesting in document data. Timestamp is mandatory unless you use `simpleGetDocuments` mode.  
-* `index/remote_field_deleted` is used to define field in remote system document data where deleted flag is stored. If this flag is set to value configured in `index/remote_field_deleted_value` config param then document is deleted from elasticsearch index even during incremental updates.
-* `index/remote_field_deleted_value` see description of previous config property
+* `index/remote_field_deleted` is used to define field in remote system document data where deleted flag is stored. If this flag is set to the value configured in `index/remote_field_deleted_value` config param, then document is deleted from elasticsearch index even during incremental updates.
+* `index/remote_field_deleted_value` defines value of deleted flag (see description of previous config property) which means that document is deleted (case sensitive string comparison is used).
 * `index/comment_mode` defines mode of issue comments indexing: `none` - no comments indexed, `embedded` - comments indexed as array in document, `child` - comment indexed as separate document with [parent-child relation](http://www.elasticsearch.org/guide/reference/mapping/parent-field.html) to the document, `standalone` - comment indexed as separate document. Setting is optional, `none` value is default if not provided.
 * `index/comment_type` defines [type](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/glossary.html#glossary-type) used when issue comment is stored into search index in `child` or `standalone` mode. See related notes later!
 * `index/field_comments`, `index/comment_fields` can be used to change structure comment information in indexed documents. See 'index document structure' chapter.
@@ -149,10 +147,10 @@ BEFORE river creation.
 Type [Mapping](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/mapping.html) for document 
 is not explicitly created by river code for configured document type. The river 
 REQUIRES [Automatic Timestamp Field](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/mapping-timestamp-field.html) 
-and `keyword` analyzer for `space_key` and `source` fields to be able to 
-correctly remove documents deleted in remote system from index during full update!
-If you use deleted during incremental updates you also have to use `keyword` analyzer 
-for field where remote document id is stored, which is `document_id` by default.   
+and `keyword` analyzer for `space_key` and `source` fields to be able to correctly remove documents deleted in remote system from index 
+during full update!
+You have to use `keyword` analyzer for field where remote document id is stored (which is `document_id` by default) also 
+if you use deletes during incremental updates (`remote_field_deleted` config field).   
 So you have to create document type mapping manually BEFORE river creation, with next content at least:
 
 	curl -XPUT localhost:9200/my_remote_index/remote_document/_mapping -d '
@@ -205,6 +203,20 @@ If you use update activity logging then you can create index and mapping for it 
 
 Remote system API to obtain data from 
 -------------------------------------
+
+###Support for data deletes
+River supports correct update of search indices for two basic types of data deletes in remote system. 
+
+If deleted data simply disappear from the remote system API responses then they are deleted from search index at the end of next full 
+update. It is not possible to catch this type of deletes during incremental updates.
+
+If deleted data are marked by some flag only and correctly timestamped to be returned by your system in next incremental update request, then 
+you can use `remote_field_deleted` and `remote_field_deleted_value` river config params to point river to this flag and delete data from search 
+index even during incremental update. Configured delete flag is reflected during full update also. 
+This feature is available from 1.6.2 version of the river.
+
+**Note:** You have to correctly set analyzers for some fields in mapping to allow correct deletes from search index, 
+see previous chapter!     
 
 ###Remote system API requirements
 Remote river uses these operations to obtain necessary data from remote system.

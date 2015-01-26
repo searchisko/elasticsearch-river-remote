@@ -269,8 +269,8 @@ public class HttpRemoteSystemClientBaseTest {
 			}
 
 			@Override
-			public ChangedDocumentsResults getChangedDocuments(String spaceKey, int startAt, Date updatedAfter)
-					throws Exception {
+			public ChangedDocumentsResults getChangedDocuments(String spaceKey, int startAt, boolean fullUpdate,
+					Date updatedAfter) throws Exception {
 				return null;
 			}
 

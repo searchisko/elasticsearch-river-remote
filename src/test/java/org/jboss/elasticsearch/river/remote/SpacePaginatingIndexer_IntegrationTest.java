@@ -42,12 +42,12 @@ public class SpacePaginatingIndexer_IntegrationTest extends SpaceIndexer_Integra
 			Date dateStartRun1 = new Date();
 			SpacePaginatingIndexer tested = new SpacePaginatingIndexer(SPACE_KEY, remoteClientMock, remoteRiverMock,
 					structureBuilder);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, true, null)).thenReturn(
 					prepareChangedDocumentsCallResults(true, "ORG-1501", "ORG-1513", "ORG-1514"));
 
 			tested.run();
 
-			Mockito.verify(remoteClientMock).getChangedDocuments(SPACE_KEY, 0, null);
+			Mockito.verify(remoteClientMock).getChangedDocuments(SPACE_KEY, 0, true, null);
 			Mockito.verify(remoteClientMock, Mockito.times(3)).getChangedDocumentDetails(Mockito.eq(SPACE_KEY),
 					(String) Mockito.notNull(), (Map<String, Object>) Mockito.notNull());
 			Mockito.verifyNoMoreInteractions(remoteClientMock);
@@ -66,12 +66,12 @@ public class SpacePaginatingIndexer_IntegrationTest extends SpaceIndexer_Integra
 			Date dateStartRun2 = new Date();
 			Mockito.reset(remoteClientMock);
 			tested = new SpacePaginatingIndexer(SPACE_KEY, remoteClientMock, remoteRiverMock, structureBuilder);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, true, null)).thenReturn(
 					prepareChangedDocumentsCallResults(true, "ORG-1513-deleted", "ORG-1501-updated"));
 
 			tested.run();
 
-			Mockito.verify(remoteClientMock).getChangedDocuments(SPACE_KEY, 0, null);
+			Mockito.verify(remoteClientMock).getChangedDocuments(SPACE_KEY, 0, true, null);
 			Mockito.verify(remoteClientMock, Mockito.times(2)).getChangedDocumentDetails(Mockito.eq(SPACE_KEY),
 					(String) Mockito.notNull(), (Map<String, Object>) Mockito.notNull());
 			Mockito.verifyNoMoreInteractions(remoteClientMock);
@@ -110,12 +110,12 @@ public class SpacePaginatingIndexer_IntegrationTest extends SpaceIndexer_Integra
 			Date dateStartRun1 = new Date();
 			SpacePaginatingIndexer tested = new SpacePaginatingIndexer(SPACE_KEY, remoteClientMock, remoteRiverMock,
 					structureBuilder);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, true, null)).thenReturn(
 					prepareChangedDocumentsCallResults(true, "ORG-1501", "ORG-1513", "ORG-1514"));
 
 			tested.run();
 
-			Mockito.verify(remoteClientMock).getChangedDocuments(SPACE_KEY, 0, null);
+			Mockito.verify(remoteClientMock).getChangedDocuments(SPACE_KEY, 0, true, null);
 			Mockito.verify(remoteClientMock, Mockito.times(3)).getChangedDocumentDetails(Mockito.eq(SPACE_KEY),
 					(String) Mockito.notNull(), (Map<String, Object>) Mockito.notNull());
 			Mockito.verifyNoMoreInteractions(remoteClientMock);
@@ -137,12 +137,12 @@ public class SpacePaginatingIndexer_IntegrationTest extends SpaceIndexer_Integra
 			Date dateStartRun2 = new Date();
 			Mockito.reset(remoteClientMock);
 			tested = new SpacePaginatingIndexer(SPACE_KEY, remoteClientMock, remoteRiverMock, structureBuilder);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, true, null)).thenReturn(
 					prepareChangedDocumentsCallResults(true, "ORG-1513-deleted", "ORG-1501-updated"));
 
 			tested.run();
 
-			Mockito.verify(remoteClientMock).getChangedDocuments(SPACE_KEY, 0, null);
+			Mockito.verify(remoteClientMock).getChangedDocuments(SPACE_KEY, 0, true, null);
 			Mockito.verify(remoteClientMock, Mockito.times(2)).getChangedDocumentDetails(Mockito.eq(SPACE_KEY),
 					(String) Mockito.notNull(), (Map<String, Object>) Mockito.notNull());
 			Mockito.verifyNoMoreInteractions(remoteClientMock);
@@ -189,12 +189,12 @@ public class SpacePaginatingIndexer_IntegrationTest extends SpaceIndexer_Integra
 			Date dateStartRun1 = new Date();
 			SpacePaginatingIndexer tested = new SpacePaginatingIndexer(SPACE_KEY, remoteClientMock, remoteRiverMock,
 					structureBuilder);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, true, null)).thenReturn(
 					prepareChangedDocumentsCallResults(true, "ORG-1501", "ORG-1513", "ORG-1514"));
 
 			tested.run();
 
-			Mockito.verify(remoteClientMock).getChangedDocuments(SPACE_KEY, 0, null);
+			Mockito.verify(remoteClientMock).getChangedDocuments(SPACE_KEY, 0, true, null);
 			Mockito.verify(remoteClientMock, Mockito.times(3)).getChangedDocumentDetails(Mockito.eq(SPACE_KEY),
 					(String) Mockito.notNull(), (Map<String, Object>) Mockito.notNull());
 			Mockito.verifyNoMoreInteractions(remoteClientMock);
@@ -216,12 +216,12 @@ public class SpacePaginatingIndexer_IntegrationTest extends SpaceIndexer_Integra
 			Date dateStartRun2 = new Date();
 			Mockito.reset(remoteClientMock);
 			tested = new SpacePaginatingIndexer(SPACE_KEY, remoteClientMock, remoteRiverMock, structureBuilder);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, true, null)).thenReturn(
 					prepareChangedDocumentsCallResults(true, "ORG-1513-deleted", "ORG-1501-updated"));
 
 			tested.run();
 
-			Mockito.verify(remoteClientMock).getChangedDocuments(SPACE_KEY, 0, null);
+			Mockito.verify(remoteClientMock).getChangedDocuments(SPACE_KEY, 0, true, null);
 			Mockito.verify(remoteClientMock, Mockito.times(2)).getChangedDocumentDetails(Mockito.eq(SPACE_KEY),
 					(String) Mockito.notNull(), (Map<String, Object>) Mockito.notNull());
 			Mockito.verifyNoMoreInteractions(remoteClientMock);

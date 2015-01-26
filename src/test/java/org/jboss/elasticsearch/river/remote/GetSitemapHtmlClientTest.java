@@ -190,7 +190,7 @@ public class GetSitemapHtmlClientTest {
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
 			GetSitemapHtmlClient tested = createTestedInstance(config, "invalid sitemap xml", CT_XML,
 					"http://test.org/sitemap.xml");
-			tested.getChangedDocuments("myspace", 0, null);
+			tested.getChangedDocuments("myspace", 0, true, null);
 			Assert.fail("UnknownFormatException expected");
 		} catch (UnknownFormatException e) {
 			// OK
@@ -202,7 +202,7 @@ public class GetSitemapHtmlClientTest {
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
 			GetSitemapHtmlClient tested = createTestedInstanceWithHttpCallException(config, new HttpCallException(
 					"http://test.org/sitemap.xml", HttpStatus.SC_NOT_FOUND, "response content"));
-			tested.getChangedDocuments("myspace", 0, null);
+			tested.getChangedDocuments("myspace", 0, true, null);
 			Assert.fail("HttpCallException expected");
 		} catch (HttpCallException e) {
 			// OK
@@ -214,7 +214,7 @@ public class GetSitemapHtmlClientTest {
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, SiteMapParserTest.URL_SITEMAP_XML);
 			GetSitemapHtmlClient tested = createTestedInstance(config, SiteMapParserTest.SITEMAP_XML_NO_DECLARATIONS, CT_XML,
 					SiteMapParserTest.URL_SITEMAP_XML);
-			ChangedDocumentsResults chr = tested.getChangedDocuments("myspace", 0, null);
+			ChangedDocumentsResults chr = tested.getChangedDocuments("myspace", 0, true, null);
 			Assert.assertEquals(5, chr.getDocumentsCount());
 			Assert.assertEquals(new Integer(5), chr.getTotal());
 			Assert.assertEquals(0, chr.getStartAt());
@@ -234,7 +234,7 @@ public class GetSitemapHtmlClientTest {
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, SiteMapParserTest.URL_SITEMAP_XML);
 			GetSitemapHtmlClient tested = createTestedInstance(config, SITEMAP_XML_NO_DECLARATIONS_IGNORED_EXTENSIONS,
 					CT_XML, SiteMapParserTest.URL_SITEMAP_XML);
-			ChangedDocumentsResults chr = tested.getChangedDocuments("myspace", 0, null);
+			ChangedDocumentsResults chr = tested.getChangedDocuments("myspace", 0, true, null);
 			Assert.assertEquals(3, chr.getDocumentsCount());
 			Assert.assertEquals(new Integer(3), chr.getTotal());
 			Assert.assertEquals(0, chr.getStartAt());
@@ -249,7 +249,7 @@ public class GetSitemapHtmlClientTest {
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/sitemap.xml");
 			GetSitemapHtmlClient tested = createTestedInstance(config, SiteMapParserTest.SITEMAP_XML_NO_DECLARATIONS, CT_XML,
 					"http://test.org/sitemap.xml");
-			ChangedDocumentsResults chr = tested.getChangedDocuments("myspace", 0, null);
+			ChangedDocumentsResults chr = tested.getChangedDocuments("myspace", 0, true, null);
 			Assert.assertEquals(0, chr.getDocumentsCount());
 			Assert.assertEquals(new Integer(0), chr.getTotal());
 			Assert.assertEquals(0, chr.getStartAt());
@@ -261,7 +261,7 @@ public class GetSitemapHtmlClientTest {
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, SiteMapParserTest.URL_SITEMAP_XML);
 			GetSitemapHtmlClient tested = createTestedInstance(config, SiteMapParserTest.SITEMAP_XML_INDEX, CT_XML,
 					SiteMapParserTest.URL_SITEMAP_XML);
-			tested.getChangedDocuments("myspace", 0, null);
+			tested.getChangedDocuments("myspace", 0, true, null);
 			Assert.fail("Exception expected");
 		} catch (Exception e) {
 			Assert.assertEquals("Sitemap index format is not supported by this river!", e.getMessage());

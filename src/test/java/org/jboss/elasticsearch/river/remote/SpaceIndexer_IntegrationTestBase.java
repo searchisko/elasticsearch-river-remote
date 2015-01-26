@@ -245,9 +245,10 @@ public class SpaceIndexer_IntegrationTestBase extends ESRealClientTestBase {
 		SpaceByLastUpdateTimestampIndexer tested = new SpaceByLastUpdateTimestampIndexer("AAA", true, remoteClientMock,
 				remoteRiverMock, structureBuilder);
 		ChangedDocumentsResults changedIssues = prepareChangedDocumentsCallResults("AAA-1", "AAA-2");
-		when(remoteClientMock.getChangedDocuments("AAA", 0, null)).thenReturn(changedIssues);
-		when(remoteClientMock.getChangedDocuments(Mockito.eq("AAA"), Mockito.eq(0), (Date) Mockito.notNull())).thenReturn(
-				new ChangedDocumentsResults(null, 0, null));
+		when(remoteClientMock.getChangedDocuments("AAA", 0, true, null)).thenReturn(changedIssues);
+		when(
+				remoteClientMock.getChangedDocuments(Mockito.eq("AAA"), Mockito.eq(0), Mockito.eq(true),
+						(Date) Mockito.notNull())).thenReturn(new ChangedDocumentsResults(null, 0, null));
 		tested.run();
 		remoteRiverMock.refreshSearchIndex(CFG_INDEX_NAME);
 	}

@@ -46,7 +46,7 @@ public class GetJSONClientTest {
 		config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_TOTALCOUNT, "total");
 		tested.init(mockEsIntegrationComponent(), config, false, null);
 
-		ChangedDocumentsResults ret = tested.getChangedDocuments("ORG", 0, null);
+		ChangedDocumentsResults ret = tested.getChangedDocuments("ORG", 0, true, null);
 
 		System.out.println("Documents count: " + ret.getDocumentsCount());
 
@@ -284,11 +284,13 @@ public class GetJSONClientTest {
 
 		try {
 			Map<String, Object> config = new HashMap<String, Object>();
-			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
-					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config
+					.put(
+							GetJSONClient.CFG_URL_GET_DOCUMENTS,
+							"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}");
 			IRemoteSystemClient tested = createTestedInstance(config, "invalid json",
-					"http://test.org/documents?docSpace=myspace&docUpdatedAfter=&startAtIndex=0");
-			tested.getChangedDocuments("myspace", 0, null);
+					"http://test.org/documents?docSpace=myspace&docUpdatedAfter=&startAtIndex=0&it=full");
+			tested.getChangedDocuments("myspace", 0, true, null);
 			Assert.fail("JsonParseException expected");
 		} catch (JsonParseException e) {
 			// OK
@@ -297,11 +299,13 @@ public class GetJSONClientTest {
 		// case - simple response with direct list, no total
 		{
 			Map<String, Object> config = new HashMap<String, Object>();
-			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
-					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+			config
+					.put(
+							GetJSONClient.CFG_URL_GET_DOCUMENTS,
+							"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}");
 			IRemoteSystemClient tested = createTestedInstance(config, "[{\"key\" : \"a\"},{\"key\" : \"b\"}]",
-					"http://test.org/documents?docSpace=myspace&docUpdatedAfter=1256&startAtIndex=12");
-			ChangedDocumentsResults ret = tested.getChangedDocuments("myspace", 12, new Date(1256l));
+					"http://test.org/documents?docSpace=myspace&docUpdatedAfter=1256&startAtIndex=12&it=inc");
+			ChangedDocumentsResults ret = tested.getChangedDocuments("myspace", 12, false, new Date(1256l));
 			Assert.assertEquals(2, ret.getDocumentsCount());
 			Assert.assertEquals(12, ret.getStartAt());
 			Assert.assertEquals(null, ret.getTotal());
@@ -319,7 +323,7 @@ public class GetJSONClientTest {
 			IRemoteSystemClient tested = createTestedInstance(config,
 					"{\"response\": { \"total\":20 ,\"items\":[{\"key\" : \"a\"},{\"key\" : \"b\"}]}}",
 					"http://test.org/documents?docSpace=myspace&docUpdatedAfter=1256&startAtIndex=12");
-			ChangedDocumentsResults ret = tested.getChangedDocuments("myspace", 12, new Date(1256l));
+			ChangedDocumentsResults ret = tested.getChangedDocuments("myspace", 12, false, new Date(1256l));
 			Assert.assertEquals(2, ret.getDocumentsCount());
 			Assert.assertEquals(12, ret.getStartAt());
 			Assert.assertEquals(new Integer(20), ret.getTotal());
@@ -578,15 +582,21 @@ public class GetJSONClientTest {
 
 	@Test
 	public void enhanceUrlGetDocuments() throws UnsupportedEncodingException {
-		Assert.assertEquals("http://test.org?docSpace=myspace&docUpdatedAfter=123456&startAtIndex=0", GetJSONClient
-				.enhanceUrlGetDocuments(
-						"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}", "myspace",
-						new Date(123456l), 0));
+		Assert
+				.assertEquals(
+						"http://test.org?docSpace=myspace&docUpdatedAfter=123456&startAtIndex=0&it=full",
+						GetJSONClient
+								.enhanceUrlGetDocuments(
+										"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}",
+										"myspace", new Date(123456l), 0, true));
 
-		Assert.assertEquals("http://test.org?docSpace=my%26space&docUpdatedAfter=&startAtIndex=125", GetJSONClient
-				.enhanceUrlGetDocuments(
-						"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}", "my&space",
-						null, 125));
+		Assert
+				.assertEquals(
+						"http://test.org?docSpace=my%26space&docUpdatedAfter=&startAtIndex=125&it=inc",
+						GetJSONClient
+								.enhanceUrlGetDocuments(
+										"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}",
+										"my&space", null, 125, false));
 
 	}
 

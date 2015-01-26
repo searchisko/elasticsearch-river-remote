@@ -57,14 +57,14 @@ public class SpaceSimpleIndexerTest {
 		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
 
 		// test case with empty result list from remote system search method
-		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, null)).thenReturn(
+		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, true, null)).thenReturn(
 				new ChangedDocumentsResults(docs, 0, 0));
 
 		tested.processUpdate();
 		Assert.assertEquals(0, tested.getIndexingInfo().documentsUpdated);
 		Assert.assertEquals(0, tested.indexingInfo.documentsWithError);
 		Assert.assertTrue(tested.getIndexingInfo().fullUpdate);
-		verify(tested.remoteSystemClient, times(1)).getChangedDocuments("ORG", 0, null);
+		verify(tested.remoteSystemClient, times(1)).getChangedDocuments("ORG", 0, true, null);
 		verify(tested.esIntegrationComponent, times(0)).prepareESBulkRequestBuilder();
 		verify(tested.esIntegrationComponent, times(0)).executeESBulkRequest(Mockito.any(BulkRequestBuilder.class));
 		Mockito.verifyNoMoreInteractions(tested.remoteSystemClient);
@@ -94,7 +94,7 @@ public class SpaceSimpleIndexerTest {
 				tested.remoteSystemClient.getChangedDocumentDetails(Mockito.eq("ORG"), Mockito.eq("ORG-46"),
 						(Map<String, Object>) Mockito.notNull())).thenThrow(new RemoteDocumentNotFoundException());
 		configureStructureBuilderMockDefaults(tested.documentIndexStructureBuilder);
-		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, null)).thenReturn(
+		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, true, null)).thenReturn(
 				new ChangedDocumentsResults(docs, 0, 3));
 		BulkRequestBuilder brb = new BulkRequestBuilder(client);
 		when(tested.esIntegrationComponent.prepareESBulkRequestBuilder()).thenReturn(brb);
@@ -103,7 +103,7 @@ public class SpaceSimpleIndexerTest {
 		Assert.assertEquals(3, tested.indexingInfo.documentsUpdated);
 		Assert.assertEquals(1, tested.indexingInfo.documentsWithError);
 		Assert.assertTrue(tested.indexingInfo.fullUpdate);
-		verify(tested.remoteSystemClient, times(1)).getChangedDocuments("ORG", 0, null);
+		verify(tested.remoteSystemClient, times(1)).getChangedDocuments("ORG", 0, true, null);
 		verify(tested.esIntegrationComponent, times(2)).prepareESBulkRequestBuilder();
 		verify(tested.documentIndexStructureBuilder, times(3)).indexDocument(Mockito.eq(brb), Mockito.eq("ORG"),
 				Mockito.any(Map.class));

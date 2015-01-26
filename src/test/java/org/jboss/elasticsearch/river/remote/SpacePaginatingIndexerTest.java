@@ -55,14 +55,14 @@ public class SpacePaginatingIndexerTest {
 
 		List<Map<String, Object>> docs = new ArrayList<Map<String, Object>>();
 
-		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, null)).thenReturn(
+		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, true, null)).thenReturn(
 				new ChangedDocumentsResults(docs, 0, null));
 
 		tested.processUpdate();
 		Assert.assertEquals(0, tested.getIndexingInfo().documentsUpdated);
 		Assert.assertEquals(0, tested.indexingInfo.documentsWithError);
 		Assert.assertTrue(tested.getIndexingInfo().fullUpdate);
-		verify(tested.remoteSystemClient, times(1)).getChangedDocuments("ORG", 0, null);
+		verify(tested.remoteSystemClient, times(1)).getChangedDocuments("ORG", 0, true, null);
 		verify(tested.esIntegrationComponent, times(0)).prepareESBulkRequestBuilder();
 		verify(tested.esIntegrationComponent, times(0)).executeESBulkRequest(Mockito.any(BulkRequestBuilder.class));
 		verify(tested.esIntegrationComponent, Mockito.atLeastOnce()).isClosed();
@@ -82,9 +82,9 @@ public class SpacePaginatingIndexerTest {
 		addDocumentMock(docs, "AA2");
 		addDocumentMock(docs, "AA3");
 
-		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, null)).thenReturn(
+		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, true, null)).thenReturn(
 				new ChangedDocumentsResults(docs, 0, null));
-		when(tested.remoteSystemClient.getChangedDocuments("ORG", docs.size(), null)).thenReturn(
+		when(tested.remoteSystemClient.getChangedDocuments("ORG", docs.size(), true, null)).thenReturn(
 				new ChangedDocumentsResults(null, docs.size(), null));
 
 		Client client = Mockito.mock(Client.class);
@@ -102,7 +102,7 @@ public class SpacePaginatingIndexerTest {
 		Assert.assertTrue(tested.getIndexingInfo().fullUpdate);
 		// next is called twice because no total info is provided
 		verify(tested.remoteSystemClient, times(2)).getChangedDocuments(Mockito.eq("ORG"), Mockito.anyInt(),
-				Mockito.eq((Date) null));
+				Mockito.eq(true), Mockito.eq((Date) null));
 		verify(tested.remoteSystemClient, times(3)).getChangedDocumentDetails(Mockito.eq("ORG"), Mockito.anyString(),
 				Mockito.anyMap());
 		verify(tested.documentIndexStructureBuilder, times(3)).extractDocumentId(Mockito.anyMap());
@@ -129,7 +129,7 @@ public class SpacePaginatingIndexerTest {
 		addDocumentMock(docs, "AA2");
 		addDocumentMock(docs, "AA3");
 
-		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, null)).thenReturn(
+		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, true, null)).thenReturn(
 				new ChangedDocumentsResults(docs, 0, 3));
 
 		Client client = Mockito.mock(Client.class);
@@ -147,7 +147,7 @@ public class SpacePaginatingIndexerTest {
 		Assert.assertTrue(tested.getIndexingInfo().fullUpdate);
 		// next is called only once thanks to total info provided
 		verify(tested.remoteSystemClient, times(1)).getChangedDocuments(Mockito.eq("ORG"), Mockito.anyInt(),
-				Mockito.eq((Date) null));
+				Mockito.eq(true), Mockito.eq((Date) null));
 		verify(tested.remoteSystemClient, times(3)).getChangedDocumentDetails(Mockito.eq("ORG"), Mockito.anyString(),
 				Mockito.anyMap());
 		verify(tested.documentIndexStructureBuilder, times(3)).extractDocumentId(Mockito.anyMap());
@@ -178,11 +178,11 @@ public class SpacePaginatingIndexerTest {
 		addDocumentMock(docs2, "AA4");
 		addDocumentMock(docs2, "AA5");
 
-		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, null)).thenReturn(
+		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, true, null)).thenReturn(
 				new ChangedDocumentsResults(docs, 0, null));
-		when(tested.remoteSystemClient.getChangedDocuments("ORG", docs.size(), null)).thenReturn(
+		when(tested.remoteSystemClient.getChangedDocuments("ORG", docs.size(), true, null)).thenReturn(
 				new ChangedDocumentsResults(docs2, docs.size(), null));
-		when(tested.remoteSystemClient.getChangedDocuments("ORG", docs.size() + docs2.size(), null)).thenReturn(
+		when(tested.remoteSystemClient.getChangedDocuments("ORG", docs.size() + docs2.size(), true, null)).thenReturn(
 				new ChangedDocumentsResults(null, docs.size() + docs2.size(), null));
 
 		Client client = Mockito.mock(Client.class);
@@ -199,7 +199,7 @@ public class SpacePaginatingIndexerTest {
 		Assert.assertEquals(1, tested.indexingInfo.documentsWithError);
 		Assert.assertTrue(tested.getIndexingInfo().fullUpdate);
 		verify(tested.remoteSystemClient, times(3)).getChangedDocuments(Mockito.eq("ORG"), Mockito.anyInt(),
-				Mockito.eq((Date) null));
+				Mockito.eq(true), Mockito.eq((Date) null));
 		verify(tested.remoteSystemClient, times(5)).getChangedDocumentDetails(Mockito.eq("ORG"), Mockito.anyString(),
 				Mockito.anyMap());
 		verify(tested.documentIndexStructureBuilder, times(5)).extractDocumentId(Mockito.anyMap());
@@ -230,9 +230,9 @@ public class SpacePaginatingIndexerTest {
 		addDocumentMock(docs2, "AA4");
 		addDocumentMock(docs2, "AA5");
 
-		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, null)).thenReturn(
+		when(tested.remoteSystemClient.getChangedDocuments("ORG", 0, true, null)).thenReturn(
 				new ChangedDocumentsResults(docs, 0, 5));
-		when(tested.remoteSystemClient.getChangedDocuments("ORG", docs.size(), null)).thenReturn(
+		when(tested.remoteSystemClient.getChangedDocuments("ORG", docs.size(), true, null)).thenReturn(
 				new ChangedDocumentsResults(docs2, docs.size(), 5));
 
 		Client client = Mockito.mock(Client.class);
@@ -249,7 +249,7 @@ public class SpacePaginatingIndexerTest {
 		Assert.assertEquals(1, tested.indexingInfo.documentsWithError);
 		Assert.assertTrue(tested.getIndexingInfo().fullUpdate);
 		verify(tested.remoteSystemClient, times(2)).getChangedDocuments(Mockito.eq("ORG"), Mockito.anyInt(),
-				Mockito.eq((Date) null));
+				Mockito.eq(true), Mockito.eq((Date) null));
 		verify(tested.remoteSystemClient, times(5)).getChangedDocumentDetails(Mockito.eq("ORG"), Mockito.anyString(),
 				Mockito.anyMap());
 		verify(tested.documentIndexStructureBuilder, times(5)).extractDocumentId(Mockito.anyMap());

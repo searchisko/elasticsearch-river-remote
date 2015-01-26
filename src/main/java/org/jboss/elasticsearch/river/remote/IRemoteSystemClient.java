@@ -52,12 +52,13 @@ public interface IRemoteSystemClient {
 	 * 
 	 * @param spaceKey mandatory key of Space to get documents for
 	 * @param startAt the index of the first issue to return (0-based)
+	 * @param fullUpdate to indicate if update is full or incremental
 	 * @param updatedAfter optional parameter to return documents updated only after given date.
 	 * @return List of document informations parsed from remote system reply into <code>Map of Maps</code> structure.
 	 * @throws Exception
 	 */
-	public abstract ChangedDocumentsResults getChangedDocuments(String spaceKey, int startAt, Date updatedAfter)
-			throws Exception;
+	public abstract ChangedDocumentsResults getChangedDocuments(String spaceKey, int startAt, boolean fullUpdate,
+			Date updatedAfter) throws Exception;
 
 	/**
 	 * Get detailed data for document from remote system.

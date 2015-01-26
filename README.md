@@ -280,6 +280,7 @@ Operation MUST accept and correctly handle these request parameters if provided 
 * `updatedAfter` - remote system MUST return only documents updated at or after this timestamp (whole history if this param is not provided by indexer)
 * `startAtIndex` - remote system MUST return only documents matching previous two criteria, and starting at this index in result set (0 based). 
    Support for this feature by remote system is optional, and is used only if remote system is able to return "total" count of matching documents in response. 
+* `indexingType` - `full` or `inc` identifying full or incremental indexing run
 
 Operation MUST return these results:
 
@@ -310,7 +311,7 @@ This is default remote system client implementation provided by river.
 Uses http/s GET requests to the target remote system and handles JSON response data. 
 Configuration parameters for this client type:
 
-* `remote/urlGetDocuments` is URL used to call *List Documents* operation from remote system. You may use three placeholders in this URL to be replaced by parameters required by indexing process as described above: `{space}`, `{startAtIndex}`, `{updatedAfter}`
+* `remote/urlGetDocuments` is URL used to call *List Documents* operation from remote system. You may use three placeholders in this URL to be replaced by parameters required by indexing process as described above: `{space}`, `{startAtIndex}`, `{updatedAfter}`, `{indexingType}`
 * `remote/getDocsResFieldDocuments` defines field in JSON data returned from `remote/urlGetDocuments` call, where array of documents is stored. If not defined then the array is expected directly in the root of returned data. Dot notation may be used for deeper nesting in the JSON structure.
 * `remote/getDocsResFieldTotalcount` defines field in JSON data returned from `remote/urlGetDocuments` call, where total number of documents matching passed search criteria is stored. Dot notation may be used for deeper nesting in the JSON structure. 
 * `remote/urlGetDocumentDetails` is URL used to call *Get Document Details* operation from remote system.

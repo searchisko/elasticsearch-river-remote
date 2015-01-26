@@ -74,7 +74,8 @@ public class SpaceByLastUpdateTimestampIndexer extends SpaceIndexerBase {
 				logger.debug("Go to ask remote system for updated documents for space {} with startAt {} and updated {}",
 						spaceKey, startAt, (updatedAfter != null ? ("after " + updatedAfter) : "in whole history"));
 
-			ChangedDocumentsResults res = remoteSystemClient.getChangedDocuments(spaceKey, startAt, updatedAfter);
+			ChangedDocumentsResults res = remoteSystemClient.getChangedDocuments(spaceKey, startAt, indexingInfo.fullUpdate,
+					updatedAfter);
 
 			if (res.getDocumentsCount() == 0) {
 				cont = false;

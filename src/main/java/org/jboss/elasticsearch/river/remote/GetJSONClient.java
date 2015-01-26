@@ -225,8 +225,9 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
-	public ChangedDocumentsResults getChangedDocuments(String spaceKey, int startAt, Date updatedAfter) throws Exception {
-		String url = enhanceUrlGetDocuments(urlGetDocuments, spaceKey, updatedAfter, startAt);
+	public ChangedDocumentsResults getChangedDocuments(String spaceKey, int startAt, boolean fullUpdate, Date updatedAfter)
+			throws Exception {
+		String url = enhanceUrlGetDocuments(urlGetDocuments, spaceKey, updatedAfter, startAt, fullUpdate);
 		byte[] responseData = performHttpGetCall(url, headers).content;
 
 		logger.debug("Get Documents REST response data: {}", new String(responseData));
@@ -265,11 +266,12 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 		}
 	}
 
-	protected static String enhanceUrlGetDocuments(String url, String spaceKey, Date updatedAfter, int startAt)
-			throws UnsupportedEncodingException {
+	protected static String enhanceUrlGetDocuments(String url, String spaceKey, Date updatedAfter, int startAt,
+			boolean fullUpdate) throws UnsupportedEncodingException {
 		url = url.replaceAll("\\{space\\}", URLEncoder.encode(spaceKey, "UTF-8"));
 		url = url.replaceAll("\\{updatedAfter\\}", updatedAfter != null ? updatedAfter.getTime() + "" : "");
 		url = url.replaceAll("\\{startAtIndex\\}", startAt + "");
+		url = url.replaceAll("\\{indexingType\\}", fullUpdate ? "full" : "inc");
 		return url;
 	}
 

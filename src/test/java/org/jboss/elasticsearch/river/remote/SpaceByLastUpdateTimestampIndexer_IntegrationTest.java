@@ -44,10 +44,10 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends SpaceInde
 					remoteClientMock, remoteRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
 			tested.storeLastDocumentUpdatedDate(null, SPACE_KEY, lastIssueUpdatedDate);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, lastIssueUpdatedDate)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, false, lastIssueUpdatedDate)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501", "ORG-1513", "ORG-1514"));
 			when(
-					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0),
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), Mockito.eq(false),
 							Mockito.eq(DateTimeUtils.parseISODateTime("2012-09-06T03:27:25.000-0400")))).thenReturn(
 					new ChangedDocumentsResults(null, 0, null));
 
@@ -73,10 +73,10 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends SpaceInde
 			Mockito.reset(remoteClientMock);
 			tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, false, remoteClientMock, remoteRiverMock,
 					structureBuilder);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, lastIssueUpdatedDate2)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, false, lastIssueUpdatedDate2)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501-updated"));
 			when(
-					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0),
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), Mockito.eq(false),
 							Mockito.eq(DateTimeUtils.parseISODateTime("2012-09-06T03:28:22.000-0400")))).thenReturn(
 					new ChangedDocumentsResults(null, 0, null));
 
@@ -104,10 +104,10 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends SpaceInde
 			Mockito.reset(remoteClientMock);
 			tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, false, remoteClientMock, remoteRiverMock,
 					structureBuilder);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, lastIssueUpdatedDate3)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, false, lastIssueUpdatedDate3)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1513-deleted"));
 			when(
-					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0),
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), Mockito.eq(false),
 							Mockito.eq(DateTimeUtils.parseISODateTime("2012-09-06T06:52:06.000-0400")))).thenReturn(
 					new ChangedDocumentsResults(null, 0, null));
 
@@ -152,10 +152,10 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends SpaceInde
 					remoteClientMock, remoteRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
 			tested.storeLastDocumentUpdatedDate(null, SPACE_KEY, lastIssueUpdatedDate);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, lastIssueUpdatedDate)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, false, lastIssueUpdatedDate)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501", "ORG-1513", "ORG-1514"));
 			when(
-					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0),
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), Mockito.eq(false),
 							Mockito.eq(DateTimeUtils.parseISODateTime("2012-09-06T03:27:25.000-0400")))).thenReturn(
 					new ChangedDocumentsResults(null, 0, null));
 
@@ -182,10 +182,10 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends SpaceInde
 			Mockito.reset(remoteClientMock);
 			tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, false, remoteClientMock, remoteRiverMock,
 					structureBuilder);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, lastIssueUpdatedDate2)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, false, lastIssueUpdatedDate2)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501-updated"));
 			when(
-					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0),
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), Mockito.eq(false),
 							Mockito.eq(DateTimeUtils.parseISODateTime("2012-09-06T03:28:22.000-0400")))).thenReturn(
 					new ChangedDocumentsResults(null, 0, null));
 
@@ -217,10 +217,10 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends SpaceInde
 			Mockito.reset(remoteClientMock);
 			tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, false, remoteClientMock, remoteRiverMock,
 					structureBuilder);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, lastIssueUpdatedDate3)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, false, lastIssueUpdatedDate3)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1513-deleted"));
 			when(
-					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0),
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), Mockito.eq(false),
 							Mockito.eq(DateTimeUtils.parseISODateTime("2012-09-06T06:52:06.000-0400")))).thenReturn(
 					new ChangedDocumentsResults(null, 0, null));
 
@@ -268,10 +268,11 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends SpaceInde
 					remoteClientMock, remoteRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
 			tested.storeLastDocumentUpdatedDate(null, SPACE_KEY, lastIssueUpdatedDate);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, true, null)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501", "ORG-1513", "ORG-1514"));
-			when(remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
-					.thenReturn(new ChangedDocumentsResults(null, 0, null));
+			when(
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), Mockito.eq(true),
+							(Date) Mockito.notNull())).thenReturn(new ChangedDocumentsResults(null, 0, null));
 
 			tested.run();
 
@@ -293,10 +294,11 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends SpaceInde
 			Mockito.reset(remoteClientMock);
 			tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, true, remoteClientMock, remoteRiverMock,
 					structureBuilder);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, true, null)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1513-deleted", "ORG-1501-updated"));
-			when(remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
-					.thenReturn(new ChangedDocumentsResults(null, 0, null));
+			when(
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), Mockito.eq(true),
+							(Date) Mockito.notNull())).thenReturn(new ChangedDocumentsResults(null, 0, null));
 			tested.run();
 
 			Assert.assertEquals(1, tested.indexingInfo.documentsUpdated);
@@ -337,10 +339,11 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends SpaceInde
 					remoteClientMock, remoteRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
 			tested.storeLastDocumentUpdatedDate(null, SPACE_KEY, lastIssueUpdatedDate);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, true, null)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501", "ORG-1513", "ORG-1514"));
-			when(remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
-					.thenReturn(new ChangedDocumentsResults(null, 0, null));
+			when(
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), Mockito.eq(true),
+							(Date) Mockito.notNull())).thenReturn(new ChangedDocumentsResults(null, 0, null));
 
 			tested.run();
 
@@ -365,10 +368,11 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends SpaceInde
 			Mockito.reset(remoteClientMock);
 			tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, true, remoteClientMock, remoteRiverMock,
 					structureBuilder);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, true, null)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1513-deleted", "ORG-1501-updated"));
-			when(remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
-					.thenReturn(new ChangedDocumentsResults(null, 0, null));
+			when(
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), Mockito.eq(true),
+							(Date) Mockito.notNull())).thenReturn(new ChangedDocumentsResults(null, 0, null));
 
 			tested.run();
 
@@ -418,10 +422,11 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends SpaceInde
 					remoteClientMock, remoteRiverMock, structureBuilder);
 			Date lastIssueUpdatedDate = DateTimeUtils.parseISODateTime("2012-09-06T02:26:53.000-0400");
 			tested.storeLastDocumentUpdatedDate(null, SPACE_KEY, lastIssueUpdatedDate);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, true, null)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1501", "ORG-1513", "ORG-1514"));
-			when(remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
-					.thenReturn(new ChangedDocumentsResults(null, 0, null));
+			when(
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), Mockito.eq(true),
+							(Date) Mockito.notNull())).thenReturn(new ChangedDocumentsResults(null, 0, null));
 
 			tested.run();
 
@@ -446,10 +451,11 @@ public class SpaceByLastUpdateTimestampIndexer_IntegrationTest extends SpaceInde
 			Mockito.reset(remoteClientMock);
 			tested = new SpaceByLastUpdateTimestampIndexer(SPACE_KEY, true, remoteClientMock, remoteRiverMock,
 					structureBuilder);
-			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, null)).thenReturn(
+			when(remoteClientMock.getChangedDocuments(SPACE_KEY, 0, true, null)).thenReturn(
 					prepareChangedDocumentsCallResults("ORG-1513-deleted", "ORG-1501-updated"));
-			when(remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), (Date) Mockito.notNull()))
-					.thenReturn(new ChangedDocumentsResults(null, 0, null));
+			when(
+					remoteClientMock.getChangedDocuments(Mockito.eq(SPACE_KEY), Mockito.eq(0), Mockito.eq(true),
+							(Date) Mockito.notNull())).thenReturn(new ChangedDocumentsResults(null, 0, null));
 
 			tested.run();
 

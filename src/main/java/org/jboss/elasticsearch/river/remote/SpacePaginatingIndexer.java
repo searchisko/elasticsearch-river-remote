@@ -50,7 +50,8 @@ public class SpacePaginatingIndexer extends SpaceIndexerBase {
 			if (logger.isDebugEnabled())
 				logger.debug("Go to ask remote system for updated documents for space {} with startAt {}", spaceKey, startAt);
 
-			ChangedDocumentsResults res = remoteSystemClient.getChangedDocuments(spaceKey, startAt, null);
+			ChangedDocumentsResults res = remoteSystemClient.getChangedDocuments(spaceKey, startAt, indexingInfo.fullUpdate,
+					null);
 
 			if (res.getDocumentsCount() == 0) {
 				cont = false;

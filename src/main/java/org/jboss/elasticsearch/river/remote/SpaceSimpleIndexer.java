@@ -44,7 +44,7 @@ public class SpaceSimpleIndexer extends SpaceIndexerBase {
 
 		logger.info("Go to perform full simple update for Space {}", spaceKey);
 
-		ChangedDocumentsResults res = remoteSystemClient.getChangedDocuments(spaceKey, 0, null);
+		ChangedDocumentsResults res = remoteSystemClient.getChangedDocuments(spaceKey, 0, indexingInfo.fullUpdate, null);
 
 		if (res.getDocuments() != null && !res.getDocuments().isEmpty()) {
 			if (isClosed())

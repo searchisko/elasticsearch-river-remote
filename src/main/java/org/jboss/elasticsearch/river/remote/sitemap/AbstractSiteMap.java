@@ -22,6 +22,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.TimeZone;
 
 /**
@@ -60,10 +61,10 @@ public abstract class AbstractSiteMap {
 	 */
 	private static final ThreadLocal<DateFormat[]> dateFormats = new ThreadLocal<DateFormat[]>() {
 		protected DateFormat[] initialValue() {
-			DateFormat[] df = new DateFormat[] { new SimpleDateFormat("yyyy-MM-dd'T'HH:mm+hh:00"),
-					new SimpleDateFormat("yyyy-MM-dd'T'HH:mm-hh:00"), new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss+hh:00"),
-					new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss-hh:00"), new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz"),
-					new SimpleDateFormat("yyyy-MM-dd") };
+			DateFormat[] df = new DateFormat[] { new SimpleDateFormat("yyyy-MM-dd'T'HH:mm+hh:00",Locale.US),
+					new SimpleDateFormat("yyyy-MM-dd'T'HH:mm-hh:00",Locale.US), new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss+hh:00",Locale.US),
+					new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss-hh:00",Locale.US), new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz",Locale.US),
+					new SimpleDateFormat("yyyy-MM-dd",Locale.US) };
 			for (DateFormat d : df) {
 				d.setTimeZone(TimeZone.getTimeZone("UTC"));
 			}

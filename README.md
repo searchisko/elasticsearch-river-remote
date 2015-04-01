@@ -11,6 +11,8 @@ It's implemented as Elasticsearch [river](http://www.elasticsearch.org/guide/en/
 and uses remote APIs (REST with JSON for now, but should be REST with XML, SOAP etc.) to obtain documents 
 from remote systems. You can use it to index web pages from website also.
 
+**Please note that Rivers are going to be [deprecated from Elasticsearch 1.5](https://www.elastic.co/blog/deprecating_rivers).**  
+
 In order to install the plugin into Elasticsearch 1.3.x, simply run: 
 `bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.5.4/elasticsearch-river-remote-1.5.4.zip -install elasticsearch-river-remote`.
 

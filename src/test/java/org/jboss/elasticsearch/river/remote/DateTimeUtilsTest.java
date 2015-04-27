@@ -70,5 +70,25 @@ public class DateTimeUtilsTest {
 				DateTimeUtils.roundDateTimeToMinutePrecise(DateTimeUtils.parseISODateTime("2012-08-14T08:00:59.999-0400")));
 
 	}
+	
+	@Test
+	public void formatDateTime() {
+	    
+	    Assert.assertNull(DateTimeUtils.formatDateTime(null,""));
+	    
+	    Date exampleDate = DateTimeUtils.parseISODateTime("2012-08-14T08:00:00.000-0400");
+	    
+	    Assert.assertEquals(DateTimeUtils.formatDateTime(exampleDate, ""),DateTimeUtils.formatISODateTime(exampleDate));
+	    
+	    Assert.assertEquals(DateTimeUtils.formatDateTime(exampleDate, DateTimeUtils.CUSTOM_MILISEC_EPOCH_DATETIME_FORMAT),
+	            String.valueOf(exampleDate.getTime()));
+	    Assert.assertEquals(DateTimeUtils.formatDateTime(exampleDate, DateTimeUtils.CUSTOM_UNIX_EPOCH_DATETIME_FORMAT),
+                String.valueOf(exampleDate.getTime()).replaceFirst("\\d\\d\\d$", ""));
+        
+	    Assert.assertEquals(DateTimeUtils.formatDateTime(exampleDate, "YYYY-MM-dd"),"2012-08-14");
+	    Assert.assertEquals(DateTimeUtils.formatDateTime(exampleDate, "YYYY-MM-dd"),"2012-08-14");
+        
+	    
+	}
 
 }

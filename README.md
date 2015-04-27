@@ -17,12 +17,14 @@ In order to install the plugin into Elasticsearch 1.3.x, simply run:
 `bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.5.4/elasticsearch-river-remote-1.5.4.zip -install elasticsearch-river-remote`.
 
 In order to install the plugin into Elasticsearch 1.4.x, simply run: 
-`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.6.3/elasticsearch-river-remote-1.6.3.zip -install elasticsearch-river-remote`.
+`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.6.4/elasticsearch-river-remote-1.6.4.zip -install elasticsearch-river-remote`.
 
     --------------------------------------------------
     | Remote River | Elasticsearch    | Release date |
     --------------------------------------------------
     | master       | 1.4.0            |              |
+    --------------------------------------------------
+    | 1.6.4        | 1.4.1            | 28.04.2015   |
     --------------------------------------------------
     | 1.6.3        | 1.4.0            | 26.01.2015   |
     --------------------------------------------------
@@ -285,6 +287,9 @@ Operation MUST accept and correctly handle these request parameters if provided 
 * `startAtIndex` - remote system MUST return only documents matching previous two criteria, and starting at this index in result set (0 based). 
    Support for this feature by remote system is optional, and is used only if remote system is able to return "total" count of matching documents in response. 
 * `indexingType` - `full` or `inc` identifying full or incremental indexing run
+* `updatedBefore` - remote system MUST return only documents updated at or before this timestamp.
+   This parameter is working only if `remote/updatedBeforeTimeSpanFromUpdatedAfter` configuration option is provided, see below.
+
 
 Operation MUST return these results:
 
@@ -328,6 +333,16 @@ Configuration parameters for this client type:
 * `remote/urlGetSpaces` is URL used to call *List Spaces* operation from remote system. Necessary if `remote/spacesIndexed` is not provided.
 * `remote/getSpacesResField` defines field in JSON data returned from `remote/urlGetSpaces` call, where array of space keys is stored. If not defined then the array is expected directly in root of returned data. Dot notation may be used for deeper nesting in the JSON structure.
 * `remote/headerAccept` defines value for `Accept` http request header used for REST calls. Optional, default value is `application/json`. 
+* `remote/updatedAfterFormat` - an optional format definition for `updatedAfter` request parameter date so that it's compatible with the remote system.
+   Allowed here are formats as specified by YodaTime library, please check http://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html for reference.
+   Additionally there are two special formats with values of `{unixEpoch}` and `{milisecondEpoch}`(default setting) which refer to the number of seconds and milliseconds respectively from epoch.
+* `remote/updatedAfterInitialValue` - an optional initial datetime value for `updatedAfter` request parameter date. It should be provided as milliseconds since epoch value.
+   If not provided the `updatedAfter` parameter will start with no value.
+* `remote/httpMethod` - an optional parameter with the default value of `GET`. It defines HTTP method used for requesting documents from the remote system.
+  The only alternative value for this parameter is `POST` which gathers all URL parameters and sends them as POST parameters instead of GET.
+* `remote/updatedBeforeTimeSpanFromUpdatedAfter` - an optional parameter which enables you to constrain time window for the query executed in REST call. As a result you
+  can use the optional `{updatedBefore}` request parameter in the URL which will be replaced dynamically before each call with a value of `updatedAfter`+`updatedBeforeTimeSpanFromUpdatedAfter`.
+  This parameter value has to be provided as a long number of milliseconds defining the time difference between `updatedAfter` and `updatedBefore`.
 
 Password can be stored outside of river configuration by using:
 

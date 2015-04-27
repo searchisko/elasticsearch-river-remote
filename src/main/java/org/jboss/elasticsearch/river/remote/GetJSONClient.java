@@ -45,6 +45,13 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 
 	protected static final String CFG_URL_GET_DOCUMENT_DETAILS = "urlGetDocumentDetails";
 	protected static final String CFG_URL_GET_DOCUMENT_DETAILS_FIELD = "urlGetDocumentDetailsField";
+	
+	protected static final String CFG_UPDATED_AFTER_FORMAT = "updatedAfterFormat";
+	protected static final String CFG_UPDATED_AFTER_INITIAL_VALUE = "updatedAfterInitialValue";
+	
+	protected static final String CFG_UPDATED_BEFORE_TIME_SPAN_FROM_UPDATED_AFTER = "updatedBeforeTimeSpanFromUpdatedAfter";
+	
+	protected static final String CFG_HTTP_METHOD = "httpMethod";
 
 	protected static final String CFG_HEADER_ACCEPT = "headerAccept";
 
@@ -57,7 +64,15 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	protected String getDocsResFieldDocuments;
 
 	protected String getDocsResFieldTotalcount;
+	
+	protected String updatedAfterFormat;
+	
+	protected Long updatedAfterInitialValue;
+	
+	protected Long updatedBeforeTimeSpanFromUpdatedAfter;
 
+	protected HttpMethodType httpMethod;
+	
 	protected String urlGetDocuments;
 
 	protected String urlGetDocumentDetails;
@@ -86,7 +101,33 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 				config.get(CFG_GET_DOCS_RES_FIELD_DOCUMENTS), null));
 		getDocsResFieldTotalcount = Utils.trimToNull(XContentMapValues.nodeStringValue(
 				config.get(CFG_GET_DOCS_RES_FIELD_TOTALCOUNT), null));
-
+		
+		updatedAfterFormat = Utils.trimToNull(XContentMapValues.nodeStringValue(
+                config.get(CFG_UPDATED_AFTER_FORMAT), DateTimeUtils.CUSTOM_MILISEC_EPOCH_DATETIME_FORMAT ));
+		String updatedAfterStartStr = Utils.trimToNull(XContentMapValues.nodeStringValue(
+                config.get(CFG_UPDATED_AFTER_INITIAL_VALUE), null ));
+		try {
+		    updatedAfterInitialValue = updatedAfterStartStr!=null ? Long.valueOf(updatedAfterStartStr) : null;
+        } catch (NumberFormatException e) {
+            updatedAfterInitialValue=null;
+            throw new SettingsException("updatedAfterStart field could not be parsed as a long number. Please specify the number of miliseconds"
+                    + " for the initial updatedAfter date value using only digit characters.",e);
+        }
+		
+		String timeSpanStr = Utils.trimToNull(XContentMapValues.nodeStringValue(
+                config.get(CFG_UPDATED_BEFORE_TIME_SPAN_FROM_UPDATED_AFTER), null ));
+		try {
+            updatedBeforeTimeSpanFromUpdatedAfter = timeSpanStr!=null ? Long.valueOf(timeSpanStr) : null;
+        } catch (NumberFormatException e) {
+            updatedBeforeTimeSpanFromUpdatedAfter=null;
+            throw new SettingsException("timeSpan field could not be parsed as a long number. Please specify the number of miliseconds"
+                    + " for the time span using only digit characters.",e);
+        }
+		
+		String httpMethodStr = Utils.trimToNull(XContentMapValues.nodeStringValue(
+                config.get(CFG_HTTP_METHOD), null ));
+		httpMethod = httpMethodStr==null ? HttpMethodType.GET : HttpMethodType.valueOf(httpMethodStr);
+		
 		String headerAccept = Utils.trimToNull(XContentMapValues.nodeStringValue(config.get(CFG_HEADER_ACCEPT),
 				HEADER_ACCEPT_DEFAULT));
 		if (headerAccept == null)
@@ -227,8 +268,8 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	@Override
 	public ChangedDocumentsResults getChangedDocuments(String spaceKey, int startAt, boolean fullUpdate, Date updatedAfter)
 			throws Exception {
-		String url = enhanceUrlGetDocuments(urlGetDocuments, spaceKey, updatedAfter, startAt, fullUpdate);
-		byte[] responseData = performHttpGetCall(url, headers).content;
+		String url = enhanceUrlGetDocuments(urlGetDocuments, spaceKey, updatedAfter, updatedAfterFormat, updatedAfterInitialValue, updatedBeforeTimeSpanFromUpdatedAfter, startAt, fullUpdate);
+		byte[] responseData = performHttpCall(url, headers, httpMethod).content;
 
 		logger.debug("Get Documents REST response data: {}", new String(responseData));
 
@@ -266,10 +307,19 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 		}
 	}
 
-	protected static String enhanceUrlGetDocuments(String url, String spaceKey, Date updatedAfter, int startAt,
-			boolean fullUpdate) throws UnsupportedEncodingException {
+	protected static String enhanceUrlGetDocuments(String url, String spaceKey, Date updatedAfter, String updatedAfterFormat,
+	        Long updatedAfterInitialValue, Long updatedBeforeTimeSpan, int startAt, boolean fullUpdate) throws UnsupportedEncodingException {
+	    
+	    String dateFormatToUse = updatedAfterFormat!=null && updatedAfterFormat.length()!=0
+	            ? updatedAfterFormat
+	            : DateTimeUtils.CUSTOM_MILISEC_EPOCH_DATETIME_FORMAT;
+	    
+	    updatedAfter = updatedAfter!=null ? updatedAfter : ( updatedAfterInitialValue!=null ? new Date(updatedAfterInitialValue) : null ) ;
+	    
 		url = url.replaceAll("\\{space\\}", URLEncoder.encode(spaceKey, "UTF-8"));
-		url = url.replaceAll("\\{updatedAfter\\}", updatedAfter != null ? updatedAfter.getTime() + "" : "");
+		url = url.replaceAll("\\{updatedAfter\\}", updatedAfter != null ? URLEncoder.encode(DateTimeUtils.formatDateTime(updatedAfter, dateFormatToUse), "UTF-8") : "");
+		url = url.replaceAll("\\{updatedBefore\\}", updatedBeforeTimeSpan != null && updatedAfter!=null 
+		        ? URLEncoder.encode(DateTimeUtils.formatDateTime(new Date(updatedAfter.getTime()+updatedBeforeTimeSpan), dateFormatToUse), "UTF-8") : "");
 		url = url.replaceAll("\\{startAtIndex\\}", startAt + "");
 		url = url.replaceAll("\\{indexingType\\}", fullUpdate ? "full" : "inc");
 		return url;

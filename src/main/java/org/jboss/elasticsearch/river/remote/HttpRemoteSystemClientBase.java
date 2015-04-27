@@ -7,6 +7,7 @@ package org.jboss.elasticsearch.river.remote;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -14,13 +15,17 @@ import org.apache.http.Consts;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
+import org.apache.http.NameValuePair;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.config.ConnectionConfig;
@@ -152,44 +157,90 @@ public abstract class HttpRemoteSystemClientBase implements IRemoteSystemClient 
 	protected HttpResponseContent performHttpGetCall(String url, Map<String, String> headers) throws Exception,
 			HttpCallException {
 
-		myLogger.debug("Going to perform remote system HTTP GET request to the the {}", url);
-
-		URIBuilder builder = new URIBuilder(url);
-		HttpGet method = new HttpGet(builder.build());
-		if (headers != null) {
-			for (String headerName : headers.keySet())
-				method.addHeader(headerName, headers.get(headerName));
-		}
-		CloseableHttpResponse response = null;
-		try {
-			HttpHost targetHost = new HttpHost(builder.getHost(), builder.getPort(), builder.getScheme());
-
-			HttpClientContext localcontext = HttpClientContext.create();
-			if (isAuthConfigured) {
-				AuthCache authCache = new BasicAuthCache();
-				BasicScheme basicAuth = new BasicScheme();
-				authCache.put(targetHost, basicAuth);
-				localcontext.setAuthCache(authCache);
-			}
-
-			response = httpclient.execute(targetHost, method, localcontext);
-			int statusCode = response.getStatusLine().getStatusCode();
-			byte[] responseContent = null;
-			if (response.getEntity() != null) {
-				responseContent = EntityUtils.toByteArray(response.getEntity());
-			}
-			if (statusCode != HttpStatus.SC_OK) {
-				throw new HttpCallException(url, statusCode, responseContent != null ? new String(responseContent) : "");
-			}
-			Header h = response.getFirstHeader("Content-Type");
-
-			return new HttpResponseContent(h != null ? h.getValue() : null, responseContent);
-		} finally {
-			if (response != null)
-				response.close();
-			method.releaseConnection();
-		}
+		return performHttpCall(url, headers, HttpMethodType.GET);
 	}
+	
+	/**
+     * Perform defined HTTP POST request.
+     * 
+     * @param url to perform POST request for
+     * @param headers to be used for request. Can be null.
+     * @return response from server if successful
+     * @throws HttpCallException in case of failed http call
+     * @throws Exception in case of unsuccessful call
+     */
+    protected HttpResponseContent performHttpPostCall(String url, Map<String, String> headers) throws Exception,
+            HttpCallException {
+
+        return performHttpCall(url, headers, HttpMethodType.POST);
+    }
+	
+	/**
+     * This method performs a HTTP request with the defined GET or POST method. Using GET as default if not defined.
+     * @param url to perform GET request for
+     * @param headers to be used for request. Can be null.
+     * @param method either GET(default) or POST http method type.
+     * @return response from server if successful
+     * @throws HttpCallException in case of failed http call
+     * @throws Exception in case of unsuccessful call
+     */
+    protected HttpResponseContent performHttpCall(String url, Map<String, String> headers, HttpMethodType methodType) 
+           throws Exception, HttpCallException {
+        
+        myLogger.debug("Going to perform remote system HTTP request to the the {}", url);
+        
+        HttpRequestBase method = null;
+        URIBuilder builder = null;
+        if ( methodType!=null && methodType.compareTo(HttpMethodType.POST)==0 ) {
+            
+            // For POST method we need to migrate URL parameters to POST params.
+            builder = new URIBuilder(url);
+            String urlWithoutParams = url.split("\\?")[0];
+            HttpPost postMethod = new HttpPost(urlWithoutParams);
+            postMethod.setEntity(new UrlEncodedFormEntity(builder.getQueryParams()));
+            method = postMethod;
+            
+        } else {
+            
+            builder = new URIBuilder(url);
+            method = new HttpGet(builder.build());
+            
+        }
+        
+        if (headers != null) {
+            for (String headerName : headers.keySet())
+                method.addHeader(headerName, headers.get(headerName));
+        }
+        CloseableHttpResponse response = null;
+        try {
+            HttpHost targetHost = new HttpHost(builder.getHost(), builder.getPort(), builder.getScheme());
+     
+            HttpClientContext localcontext = HttpClientContext.create();
+            if (isAuthConfigured) {
+                AuthCache authCache = new BasicAuthCache();
+                BasicScheme basicAuth = new BasicScheme();
+                authCache.put(targetHost, basicAuth);
+                localcontext.setAuthCache(authCache);
+            }
+     
+            response = httpclient.execute(targetHost, method, localcontext);
+            int statusCode = response.getStatusLine().getStatusCode();
+            byte[] responseContent = null;
+            if (response.getEntity() != null) {
+                responseContent = EntityUtils.toByteArray(response.getEntity());
+            }
+            if (statusCode != HttpStatus.SC_OK) {
+                throw new HttpCallException(url, statusCode, responseContent != null ? new String(responseContent) : "");
+            }
+            Header h = response.getFirstHeader("Content-Type");
+     
+            return new HttpResponseContent(h != null ? h.getValue() : null, responseContent);
+        } finally {
+            if (response != null)
+                response.close();
+            method.releaseConnection();
+        }
+    }
 
 	public static final class HttpResponseContent {
 		public String contentType;
@@ -232,6 +283,14 @@ public abstract class HttpRemoteSystemClientBase implements IRemoteSystemClient 
 	@Override
 	public IDocumentIndexStructureBuilder getIndexStructureBuilder() {
 		return indexStructureBuilder;
+	}
+	
+	
+	/**
+	 * This small helper enum describes the only two supported http call methods GET and POST.
+	 */
+	public static enum HttpMethodType {
+	    GET, POST;
 	}
 
 }

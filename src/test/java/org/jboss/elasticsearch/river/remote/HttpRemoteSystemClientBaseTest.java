@@ -22,6 +22,8 @@ import org.apache.http.ParseException;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicAuthCache;
@@ -194,6 +196,25 @@ public class HttpRemoteSystemClientBaseTest {
 			Mockito.verifyNoMoreInteractions(tested.httpclient);
 		}
 	}
+	
+	@Test
+	public void performHttpPostCall_succes_noHeaders() throws HttpCallException, Exception {
+	    HttpRemoteSystemClientBase tested = getTested();
+	    tested.myLogger = Loggers.getLogger("test logger");
+	    tested.httpclient = Mockito.mock(CloseableHttpClient.class);
+
+	     Mockito.when(
+	            tested.httpclient.execute(Mockito.any(HttpHost.class), Mockito.any(HttpPost.class),
+	                    Mockito.any(BasicHttpContext.class))).thenAnswer(
+	            prepereHttpResponseAnswer(HttpStatus.SC_OK, "response", "text/plain", null, false));
+
+	    HttpResponseContent ret = tested.performHttpPostCall("http://test.org", null );
+	    Assert.assertEquals("response", new String(ret.content));
+	    Assert.assertEquals("text/plain", new String(ret.contentType));
+	    Mockito.verify(tested.httpclient).execute(Mockito.any(HttpHost.class), Mockito.any(HttpGet.class),
+	            Mockito.any(BasicHttpContext.class));
+	    Mockito.verifyNoMoreInteractions(tested.httpclient);
+	}
 
 	private Answer<HttpResponse> prepereHttpResponseAnswer(final int statusCode, final String responseContent,
 			final String responseContentType, final Map<String, String> headersExpected, final boolean authExpected) {
@@ -202,8 +223,8 @@ public class HttpRemoteSystemClientBaseTest {
 			@Override
 			public HttpResponse answer(InvocationOnMock invocation) throws Throwable {
 
-				HttpGet method = (HttpGet) invocation.getArguments()[1];
-
+			    HttpRequestBase method = (HttpRequestBase) invocation.getArguments()[1];
+			    
 				if (headersExpected == null) {
 					Assert.assertEquals(0, method.getAllHeaders().length);
 				} else {

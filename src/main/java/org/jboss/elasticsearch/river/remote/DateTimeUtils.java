@@ -9,8 +9,12 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.elasticsearch.common.joda.time.format.DateTimeFormat;
+import org.elasticsearch.common.joda.time.format.DateTimeFormatter;
 import org.elasticsearch.common.joda.time.format.ISODateTimeFormat;
 
 /**
@@ -19,7 +23,12 @@ import org.elasticsearch.common.joda.time.format.ISODateTimeFormat;
  * @author Vlastimil Elias (velias at redhat dot com)
  */
 public abstract class DateTimeUtils {
-
+    
+    public static final String CUSTOM_MILISEC_EPOCH_DATETIME_FORMAT = "{milisecondEpoch}";
+    public static final String CUSTOM_UNIX_EPOCH_DATETIME_FORMAT = "{unixEpoch}";
+    
+    private static final Map<String,DateTimeFormatter> dateTimeFormattersCache = new ConcurrentHashMap<String,DateTimeFormatter>();
+    
 	/**
 	 * Parse ISO datetime string.
 	 * 
@@ -82,6 +91,38 @@ public abstract class DateTimeUtils {
 		cal.set(Calendar.SECOND, 0);
 		cal.set(Calendar.MILLISECOND, 0);
 		return cal.getTime();
+	}
+	
+	/**
+	 * Format date/time as in specified format parameter.
+	 * 
+	 * @param date to be formatted
+	 * @param format for the date/time created using YodaTime compatible pattern. Alternatively there are two
+	 * exceptions where you can provide "{milisecondEpoch}" or "{unixEpoch}" values which refer to long-number-based
+	 * formats that cannot be expressed with YodaTime pattern. 
+	 * @return formatted date as according to the given format. If the format is omitted ISO_DATE_FORMAT is used.
+	 * If date is null then null is also returned.
+	 */
+	public static String formatDateTime( Date date , String format ) {
+	    
+	    if ( date==null ) return null;
+	    
+	    if ( format==null || format.trim().length()==0 ) {
+	        return formatISODateTime(date);
+	    }
+	    
+	    switch (format) {
+	        case CUSTOM_MILISEC_EPOCH_DATETIME_FORMAT : return String.valueOf( date.getTime() );
+	        case CUSTOM_UNIX_EPOCH_DATETIME_FORMAT : return String.valueOf( (long)(date.getTime()/1000) );
+	    }
+	    
+	    if (dateTimeFormattersCache.containsKey(format)) {
+	        return dateTimeFormattersCache.get(format).print(date.getTime());
+	    } else {
+	        DateTimeFormatter dtf = DateTimeFormat.forPattern(format);
+	        dateTimeFormattersCache.put(format, dtf);
+	        return dtf.print(date.getTime());
+	    }
 	}
 
 }

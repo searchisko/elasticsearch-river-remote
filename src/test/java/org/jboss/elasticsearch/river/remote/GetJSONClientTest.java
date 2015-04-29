@@ -19,6 +19,7 @@ import org.elasticsearch.common.jackson.core.JsonParseException;
 import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.settings.SettingsException;
 import org.jboss.elasticsearch.river.remote.HttpRemoteSystemClientBase.HttpCallException;
+import org.jboss.elasticsearch.river.remote.HttpRemoteSystemClientBase.HttpMethodType;
 import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -175,6 +176,32 @@ public class GetJSONClientTest {
 		} catch (SettingsException e) {
 			// OK
 		}
+		
+		// case - invalid numbers for updatedAfterInitialValue
+		try {
+            GetJSONClient tested = new GetJSONClient();
+            Map<String, Object> config = new HashMap<String, Object>();
+            config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
+            config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/documents");
+            config.put(GetJSONClient.CFG_UPDATED_AFTER_INITIAL_VALUE, "notAnumber");
+            tested.init(mockEsIntegrationComponent(), config, false, null);
+            Assert.fail("SettingsException not thrown");
+        } catch (SettingsException e) {
+            // OK
+        }
+		
+		// case - invalid numbers for updatedBeforeTimeSpanFromUpdatedAfter
+        try {
+            GetJSONClient tested = new GetJSONClient();
+            Map<String, Object> config = new HashMap<String, Object>();
+            config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
+            config.put(GetJSONClient.CFG_URL_GET_DOCUMENT_DETAILS, "http://test.org/documents");
+            config.put(GetJSONClient.CFG_UPDATED_BEFORE_TIME_SPAN_FROM_UPDATED_AFTER, "notAnumber");
+            tested.init(mockEsIntegrationComponent(), config, false, null);
+            Assert.fail("SettingsException not thrown");
+        } catch (SettingsException e) {
+            // OK
+        }
 
 	}
 
@@ -287,9 +314,9 @@ public class GetJSONClientTest {
 			config
 					.put(
 							GetJSONClient.CFG_URL_GET_DOCUMENTS,
-							"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}");
+							"http://totallyrandomdomain.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}");
 			IRemoteSystemClient tested = createTestedInstance(config, "invalid json",
-					"http://test.org/documents?docSpace=myspace&docUpdatedAfter=&startAtIndex=0&it=full");
+					"http://totallyrandomdomain.org/documents?docSpace=myspace&docUpdatedAfter=&startAtIndex=0&it=full");
 			tested.getChangedDocuments("myspace", 0, true, null);
 			Assert.fail("JsonParseException expected");
 		} catch (JsonParseException e) {
@@ -302,9 +329,9 @@ public class GetJSONClientTest {
 			config
 					.put(
 							GetJSONClient.CFG_URL_GET_DOCUMENTS,
-							"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}");
+							"http://totallyrandomdomain.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}");
 			IRemoteSystemClient tested = createTestedInstance(config, "[{\"key\" : \"a\"},{\"key\" : \"b\"}]",
-					"http://test.org/documents?docSpace=myspace&docUpdatedAfter=1256&startAtIndex=12&it=inc");
+					"http://totallyrandomdomain.org/documents?docSpace=myspace&docUpdatedAfter=1256&startAtIndex=12&it=inc");
 			ChangedDocumentsResults ret = tested.getChangedDocuments("myspace", 12, false, new Date(1256l));
 			Assert.assertEquals(2, ret.getDocumentsCount());
 			Assert.assertEquals(12, ret.getStartAt());
@@ -317,12 +344,12 @@ public class GetJSONClientTest {
 		{
 			Map<String, Object> config = new HashMap<String, Object>();
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
-					"http://test.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
+					"http://totallyrandomdomain.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
 			config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_DOCUMENTS, "response.items");
 			config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_TOTALCOUNT, "response.total");
 			IRemoteSystemClient tested = createTestedInstance(config,
 					"{\"response\": { \"total\":20 ,\"items\":[{\"key\" : \"a\"},{\"key\" : \"b\"}]}}",
-					"http://test.org/documents?docSpace=myspace&docUpdatedAfter=1256&startAtIndex=12");
+					"http://totallyrandomdomain.org/documents?docSpace=myspace&docUpdatedAfter=1256&startAtIndex=12");
 			ChangedDocumentsResults ret = tested.getChangedDocuments("myspace", 12, false, new Date(1256l));
 			Assert.assertEquals(2, ret.getDocumentsCount());
 			Assert.assertEquals(12, ret.getStartAt());
@@ -337,7 +364,7 @@ public class GetJSONClientTest {
 			final String expectadCallUrl) {
 		IRemoteSystemClient tested = new GetJSONClient() {
 			@Override
-			protected HttpResponseContent performHttpGetCall(String url, Map<String, String> headers) throws Exception,
+			protected HttpResponseContent performHttpCall(String url, Map<String, String> headers, HttpMethodType methodType) throws Exception,
 					HttpCallException {
 				Assert.assertEquals(expectadCallUrl, url);
 				return new HttpResponseContent("application/json", returnJson.getBytes("UTF-8"));
@@ -584,11 +611,28 @@ public class GetJSONClientTest {
 	public void enhanceUrlGetDocuments() throws UnsupportedEncodingException {
 		Assert
 				.assertEquals(
-						"http://test.org?docSpace=myspace&docUpdatedAfter=123456&startAtIndex=0&it=full",
+						"http://test.org?docSpace=myspace&docUpdatedAfter=123456&docUpdatedBefore=123756&startAtIndex=0&it=full",
 						GetJSONClient
 								.enhanceUrlGetDocuments(
-										"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}",
-										"myspace", new Date(123456l), 0, true));
+										"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&docUpdatedBefore={updatedBefore}&startAtIndex={startAtIndex}&it={indexingType}",
+										"myspace", new Date(123456l), DateTimeUtils.CUSTOM_MILISEC_EPOCH_DATETIME_FORMAT, null, 300L, 0, true));
+		
+		// Testing if not providing updatedAfter date format doesn't break the call and uses the correct milisecond-based format as the default.
+		Assert
+        .assertEquals(
+                "http://test.org?docSpace=myspace&docUpdatedAfter=123456&startAtIndex=0&it=full",
+                GetJSONClient
+                        .enhanceUrlGetDocuments(
+                                "http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}",
+                                "myspace", new Date(123456l), null, null, null, 0, true));
+		
+		Assert
+        .assertEquals(
+                "http://test.org?docSpace=myspace&docUpdatedAfter=20150404%26Fun&startAtIndex=0&it=full",
+                GetJSONClient
+                        .enhanceUrlGetDocuments(
+                                "http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}",
+                                "myspace", new Date(1428113546000L), "yyyyMMdd'&Fun'", null, null, 0, true));
 
 		Assert
 				.assertEquals(
@@ -596,7 +640,15 @@ public class GetJSONClientTest {
 						GetJSONClient
 								.enhanceUrlGetDocuments(
 										"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}",
-										"my&space", null, 125, false));
+										"my&space", null, null, null, null, 125, false));
+		
+		Assert
+        .assertEquals(
+                "http://test.org?docSpace=my%26space&docUpdatedAfter=1349108160000&startAtIndex=125&it=inc",
+                GetJSONClient
+                        .enhanceUrlGetDocuments(
+                                "http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}",
+                                "my&space", null, null, 1349108160000L , null, 125, false));
 
 	}
 

@@ -121,6 +121,11 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_USERNAME, "myuser");
 			config.put(GetJSONClient.CFG_PASSWORD, "paaswd");
 			config.put(GetJSONClient.CFG_HEADER_ACCEPT, "app/json");
+			
+			Map<String,Object> valueForRootResFields = new HashMap<String,Object>(1);
+			valueForRootResFields.put("dev", "container_info.dev");
+			config.put(GetJSONClient.CFG_GET_ROOT_RES_FIELDS_MAPPING, valueForRootResFields);
+			
 			IPwdLoader pwdLoaderMock = Mockito.mock(IPwdLoader.class);
 			tested.init(mockEsIntegrationComponent(), config, true, pwdLoaderMock);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
@@ -128,6 +133,8 @@ public class GetJSONClientTest {
 			Assert.assertNull(tested.getSpacesResField);
 			Assert.assertEquals("app/json", tested.headers.get("Accept"));
 			Assert.assertTrue(tested.isAuthConfigured);
+			Assert.assertNotNull(tested.getRootResFieldsMapping);
+			Assert.assertEquals("container_info.dev", tested.getRootResFieldsMapping.get("dev"));
 			Mockito.verifyZeroInteractions(pwdLoaderMock);
 		}
 
@@ -347,8 +354,14 @@ public class GetJSONClientTest {
 					"http://totallyrandomdomain.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
 			config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_DOCUMENTS, "response.items");
 			config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_TOTALCOUNT, "response.total");
+			
+			Map<String,Object> valueForRootResFields = new HashMap<String,Object>(1);
+			valueForRootResFields.put("dev", "response.container_info.dev");
+			config.put(GetJSONClient.CFG_GET_ROOT_RES_FIELDS_MAPPING, valueForRootResFields);
+			
 			IRemoteSystemClient tested = createTestedInstance(config,
-					"{\"response\": { \"total\":20 ,\"items\":[{\"key\" : \"a\"},{\"key\" : \"b\"}]}}",
+					"{\"response\": { \"total\":20 , \"container_info\": { \"dev\":\"false\"},"
+					+ "\"items\":[{\"key\" : \"a\"},{\"key\" : \"b\"}]}}",
 					"http://totallyrandomdomain.org/documents?docSpace=myspace&docUpdatedAfter=1256&startAtIndex=12");
 			ChangedDocumentsResults ret = tested.getChangedDocuments("myspace", 12, false, new Date(1256l));
 			Assert.assertEquals(2, ret.getDocumentsCount());
@@ -356,6 +369,8 @@ public class GetJSONClientTest {
 			Assert.assertEquals(new Integer(20), ret.getTotal());
 			Assert.assertEquals("a", ret.getDocuments().get(0).get("key"));
 			Assert.assertEquals("b", ret.getDocuments().get(1).get("key"));
+			Assert.assertEquals("false", ret.getDocuments().get(0).get("dev"));
+			Assert.assertEquals("false", ret.getDocuments().get(1).get("dev"));
 		}
 
 	}

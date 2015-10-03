@@ -36,6 +36,8 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	protected static final String CFG_GET_DOCS_RES_FIELD_TOTALCOUNT = "getDocsResFieldTotalcount";
 
 	protected static final String CFG_GET_DOCS_RES_FIELD_DOCUMENTS = "getDocsResFieldDocuments";
+	
+	protected static final String CFG_GET_ROOT_RES_FIELDS_MAPPING="getRootResFieldsMapping";
 
 	protected static final String CFG_GET_SPACES_RESPONSE_FIELD = "getSpacesResField";
 
@@ -62,6 +64,8 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	protected String getSpacesResField;
 
 	protected String getDocsResFieldDocuments;
+	
+	protected Map<String,Object> getRootResFieldsMapping;
 
 	protected String getDocsResFieldTotalcount;
 	
@@ -101,6 +105,9 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 				config.get(CFG_GET_DOCS_RES_FIELD_DOCUMENTS), null));
 		getDocsResFieldTotalcount = Utils.trimToNull(XContentMapValues.nodeStringValue(
 				config.get(CFG_GET_DOCS_RES_FIELD_TOTALCOUNT), null));
+		getRootResFieldsMapping = config.get(CFG_GET_ROOT_RES_FIELDS_MAPPING)!=null ? XContentMapValues.nodeMapValue(config.get(CFG_GET_ROOT_RES_FIELDS_MAPPING),
+				CFG_GET_ROOT_RES_FIELDS_MAPPING) : null;
+		getRootResFieldsMapping = getRootResFieldsMapping==null || getRootResFieldsMapping.size()==0 ? null : getRootResFieldsMapping;
 		
 		updatedAfterFormat = Utils.trimToNull(XContentMapValues.nodeStringValue(
                 config.get(CFG_UPDATED_AFTER_FORMAT), DateTimeUtils.CUSTOM_MILISEC_EPOCH_DATETIME_FORMAT ));
@@ -292,6 +299,18 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 					throw new Exception("Configured getDocsResFieldTotalcount field has no value");
 				}
 			}
+			
+			// Getting fields located outside of getDocsResFieldDocuments collection and translating their names.
+			Map<String,Object> additionalFieldsForEntries = new HashMap<String,Object>();
+			if( getRootResFieldsMapping!=null ) {
+				
+				for( String endFieldName : getRootResFieldsMapping.keySet() ) {
+					String sourceFieldName = getRootResFieldsMapping.get(endFieldName).toString();
+					Object fieldValue = XContentMapValues.extractValue(sourceFieldName.toString(),(Map)responseParsed);
+			    	additionalFieldsForEntries.put( endFieldName , fieldValue );
+			    }
+				
+			}
 
 			List<Map<String, Object>> documents = null;
 			if (getDocsResFieldDocuments != null) {
@@ -299,6 +318,11 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 						(Map) responseParsed);
 			} else {
 				documents = (List<Map<String, Object>>) responseParsed;
+			}
+			
+			// Adding all additional root fields to each collection entry.
+			for( Map<String,Object> values : documents ) {
+				values.putAll(additionalFieldsForEntries);
 			}
 
 			return new ChangedDocumentsResults(documents, startAt, total);

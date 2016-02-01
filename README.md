@@ -17,12 +17,14 @@ In order to install the plugin into Elasticsearch 1.3.x, simply run:
 `bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.5.4/elasticsearch-river-remote-1.5.4.zip -install elasticsearch-river-remote`.
 
 In order to install the plugin into Elasticsearch 1.4.x, simply run: 
-`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.6.4/elasticsearch-river-remote-1.6.5.zip -install elasticsearch-river-remote`.
+`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.6.6/elasticsearch-river-remote-1.6.6.zip -install elasticsearch-river-remote`.
 
     --------------------------------------------------
     | Remote River | Elasticsearch    | Release date |
     --------------------------------------------------
     | master       | 1.4.0            |              |
+    --------------------------------------------------
+    | 1.6.6        | 1.4.0            | 02.02.2016   |
     --------------------------------------------------
     | 1.6.5        | 1.4.0            | 04.10.2015   |
     --------------------------------------------------
@@ -122,7 +124,8 @@ The example above lists all the main options controlling the creation and behavi
 * `index/type` defines [type](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/glossary.html#glossary-type) used when document from remote system is stored into search index. Parameter is optional, `remote_document` is used if omitted. See related notes later!
 * `index/field_river_name`, `index/field_space_key`, `index/field_document_id`, `index/fields`, `index/value_filters` are used to define structure of indexed document. See 'Index document structure' chapter.
 * `index/remote_field_document_id` is used to define field in remote system document data where unique document identifier is stored. Dot notation may be used for deeper nesting in document data.
-* `index/remote_field_updated` is used to define field in remote system document data where timestamp of last update is stored - timestamp may be formatted by ISO format or number representing millis from 1.1.1970. Dot notation may be used for deeper nesting in document data. Timestamp is mandatory unless you use `simpleGetDocuments` mode.  
+* `index/remote_field_updated` is used to define field in remote system document data where timestamp of last update is stored - timestamp may be formatted by ISO format or number representing millis from 1.1.1970. If the date is in other format use `index/remote_field_updated_format` to define it. Dot notation may be used for deeper nesting in document data. Timestamp is mandatory unless you use `simpleGetDocuments` mode.  
+* `index/remote_field_updated_format` is an optional field which defines format of date given in `index/remote_field_updated`. You can use standard date formatting pattern supported by [JodaTime's DateTimeFormatter class](http://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html). Additionally you can use values of {unixEpoch} or {millisecondsEpoch} to define that date is given in seconds or milliseconds number accordingly since Epoch.
 * `index/remote_field_deleted` is used to define field in remote system document data where deleted flag is stored. If this flag is set to the value configured in `index/remote_field_deleted_value` config param, then document is deleted from elasticsearch index even during incremental updates.
 * `index/remote_field_deleted_value` defines value of deleted flag (see description of previous config property) which means that document is deleted (case sensitive string comparison is used).
 * `index/comment_mode` defines mode of issue comments indexing: `none` - no comments indexed, `embedded` - comments indexed as array in document, `child` - comment indexed as separate document with [parent-child relation](http://www.elasticsearch.org/guide/reference/mapping/parent-field.html) to the document, `standalone` - comment indexed as separate document. Setting is optional, `none` value is default if not provided.

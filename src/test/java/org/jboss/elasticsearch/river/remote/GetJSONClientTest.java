@@ -630,7 +630,7 @@ public class GetJSONClientTest {
 						GetJSONClient
 								.enhanceUrlGetDocuments(
 										"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&docUpdatedBefore={updatedBefore}&startAtIndex={startAtIndex}&it={indexingType}",
-										"myspace", new Date(123456l), DateTimeUtils.CUSTOM_MILISEC_EPOCH_DATETIME_FORMAT, null, 300L, 0, true));
+										"myspace", new Date(123456l), DateTimeUtils.CUSTOM_MILLISEC_EPOCH_DATETIME_FORMAT, null, 300L, 0, true));
 		
 		// Testing if not providing updatedAfter date format doesn't break the call and uses the correct milisecond-based format as the default.
 		Assert

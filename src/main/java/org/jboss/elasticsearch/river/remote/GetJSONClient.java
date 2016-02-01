@@ -110,7 +110,7 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 		getRootResFieldsMapping = getRootResFieldsMapping==null || getRootResFieldsMapping.size()==0 ? null : getRootResFieldsMapping;
 		
 		updatedAfterFormat = Utils.trimToNull(XContentMapValues.nodeStringValue(
-                config.get(CFG_UPDATED_AFTER_FORMAT), DateTimeUtils.CUSTOM_MILISEC_EPOCH_DATETIME_FORMAT ));
+                config.get(CFG_UPDATED_AFTER_FORMAT), DateTimeUtils.CUSTOM_MILLISEC_EPOCH_DATETIME_FORMAT ));
 		String updatedAfterStartStr = Utils.trimToNull(XContentMapValues.nodeStringValue(
                 config.get(CFG_UPDATED_AFTER_INITIAL_VALUE), null ));
 		try {
@@ -336,7 +336,7 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	    
 	    String dateFormatToUse = updatedAfterFormat!=null && updatedAfterFormat.length()!=0
 	            ? updatedAfterFormat
-	            : DateTimeUtils.CUSTOM_MILISEC_EPOCH_DATETIME_FORMAT;
+	            : DateTimeUtils.CUSTOM_MILLISEC_EPOCH_DATETIME_FORMAT;
 	    
 	    updatedAfter = updatedAfter!=null ? updatedAfter : ( updatedAfterInitialValue!=null ? new Date(updatedAfterInitialValue) : null ) ;
 	    

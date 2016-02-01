@@ -9,10 +9,12 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.elasticsearch.common.joda.time.DateTimeZone;
 import org.elasticsearch.common.joda.time.format.DateTimeFormat;
 import org.elasticsearch.common.joda.time.format.DateTimeFormatter;
 import org.elasticsearch.common.joda.time.format.ISODateTimeFormat;
@@ -21,10 +23,11 @@ import org.elasticsearch.common.joda.time.format.ISODateTimeFormat;
  * Date and Time related utility functions.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
+ * @author Ryszard Kozmik
  */
 public abstract class DateTimeUtils {
     
-    public static final String CUSTOM_MILISEC_EPOCH_DATETIME_FORMAT = "{milisecondEpoch}";
+    public static final String CUSTOM_MILLISEC_EPOCH_DATETIME_FORMAT = "{millisecondEpoch}";
     public static final String CUSTOM_UNIX_EPOCH_DATETIME_FORMAT = "{unixEpoch}";
     
     private static final Map<String,DateTimeFormatter> dateTimeFormattersCache = new ConcurrentHashMap<String,DateTimeFormatter>();
@@ -112,17 +115,58 @@ public abstract class DateTimeUtils {
 	    }
 	    
 	    switch (format) {
-	        case CUSTOM_MILISEC_EPOCH_DATETIME_FORMAT : return String.valueOf( date.getTime() );
+	        case CUSTOM_MILLISEC_EPOCH_DATETIME_FORMAT : return String.valueOf( date.getTime() );
 	        case CUSTOM_UNIX_EPOCH_DATETIME_FORMAT : return String.valueOf( (long)(date.getTime()/1000) );
 	    }
 	    
-	    if (dateTimeFormattersCache.containsKey(format)) {
-	        return dateTimeFormattersCache.get(format).print(date.getTime());
-	    } else {
-	        DateTimeFormatter dtf = DateTimeFormat.forPattern(format);
-	        dateTimeFormattersCache.put(format, dtf);
-	        return dtf.print(date.getTime());
+	    return getDateTimeFormatterByFormat(format).print(date.getTime());
+	}
+	
+	/**
+	 * 
+	 * @param dateStr that is going to be parsed
+	 * @param format to be used when parsing. If null ISO or long milliseconds is implied.
+	 * @return Date object for the parsed date
+	 * @throws IllegalArgumentException is thrown if format is not provided and date is not long milliseconds nor ISO.
+	 */
+	public static Date parseDate( String dateStr, String format ) throws IllegalArgumentException {
+		
+		if ( dateStr==null ) return null;
+	    
+	    if ( format==null || format.trim().length()==0 ) {
+	    	try {
+				// try simple timestamp
+				return new Date(Long.parseLong(dateStr));
+			} catch (NumberFormatException e) {
+				// try ISO format
+				return DateTimeUtils.parseISODateTime(dateStr);
+			}
 	    }
+	    
+	    switch (format) {
+	        case CUSTOM_MILLISEC_EPOCH_DATETIME_FORMAT : return new Date(Long.parseLong(dateStr));
+	        case CUSTOM_UNIX_EPOCH_DATETIME_FORMAT : return new Date(Long.parseLong(dateStr)*1000);
+	    }
+	    
+	    return getDateTimeFormatterByFormat(format).parseDateTime(dateStr).toDate();
+		
+	}
+	
+	/**
+	 * Method for accessing date formatter objects from cached store.
+	 * @param format of date with which the formatter will work
+	 * @return formatter object
+	 */
+	protected static DateTimeFormatter getDateTimeFormatterByFormat( String format ) {
+		
+		if (dateTimeFormattersCache.containsKey(format)) {
+	        return dateTimeFormattersCache.get(format);
+	    } else {
+	        DateTimeFormatter dtf = DateTimeFormat.forPattern(format).withLocale(Locale.US).withZone(DateTimeZone.UTC);
+	        dateTimeFormattersCache.put(format, dtf);
+	        return dtf;
+	    }
+		
 	}
 
 }

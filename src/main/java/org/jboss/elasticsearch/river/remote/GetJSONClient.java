@@ -45,6 +45,8 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 
 	protected static final String CFG_URL_GET_DOCUMENTS = "urlGetDocuments";
 
+    protected static final String CFG_MIN_GET_DOCUMENTS_DELAY = "minGetDocumentsDelay";
+
 	protected static final String CFG_URL_GET_DOCUMENT_DETAILS = "urlGetDocumentDetails";
 	protected static final String CFG_URL_GET_DOCUMENT_DETAILS_FIELD = "urlGetDocumentDetailsField";
 	
@@ -78,10 +80,14 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	protected HttpMethodType httpMethod;
 	
 	protected String urlGetDocuments;
+	
+	protected Long minGetDocumentsDelay;
 
 	protected String urlGetDocumentDetails;
 
 	protected String urlGetDocumentDetailsField;
+	
+	protected Long previousHttpCall;
 
 	protected static final String HEADER_ACCEPT_DEFAULT = "application/json";
 
@@ -92,6 +98,18 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 			IPwdLoader pwdLoader) {
 		logger = esIntegration.createLogger(GetJSONClient.class);
 		urlGetDocuments = getUrlFromConfig(config, CFG_URL_GET_DOCUMENTS, true);
+		
+		String minGetDocumentsDelayStr = Utils.trimToNull(XContentMapValues.nodeStringValue(config.get(CFG_MIN_GET_DOCUMENTS_DELAY),null));
+		if(minGetDocumentsDelayStr!=null) {
+		    try {
+		        minGetDocumentsDelay = Long.parseLong(minGetDocumentsDelayStr);
+		        minGetDocumentsDelay = minGetDocumentsDelay<=0L || minGetDocumentsDelay==null ? null : minGetDocumentsDelay;
+		    } catch(NumberFormatException e) {
+		        logger.warn("River configuration field "+CFG_MIN_GET_DOCUMENTS_DELAY+" was initiated with a bad value: "+minGetDocumentsDelayStr);
+		        minGetDocumentsDelay = null;
+		    }
+		}
+		
 		urlGetDocumentDetails = getUrlFromConfig(config, CFG_URL_GET_DOCUMENT_DETAILS, false);
 		urlGetDocumentDetailsField = Utils.trimToNull(XContentMapValues.nodeStringValue(
 				config.get(CFG_URL_GET_DOCUMENT_DETAILS_FIELD), null));
@@ -276,6 +294,21 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	public ChangedDocumentsResults getChangedDocuments(String spaceKey, int startAt, boolean fullUpdate, Date updatedAfter)
 			throws Exception {
 		String url = enhanceUrlGetDocuments(urlGetDocuments, spaceKey, updatedAfter, updatedAfterFormat, updatedAfterInitialValue, updatedBeforeTimeSpanFromUpdatedAfter, startAt, fullUpdate);
+		
+		if( minGetDocumentsDelay!=null ) {
+		    
+		    // If we are running faster than the defined delay between HTTP calls we need to wait for the remaining time.
+		    if( previousHttpCall!=null && (previousHttpCall+minGetDocumentsDelay) > System.currentTimeMillis() ) {
+		        try {
+		            Thread.sleep( Math.abs( previousHttpCall+minGetDocumentsDelay-System.currentTimeMillis() ) );
+		        } catch( InterruptedException e ) {
+		            logger.warn("Thread was unexpectedly woken up from sleep. Trying to keep indexing the content.");
+		        }
+		    }
+		    
+		    previousHttpCall = System.currentTimeMillis();
+		}
+		
 		byte[] responseData = performHttpCall(url, headers, httpMethod).content;
 
 		logger.debug("Get Documents REST response data: {}", new String(responseData));

@@ -15,11 +15,14 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.http.HttpStatus;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.SettingsException;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -46,6 +49,9 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	protected static final String CFG_URL_GET_DOCUMENTS = "urlGetDocuments";
 
     protected static final String CFG_MIN_GET_DOCUMENTS_DELAY = "minGetDocumentsDelay";
+
+    protected static final String CFG_FORCED_INDEXING_PAUSE_FIELD= "forcedIndexingPauseField";
+    protected static final String CFG_FORCED_INDEXING_PAUSE_FIELD_TIME_UNIT= "forcedIndexingPauseFieldTimeUnit";
 
 	protected static final String CFG_URL_GET_DOCUMENT_DETAILS = "urlGetDocumentDetails";
 	protected static final String CFG_URL_GET_DOCUMENT_DETAILS_FIELD = "urlGetDocumentDetailsField";
@@ -82,12 +88,17 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	protected String urlGetDocuments;
 	
 	protected Long minGetDocumentsDelay;
+	
+	protected String forcedIndexingPauseField;
+	protected TimeUnit forcedIndexingPauseFieldTimeUnit;
 
 	protected String urlGetDocumentDetails;
 
 	protected String urlGetDocumentDetailsField;
 	
 	protected Long previousHttpCall;
+	
+	protected AtomicReference<Long> blockHttpCallsTill = new AtomicReference<Long>();
 
 	protected static final String HEADER_ACCEPT_DEFAULT = "application/json";
 
@@ -108,6 +119,22 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 		        logger.warn("River configuration field "+CFG_MIN_GET_DOCUMENTS_DELAY+" was initiated with a bad value: "+minGetDocumentsDelayStr);
 		        minGetDocumentsDelay = null;
 		    }
+		}
+		
+		forcedIndexingPauseField = Utils.trimToNull(XContentMapValues.nodeStringValue(config.get(CFG_FORCED_INDEXING_PAUSE_FIELD),null));
+		String forcedIndexingPauseFieldTimeUnitStr = Utils.trimToNull(
+		        XContentMapValues.nodeStringValue(config.get(CFG_FORCED_INDEXING_PAUSE_FIELD_TIME_UNIT),null));
+		
+		if( forcedIndexingPauseFieldTimeUnitStr!=null ) {
+    		try {
+    		    forcedIndexingPauseFieldTimeUnit = TimeUnit.valueOf(forcedIndexingPauseFieldTimeUnitStr);
+    		} catch( IllegalArgumentException e ) {
+    		    logger.warn("Provided "+CFG_FORCED_INDEXING_PAUSE_FIELD_TIME_UNIT+" field value of: "+forcedIndexingPauseFieldTimeUnit
+    		            + ". For this reason the default assumption of MILLISECONDS will be applied.");
+    		    forcedIndexingPauseFieldTimeUnit = TimeUnit.MILLISECONDS;
+    		}
+		} else {
+		    forcedIndexingPauseFieldTimeUnit = TimeUnit.MILLISECONDS;
 		}
 		
 		urlGetDocumentDetails = getUrlFromConfig(config, CFG_URL_GET_DOCUMENT_DETAILS, false);
@@ -295,11 +322,25 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 			throws Exception {
 		String url = enhanceUrlGetDocuments(urlGetDocuments, spaceKey, updatedAfter, updatedAfterFormat, updatedAfterInitialValue, updatedBeforeTimeSpanFromUpdatedAfter, startAt, fullUpdate);
 		
+		if( blockHttpCallsTill.get()!=null ) {
+			
+			// IF THE THREAD PAUSE TIME HAPPENS TO BE IN THE PAST WE JUST CLEAR THE VALUE AND CONTINUE PROCESSING.
+			if( blockHttpCallsTill.get() <= System.currentTimeMillis() ) {
+				blockHttpCallsTill.set(null);
+			} else {
+				try {
+		            Thread.sleep( Math.abs( blockHttpCallsTill.get()-System.currentTimeMillis() ) );
+		        } catch( InterruptedException e ) {
+		            logger.warn("Thread was unexpectedly woken up from sleep. Trying to keep indexing the content.");
+		        }
+			}
+		}
+		
 		if( minGetDocumentsDelay!=null ) {
 		    
 		    // If we are running faster than the defined delay between HTTP calls we need to wait for the remaining time.
 		    if( previousHttpCall!=null && (previousHttpCall+minGetDocumentsDelay) > System.currentTimeMillis() ) {
-		        try {
+		    	try {
 		            Thread.sleep( Math.abs( previousHttpCall+minGetDocumentsDelay-System.currentTimeMillis() ) );
 		        } catch( InterruptedException e ) {
 		            logger.warn("Thread was unexpectedly woken up from sleep. Trying to keep indexing the content.");
@@ -315,6 +356,30 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 
 		try {
 			Object responseParsed = parseJSONResponse(responseData);
+			
+			// Check if REST API didn't return indexing pause parameter. 
+			// In this case we'll have to wait with the next call.
+			if (forcedIndexingPauseField != null) {
+				Object forceIndexingPauseObj = XContentMapValues.extractValue(forcedIndexingPauseField, (Map) responseParsed);
+				Integer forceIndexingPauseVal = null;
+				if (forceIndexingPauseObj != null) {
+					try {
+						if (forceIndexingPauseObj instanceof Integer) {
+							forceIndexingPauseVal = (Integer) forceIndexingPauseObj;
+						} else {
+							forceIndexingPauseVal = Integer.parseInt(forceIndexingPauseObj.toString());
+						}
+						
+						blockHttpCallsTill.set( System.currentTimeMillis()
+								+ forcedIndexingPauseFieldTimeUnit.toMillis(forceIndexingPauseVal));
+                        
+					} catch (NumberFormatException e) {
+						logger.warn("Value from configured "+CFG_FORCED_INDEXING_PAUSE_FIELD+
+								" field is not convertable to number: " + forceIndexingPauseObj.toString());
+					}
+				}
+			}
+			
 			Integer total = null;
 			if (getDocsResFieldTotalcount != null) {
 				Object totalObj = XContentMapValues.extractValue(getDocsResFieldTotalcount, (Map) responseParsed);

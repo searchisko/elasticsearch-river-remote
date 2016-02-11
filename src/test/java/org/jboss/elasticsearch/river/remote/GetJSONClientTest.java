@@ -373,6 +373,56 @@ public class GetJSONClientTest {
 			Assert.assertEquals("false", ret.getDocuments().get(1).get("dev"));
 		}
 
+		// case - test that forced pause parameter is correctly parsed and processed
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://averynotexistinghostname.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}");
+			config.put(GetJSONClient.CFG_FORCED_INDEXING_PAUSE_FIELD,"backoff");
+			config.put(GetJSONClient.CFG_FORCED_INDEXING_PAUSE_FIELD_TIME_UNIT, "SECONDS");
+			config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_DOCUMENTS, "items");
+			Long timeBeforeExecution = System.currentTimeMillis();
+			IRemoteSystemClient tested = createTestedInstance(config, "{ \"backoff\": 2, \"items\":[] }",
+					"http://averynotexistinghostname.org/documents?docSpace=space&docUpdatedAfter=1000000000000");
+			tested.getChangedDocuments("space", 0, true, new Date(1000000000000L));
+			tested.getChangedDocuments("space", 0, true, new Date(1000000000000L));
+			Assert.assertTrue(System.currentTimeMillis() >= timeBeforeExecution+2000L);
+			
+			// now we'll see if delay is properly cleared if the time already passed during processing
+			try {
+	            Thread.sleep( 2000 );
+	        } catch( InterruptedException e ) {
+	            //ignore
+	        }
+			timeBeforeExecution = System.currentTimeMillis();
+			tested.getChangedDocuments("space", 0, true, new Date(1000000000000L));
+			Assert.assertTrue( System.currentTimeMillis()-timeBeforeExecution < 2000 );
+		}
+		
+		// case - test that minimal request delay parameter is correctly parsed and processed
+		{
+			Map<String, Object> config = new HashMap<String, Object>();
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS,
+					"http://averynotexistinghostname.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}");
+			config.put(GetJSONClient.CFG_MIN_GET_DOCUMENTS_DELAY,"2000");
+			config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_DOCUMENTS, "items");
+			Long timeBeforeExecution = System.currentTimeMillis();
+			IRemoteSystemClient tested = createTestedInstance(config, "{ \"items\":[] }",
+					"http://averynotexistinghostname.org/documents?docSpace=space&docUpdatedAfter=1000000000000");
+			tested.getChangedDocuments("space", 0, true, new Date(1000000000000L));
+			tested.getChangedDocuments("space", 0, true, new Date(1000000000000L));
+			Assert.assertTrue(System.currentTimeMillis() >= timeBeforeExecution+2000L);
+			
+			// now we'll see if delay is properly cleared if the time already passed during processing
+			try {
+	            Thread.sleep( 2000 );
+	        } catch( InterruptedException e ) {
+	            //ignore
+	        }
+			timeBeforeExecution = System.currentTimeMillis();
+			tested.getChangedDocuments("space", 0, true, new Date(1000000000000L));
+			Assert.assertTrue( System.currentTimeMillis()-timeBeforeExecution < 2000 );
+		}
 	}
 
 	private IRemoteSystemClient createTestedInstance(Map<String, Object> config, final String returnJson,

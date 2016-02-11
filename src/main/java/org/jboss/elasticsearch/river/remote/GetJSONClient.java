@@ -96,13 +96,13 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 
 	protected String urlGetDocumentDetailsField;
 	
-	protected Long previousHttpCall;
-	
 	protected AtomicReference<Long> blockHttpCallsTill = new AtomicReference<Long>();
 
 	protected static final String HEADER_ACCEPT_DEFAULT = "application/json";
 
 	protected Map<String, String> headers = new HashMap<String, String>();
+	
+	protected ThreadLocal<Long> previousHttpCall = new ThreadLocal<Long>();
 
 	@Override
 	public void init(IESIntegration esIntegration, Map<String, Object> config, boolean spaceListLoadingEnabled,
@@ -337,17 +337,16 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 		}
 		
 		if( minGetDocumentsDelay!=null ) {
-		    
 		    // If we are running faster than the defined delay between HTTP calls we need to wait for the remaining time.
-		    if( previousHttpCall!=null && (previousHttpCall+minGetDocumentsDelay) > System.currentTimeMillis() ) {
+		    if( previousHttpCall.get()!=null && (previousHttpCall.get()+minGetDocumentsDelay) > System.currentTimeMillis() ) {
 		    	try {
-		            Thread.sleep( Math.abs( previousHttpCall+minGetDocumentsDelay-System.currentTimeMillis() ) );
+		            Thread.sleep( Math.abs( previousHttpCall.get()+minGetDocumentsDelay-System.currentTimeMillis() ) );
 		        } catch( InterruptedException e ) {
 		            logger.warn("Thread was unexpectedly woken up from sleep. Trying to keep indexing the content.");
 		        }
 		    }
 		    
-		    previousHttpCall = System.currentTimeMillis();
+		    previousHttpCall.set(System.currentTimeMillis());
 		}
 		
 		byte[] responseData = performHttpCall(url, headers, httpMethod).content;
@@ -370,8 +369,9 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 							forceIndexingPauseVal = Integer.parseInt(forceIndexingPauseObj.toString());
 						}
 						
+						// We increase waiting time by 10% just to be absolutely sure to obey the limit.
 						blockHttpCallsTill.set( System.currentTimeMillis()
-								+ forcedIndexingPauseFieldTimeUnit.toMillis(forceIndexingPauseVal));
+								+ (long)(forcedIndexingPauseFieldTimeUnit.toMillis(forceIndexingPauseVal)*1.1) );
                         
 					} catch (NumberFormatException e) {
 						logger.warn("Value from configured "+CFG_FORCED_INDEXING_PAUSE_FIELD+

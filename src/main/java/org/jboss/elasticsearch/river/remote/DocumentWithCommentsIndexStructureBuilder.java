@@ -34,6 +34,7 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
  * call to the document stored in ElasticSearch index. Supports comment tied to document too.
  * 
  * @author Vlastimil Elias (velias at redhat dot com)
+ * @author Ryszard Kozmik
  */
 public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndexStructureBuilder {
 
@@ -60,6 +61,7 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	protected static final String CONFIG_FILTERS = "value_filters";
 	protected static final String CONFIG_REMOTEFIELD_DOCUMENTID = "remote_field_document_id";
 	protected static final String CONFIG_REMOTEFIELD_UPDATED = "remote_field_updated";
+	protected static final String CONFIG_REMOTEFIELD_UPDATED_FORMAT = "remote_field_updated_format";
 	protected static final String CONFIG_REMOTEFIELD_DELETED = "remote_field_deleted";
 	protected static final String CONFIG_REMOTEFIELD_DELETEDVALUE = "remote_field_deleted_value";
 	protected static final String CONFIG_REMOTEFIELD_COMMENTS = "remote_field_comments";
@@ -81,6 +83,12 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 	 * Field in remote document data to get indexed document last update timestamp from.
 	 */
 	protected String remoteDataFieldForUpdated = null;
+	
+	/**
+	 * Field in remote document data to get indexed document last update timestamp date format.
+	 * By default the assumed date format is ISO or long value of milliseconds from Epoch.
+	 */
+	protected String remoteDataFieldForUpdatedFormat = null;
 
 	/**
 	 * Field in remote document data to get delete flag for document from.
@@ -196,6 +204,8 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 					settings.get(CONFIG_REMOTEFIELD_DOCUMENTID), null));
 			remoteDataFieldForUpdated = Utils.trimToNull(XContentMapValues.nodeStringValue(
 					settings.get(CONFIG_REMOTEFIELD_UPDATED), null));
+			remoteDataFieldForUpdatedFormat = Utils.trimToNull(XContentMapValues.nodeStringValue(
+					settings.get(CONFIG_REMOTEFIELD_UPDATED_FORMAT), null));
 			remoteDataFieldForComments = Utils.trimToNull(XContentMapValues.nodeStringValue(
 					settings.get(CONFIG_REMOTEFIELD_COMMENTS), null));
 			remoteDataFieldForCommentId = Utils.trimToNull(XContentMapValues.nodeStringValue(
@@ -343,16 +353,10 @@ public class DocumentWithCommentsIndexStructureBuilder implements IDocumentIndex
 			return (Date) val;
 
 		try {
-			// try simple timestamp
-			return new Date(Long.parseLong(val.toString()));
-		} catch (NumberFormatException e) {
-			// try ISO format
-			try {
-				return DateTimeUtils.parseISODateTime(val.toString());
-			} catch (IllegalArgumentException e1) {
-				throw new SettingsException("Remote data field '" + remoteDataFieldForUpdated
-						+ "' is not reecognized as timestamp value (ISO format or number with millis from 1.1.1970): " + val);
-			}
+			return DateTimeUtils.parseDate( val.toString(), remoteDataFieldForUpdatedFormat );
+		} catch (IllegalArgumentException e1) {
+			throw new SettingsException("Remote data field '" + remoteDataFieldForUpdated
+					+ "' is not reecognized: " + val);
 		}
 	}
 

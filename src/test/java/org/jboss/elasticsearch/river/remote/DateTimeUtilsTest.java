@@ -80,7 +80,7 @@ public class DateTimeUtilsTest {
 	    
 	    Assert.assertEquals(DateTimeUtils.formatDateTime(exampleDate, ""),DateTimeUtils.formatISODateTime(exampleDate));
 	    
-	    Assert.assertEquals(DateTimeUtils.formatDateTime(exampleDate, DateTimeUtils.CUSTOM_MILISEC_EPOCH_DATETIME_FORMAT),
+	    Assert.assertEquals(DateTimeUtils.formatDateTime(exampleDate, DateTimeUtils.CUSTOM_MILLISEC_EPOCH_DATETIME_FORMAT),
 	            String.valueOf(exampleDate.getTime()));
 	    Assert.assertEquals(DateTimeUtils.formatDateTime(exampleDate, DateTimeUtils.CUSTOM_UNIX_EPOCH_DATETIME_FORMAT),
                 String.valueOf(exampleDate.getTime()).replaceFirst("\\d\\d\\d$", ""));
@@ -89,6 +89,19 @@ public class DateTimeUtilsTest {
 	    Assert.assertEquals(DateTimeUtils.formatDateTime(exampleDate, "YYYY-MM-dd"),"2012-08-14");
         
 	    
+	}
+	
+	@Test
+	public void parseDate() {
+		
+		Assert.assertNull(DateTimeUtils.formatDateTime(null,""));
+		
+		Date exampleDate = DateTimeUtils.parseISODateTime("2012-08-14T00:00:00.000-0000");
+		
+		Assert.assertEquals( exampleDate , DateTimeUtils.parseDate("1344902400", DateTimeUtils.CUSTOM_UNIX_EPOCH_DATETIME_FORMAT) );
+		Assert.assertEquals( exampleDate , DateTimeUtils.parseDate("1344902400000", DateTimeUtils.CUSTOM_MILLISEC_EPOCH_DATETIME_FORMAT) );
+		Assert.assertTrue( exampleDate.equals(DateTimeUtils.parseDate("2012-08-14", "YYYY-MM-dd")) );
+		
 	}
 
 }

@@ -17,12 +17,14 @@ In order to install the plugin into Elasticsearch 1.3.x, simply run:
 `bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.5.4/elasticsearch-river-remote-1.5.4.zip -install elasticsearch-river-remote`.
 
 In order to install the plugin into Elasticsearch 1.4.x, simply run: 
-`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.6.4/elasticsearch-river-remote-1.6.5.zip -install elasticsearch-river-remote`.
+`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.6.6/elasticsearch-river-remote-1.6.6.zip -install elasticsearch-river-remote`.
 
     --------------------------------------------------
     | Remote River | Elasticsearch    | Release date |
     --------------------------------------------------
     | master       | 1.4.0            |              |
+    --------------------------------------------------
+    | 1.6.6        | 1.4.0            | 11.02.2016   |
     --------------------------------------------------
     | 1.6.5        | 1.4.0            | 04.10.2015   |
     --------------------------------------------------
@@ -117,12 +119,16 @@ The example above lists all the main options controlling the creation and behavi
 * `remote/remoteClientClass` class implementing *remote system API client* used to pull data from remote system. See dedicated chapter later. Optional, *GET JSON remote system API client* used by default. Client class must implement [`org.jboss.elasticsearch.river.remote.IRemoteSystemClient`](/src/main/java/org/jboss/elasticsearch/river/remote/IRemoteSystemClient.java) interface.
 * `remote/listDocumentsMode` defines indexing mode for one space, so how *List Documents* URL of remote system is called to obtain all necessary data from it. Available values are `updateTimestamp`, `pagination`, `simple`, see description later in *Remote system API to obtain data from* chapter. Optional, default value is `updateTimestamp`.
 * `remote/simpleGetDocuments` deprecated from 1.5.3, use `remote/listDocumentsMode` with `simple` value instead.
+* `remote/minGetDocumentsDelay` defines minimal delay before the next request is made. Basically it's a throttling mechanism for the river. It is defined in milliseconds and affects each running thread separately. 
+* `remote/forcedIndexingPauseField` some REST API providers tend to add a field to response content specifying how much you have to wait before making another call to their service. Therefore the indexer need to parse this field and wait the given amount of time. Important note here is that if this pausing parameter is sent only once and not repeated in parallel responses then river with multiple threads processing might still break due to a thread race. In this situation it's recommended to use only one thread for processing, set in `remote/maxIndexingThreads` variable. By default the time is expected to be provided as milliseconds long number. In order to change the time unit please refer to `remote/forcedIndexingPauseFieldTimeUnit` description.
+* `remote/forcedIndexingPauseFieldTimeUnit` it specifies time unit used by `remote/forcedIndexingPauseField`. Available options are [java.util.concurrent.TimeUnit](https://docs.oracle.com/javase/7/docs/api/java/util/concurrent/TimeUnit.html) enum values e.g. 'SECONDS', 'MINUTES', 'MILLISECONDS'. By default the time is assumed to be in milliseconds.
 * `remote/*` other params are used by the *remote system API client*
 * `index/index` defines name of search [index](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/glossary.html#glossary-index) where documents from remote system are stored. Parameter is optional, name of river is used if omitted. See related notes later!
 * `index/type` defines [type](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/glossary.html#glossary-type) used when document from remote system is stored into search index. Parameter is optional, `remote_document` is used if omitted. See related notes later!
 * `index/field_river_name`, `index/field_space_key`, `index/field_document_id`, `index/fields`, `index/value_filters` are used to define structure of indexed document. See 'Index document structure' chapter.
 * `index/remote_field_document_id` is used to define field in remote system document data where unique document identifier is stored. Dot notation may be used for deeper nesting in document data.
-* `index/remote_field_updated` is used to define field in remote system document data where timestamp of last update is stored - timestamp may be formatted by ISO format or number representing millis from 1.1.1970. Dot notation may be used for deeper nesting in document data. Timestamp is mandatory unless you use `simpleGetDocuments` mode.  
+* `index/remote_field_updated` is used to define field in remote system document data where timestamp of last update is stored - timestamp may be formatted by ISO format or number representing millis from 1.1.1970. If the date is in other format use `index/remote_field_updated_format` to define it. Dot notation may be used for deeper nesting in document data. Timestamp is mandatory unless you use `simpleGetDocuments` mode.  
+* `index/remote_field_updated_format` is an optional field which defines format of date given in `index/remote_field_updated`. You can use standard date formatting pattern supported by [JodaTime's DateTimeFormatter class](http://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html). Additionally you can use values of {unixEpoch} or {millisecondsEpoch} to define that date is given in seconds or milliseconds number accordingly since Epoch.
 * `index/remote_field_deleted` is used to define field in remote system document data where deleted flag is stored. If this flag is set to the value configured in `index/remote_field_deleted_value` config param, then document is deleted from elasticsearch index even during incremental updates.
 * `index/remote_field_deleted_value` defines value of deleted flag (see description of previous config property) which means that document is deleted (case sensitive string comparison is used).
 * `index/comment_mode` defines mode of issue comments indexing: `none` - no comments indexed, `embedded` - comments indexed as array in document, `child` - comment indexed as separate document with [parent-child relation](http://www.elasticsearch.org/guide/reference/mapping/parent-field.html) to the document, `standalone` - comment indexed as separate document. Setting is optional, `none` value is default if not provided.

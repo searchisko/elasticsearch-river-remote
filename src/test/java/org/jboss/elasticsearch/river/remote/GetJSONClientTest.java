@@ -410,18 +410,7 @@ public class GetJSONClientTest {
 			IRemoteSystemClient tested = createTestedInstance(config, "{ \"items\":[] }",
 					"http://averynotexistinghostname.org/documents?docSpace=space&docUpdatedAfter=1000000000000");
 			tested.getChangedDocuments("space", 0, true, new Date(1000000000000L));
-			tested.getChangedDocuments("space", 0, true, new Date(1000000000000L));
 			Assert.assertTrue(System.currentTimeMillis() >= timeBeforeExecution+2000L);
-			
-			// now we'll see if delay is properly cleared if the time already passed during processing
-			try {
-	            Thread.sleep( 2000 );
-	        } catch( InterruptedException e ) {
-	            //ignore
-	        }
-			timeBeforeExecution = System.currentTimeMillis();
-			tested.getChangedDocuments("space", 0, true, new Date(1000000000000L));
-			Assert.assertTrue( System.currentTimeMillis()-timeBeforeExecution < 2000 );
 		}
 	}
 

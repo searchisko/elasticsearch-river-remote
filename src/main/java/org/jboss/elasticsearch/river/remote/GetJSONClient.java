@@ -22,7 +22,6 @@ import org.apache.http.HttpStatus;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.SettingsException;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -101,8 +100,6 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	protected static final String HEADER_ACCEPT_DEFAULT = "application/json";
 
 	protected Map<String, String> headers = new HashMap<String, String>();
-	
-	protected ThreadLocal<Long> previousHttpCall = new ThreadLocal<Long>();
 
 	@Override
 	public void init(IESIntegration esIntegration, Map<String, Object> config, boolean spaceListLoadingEnabled,
@@ -337,16 +334,11 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 		}
 		
 		if( minGetDocumentsDelay!=null ) {
-		    // If we are running faster than the defined delay between HTTP calls we need to wait for the remaining time.
-		    if( previousHttpCall.get()!=null && (previousHttpCall.get()+minGetDocumentsDelay) > System.currentTimeMillis() ) {
-		    	try {
-		            Thread.sleep( Math.abs( previousHttpCall.get()+minGetDocumentsDelay-System.currentTimeMillis() ) );
-		        } catch( InterruptedException e ) {
-		            logger.warn("Thread was unexpectedly woken up from sleep. Trying to keep indexing the content.");
-		        }
-		    }
-		    
-		    previousHttpCall.set(System.currentTimeMillis());
+	    	try {
+	            Thread.sleep( minGetDocumentsDelay );
+	        } catch( InterruptedException e ) {
+	            logger.warn("Thread was unexpectedly woken up from sleep. Trying to keep indexing the content.");
+	        }
 		}
 		
 		byte[] responseData = performHttpCall(url, headers, httpMethod).content;

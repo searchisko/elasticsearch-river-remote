@@ -17,12 +17,14 @@ In order to install the plugin into Elasticsearch 1.3.x, simply run:
 `bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.5.4/elasticsearch-river-remote-1.5.4.zip -install elasticsearch-river-remote`.
 
 In order to install the plugin into Elasticsearch 1.4.x, simply run: 
-`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.6.6/elasticsearch-river-remote-1.6.6.zip -install elasticsearch-river-remote`.
+`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.6.6/elasticsearch-river-remote-1.6.7.zip -install elasticsearch-river-remote`.
 
     --------------------------------------------------
     | Remote River | Elasticsearch    | Release date |
     --------------------------------------------------
     | master       | 1.4.0            |              |
+    --------------------------------------------------
+    | 1.6.7        | 1.4.0            | 12.02.2016   |
     --------------------------------------------------
     | 1.6.6        | 1.4.0            | 11.02.2016   |
     --------------------------------------------------
@@ -119,7 +121,7 @@ The example above lists all the main options controlling the creation and behavi
 * `remote/remoteClientClass` class implementing *remote system API client* used to pull data from remote system. See dedicated chapter later. Optional, *GET JSON remote system API client* used by default. Client class must implement [`org.jboss.elasticsearch.river.remote.IRemoteSystemClient`](/src/main/java/org/jboss/elasticsearch/river/remote/IRemoteSystemClient.java) interface.
 * `remote/listDocumentsMode` defines indexing mode for one space, so how *List Documents* URL of remote system is called to obtain all necessary data from it. Available values are `updateTimestamp`, `pagination`, `simple`, see description later in *Remote system API to obtain data from* chapter. Optional, default value is `updateTimestamp`.
 * `remote/simpleGetDocuments` deprecated from 1.5.3, use `remote/listDocumentsMode` with `simple` value instead.
-* `remote/minGetDocumentsDelay` defines minimal delay before the next request is made. Basically it's a throttling mechanism for the river. It is defined in milliseconds and affects each running thread separately. 
+* `remote/minGetDocumentsDelay` defines a delay before the next request is made. So each get documents request will first wait this amount of time before actually executing. Basically it's a very simple throttling mechanism for the river. It is defined in milliseconds number.
 * `remote/forcedIndexingPauseField` some REST API providers tend to add a field to response content specifying how much you have to wait before making another call to their service. Therefore the indexer need to parse this field and wait the given amount of time. Important note here is that if this pausing parameter is sent only once and not repeated in parallel responses then river with multiple threads processing might still break due to a thread race. In this situation it's recommended to use only one thread for processing, set in `remote/maxIndexingThreads` variable. By default the time is expected to be provided as milliseconds long number. In order to change the time unit please refer to `remote/forcedIndexingPauseFieldTimeUnit` description.
 * `remote/forcedIndexingPauseFieldTimeUnit` it specifies time unit used by `remote/forcedIndexingPauseField`. Available options are [java.util.concurrent.TimeUnit](https://docs.oracle.com/javase/7/docs/api/java/util/concurrent/TimeUnit.html) enum values e.g. 'SECONDS', 'MINUTES', 'MILLISECONDS'. By default the time is assumed to be in milliseconds.
 * `remote/*` other params are used by the *remote system API client*

@@ -54,6 +54,10 @@ public abstract class HttpRemoteSystemClientBase implements IRemoteSystemClient 
 
 	protected static final String CFG_TIMEOUT = "timeout";
 
+	protected static final String CFG_EMBED_URL_API_KEY = "embedUrlApiKey";
+
+	protected static final String CFG_EMBED_URL_API_KEY_USERNAME = "embedUrlApiKeyUsername";
+
 	protected ESLogger myLogger = null;
 
 	protected CloseableHttpClient httpclient;

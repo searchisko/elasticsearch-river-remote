@@ -21,6 +21,7 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
@@ -45,7 +46,7 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 /**
  * Remote River implementation class.
- * 
+ *
  * @author Vlastimil Elias (velias at redhat dot com)
  */
 public class RemoteRiver extends AbstractRiverComponent implements River, IESIntegration, IRiverMgm, IPwdLoader {
@@ -57,7 +58,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 	/**
 	 * Name of datetime property where permanent indexing stop date is stored
-	 * 
+	 *
 	 * @see #storeDatetimeValue(String, String, Date, BulkRequestBuilder)
 	 * @see #readDatetimeValue(String, String)
 	 */
@@ -149,21 +150,21 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 	/**
 	 * List of indexing excluded Space keys loaded from river configuration
-	 * 
+	 *
 	 * @see #getAllIndexedSpaceKeys()
 	 */
 	protected List<String> spaceKeysExcluded = null;
 
 	/**
 	 * List of all Space keys to be indexed. Loaded from river configuration, or from remote system (excludes removed)
-	 * 
+	 *
 	 * @see #getAllIndexedSpaceKeys()
 	 */
 	protected List<String> allIndexedSpacesKeys = null;
 
 	/**
 	 * Next time when {@link #allIndexedSpacesKeys} need to be refreshed from remote system.
-	 * 
+	 *
 	 * @see #getAllIndexedSpaceKeys()
 	 */
 	protected long allIndexedSpacesKeysNextRefresh = 0;
@@ -185,7 +186,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 	/**
 	 * Public constructor used by ElasticSearch.
-	 * 
+	 *
 	 * @param riverName
 	 * @param settings
 	 * @param client
@@ -200,7 +201,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 	/**
 	 * Configure the river.
-	 * 
+	 *
 	 * @param settings used for configuration.
 	 */
 	@SuppressWarnings({ "unchecked" })
@@ -325,7 +326,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 	/**
 	 * Constructor for unit tests, nothing is initialized/configured in river.
-	 * 
+	 *
 	 * @param riverName
 	 * @param settings
 	 */
@@ -379,7 +380,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	 * Stop remote river, but leave instance existing in {@link #riverInstances} so it can be found over management REST
 	 * calls and/or reconfigured and started later again. Note that standard ES river {@link #close()} method
 	 * implementation removes river instance from {@link #riverInstances}.
-	 * 
+	 *
 	 * @param permanent set to true if info about river stopped can be persisted
 	 */
 	@Override
@@ -509,7 +510,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 	/**
 	 * Get info about current operation of this river. Used for REST management operations handling.
-	 * 
+	 *
 	 * @return String with JSON formatted info.
 	 * @throws Exception
 	 */
@@ -595,7 +596,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 	/**
 	 * Get running instance of remote river for given name. Used for REST management operations handling.
-	 * 
+	 *
 	 * @param riverName to get instance for
 	 * @return river instance or null if not found
 	 * @see #addRunningInstance(IRiverMgm)
@@ -609,7 +610,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 	/**
 	 * Put running instance of remote river into registry. Used for REST management operations handling.
-	 * 
+	 *
 	 * @param remoteRiver to get instance for
 	 * @see #getRunningInstances()
 	 * @see #getRunningInstance(String)
@@ -620,7 +621,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 	/**
 	 * Get running instances of all remote rivers. Used for REST management operations handling.
-	 * 
+	 *
 	 * @return Set with names of all remote river instances registered for management
 	 * @see #addRunningInstance(IRiverMgm)
 	 * @see #getRunningInstance(String)
@@ -632,7 +633,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	/**
 	 * Remove rivers of given names. Note: this method was added because of unit tests. Do not call this method in
 	 * production code.
-	 * 
+	 *
 	 * @param riverNames
 	 */
 	public static void removeRunningInstances(String... riverNames) {
@@ -670,7 +671,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 	/**
 	 * Write indexing info into activity log if enabled.
-	 * 
+	 *
 	 * @param indexingInfo to write
 	 */
 	protected void writeActivityLogRecord(SpaceIndexingInfo indexingInfo) {
@@ -704,17 +705,17 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 	/**
 	 * Constant for field in JSON document used to store values.
-	 * 
+	 *
 	 * @see #storeDatetimeValue(String, String, Date, BulkRequestBuilder)
 	 * @see #readDatetimeValue(String, String)
 	 * @see #storeDatetimeValueBuildDocument(String, String, Date)
-	 * 
+	 *
 	 */
 	protected static final String STORE_FIELD_VALUE = "value";
 
 	/**
 	 * Prepare JSON document to be stored inside {@link #storeDatetimeValue(String, String, Date, BulkRequestBuilder)}.
-	 * 
+	 *
 	 * @param spaceKey key of Space value is for
 	 * @param propertyName name of property
 	 * @param datetime value to store
@@ -790,11 +791,11 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 
 	/**
 	 * Prepare name of document where Space related persistent value is stored
-	 * 
+	 *
 	 * @param spaceKey key of Space stored value is for
 	 * @param propertyName name of value
 	 * @return document name
-	 * 
+	 *
 	 * @see #storeDatetimeValue(String, String, Date, BulkRequestBuilder)
 	 * @see #readDatetimeValue(String, String)
 	 */
@@ -868,6 +869,7 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 		String riverIndexName = getRiverIndexName();
 		refreshSearchIndex(riverIndexName);
 		GetResponse resp = client.prepareGet(riverIndexName, riverName().name(), "_pwd").execute().actionGet();
+		Client tester = client;
 		if (resp.isExists()) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Password document: {}", resp.getSourceAsString());

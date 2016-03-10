@@ -102,14 +102,16 @@ public class GetSitemapHtmlClientTest {
 		{
 			GetSitemapHtmlClient tested = new GetSitemapHtmlClient();
 			Map<String, Object> config = new HashMap<String, Object>();
+			HashMap<String,String> passwordTest = new HashMap<>();
+			passwordTest.put("pwd", "paaswd");
 			config.put(GetSitemapHtmlClient.CFG_URL_GET_SITEMAP, "http://test.org/documents");
 			config.put(GetSitemapHtmlClient.CFG_USERNAME, "myuser");
 			IPwdLoader pwdLoaderMock = Mockito.mock(IPwdLoader.class);
-			Mockito.when(pwdLoaderMock.loadPassword("myuser")).thenReturn("paaswd");
+			Mockito.when(pwdLoaderMock.loadKey("myuser")).thenReturn(passwordTest);
 			tested.init(mockEsIntegrationComponent(), config, false, pwdLoaderMock);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetSitemap);
 			Assert.assertTrue(tested.isAuthConfigured);
-			Mockito.verify(pwdLoaderMock).loadPassword("myuser");
+			Mockito.verify(pwdLoaderMock).loadKey("myuser");
 		}
 
 		// case - basic config, authentication put pwd not defined

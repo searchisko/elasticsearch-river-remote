@@ -19,7 +19,6 @@ import org.elasticsearch.common.jackson.core.JsonParseException;
 import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.settings.SettingsException;
 import org.jboss.elasticsearch.river.remote.HttpRemoteSystemClientBase.HttpCallException;
-import org.jboss.elasticsearch.river.remote.HttpRemoteSystemClientBase.HttpMethodType;
 import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -28,7 +27,7 @@ import static org.mockito.Mockito.mock;
 
 /**
  * Unit test for {@link GetJSONClient}.
- *
+ * 
  * @author Vlastimil Elias (velias at redhat dot com)
  */
 public class GetJSONClientTest {
@@ -121,11 +120,11 @@ public class GetJSONClientTest {
 			config.put(GetJSONClient.CFG_USERNAME, "myuser");
 			config.put(GetJSONClient.CFG_PASSWORD, "paaswd");
 			config.put(GetJSONClient.CFG_HEADER_ACCEPT, "app/json");
-
+			
 			Map<String,Object> valueForRootResFields = new HashMap<String,Object>(1);
 			valueForRootResFields.put("dev", "container_info.dev");
 			config.put(GetJSONClient.CFG_GET_ROOT_RES_FIELDS_MAPPING, valueForRootResFields);
-
+			
 			IPwdLoader pwdLoaderMock = Mockito.mock(IPwdLoader.class);
 			tested.init(mockEsIntegrationComponent(), config, true, pwdLoaderMock);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
@@ -142,18 +141,20 @@ public class GetJSONClientTest {
 		{
 			GetJSONClient tested = new GetJSONClient();
 			Map<String, Object> config = new HashMap<String, Object>();
+			HashMap<String,String> passwordTest = new HashMap<>();
+			passwordTest.put("pwd", "paaswd");
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
 			config.put(GetJSONClient.CFG_URL_GET_SPACES, "http://test.org/spaces");
 			config.put(GetJSONClient.CFG_USERNAME, "myuser");
 			IPwdLoader pwdLoaderMock = Mockito.mock(IPwdLoader.class);
-			Mockito.when(pwdLoaderMock.loadPassword("myuser")).thenReturn("paaswd");
+			Mockito.when(pwdLoaderMock.loadKey("myuser")).thenReturn(passwordTest);
 			tested.init(mockEsIntegrationComponent(), config, true, pwdLoaderMock);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
 			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headers.get("Accept"));
 			Assert.assertTrue(tested.isAuthConfigured);
-			Mockito.verify(pwdLoaderMock).loadPassword("myuser");
+			Mockito.verify(pwdLoaderMock).loadKey("myuser");
 		}
 
 		// case - basic config, authentication put pwd not defined
@@ -175,17 +176,19 @@ public class GetJSONClientTest {
 		{
 			GetJSONClient tested = new GetJSONClient();
 			Map<String, Object> config = new HashMap<String, Object>();
+			HashMap<String,String> passwordTest = new HashMap<>();
+			passwordTest.put("stackoverflow", "paaswd");
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
 			config.put(GetJSONClient.CFG_URL_GET_SPACES, "http://test.org/spaces");
 			config.put(GetJSONClient.CFG_EMBED_URL_API_KEY_USERNAME, "stackoverflow");
 			IPwdLoader pwdLoaderMock = Mockito.mock(IPwdLoader.class);
-			Mockito.when(pwdLoaderMock.loadPassword("stackoverflow")).thenReturn("paaswd");
+			Mockito.when(pwdLoaderMock.loadKey("stackoverflow")).thenReturn(passwordTest);
 			tested.init(mockEsIntegrationComponent(), config, true, pwdLoaderMock);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
 			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headers.get("Accept"));
-			Mockito.verify(pwdLoaderMock).loadPassword("stackoverflow");
+			Mockito.verify(pwdLoaderMock).loadKey("stackoverflow");
 		}
 
 
@@ -201,7 +204,7 @@ public class GetJSONClientTest {
 		} catch (SettingsException e) {
 			// OK
 		}
-
+		
 		// case - invalid numbers for updatedAfterInitialValue
 		try {
             GetJSONClient tested = new GetJSONClient();
@@ -214,7 +217,7 @@ public class GetJSONClientTest {
         } catch (SettingsException e) {
             // OK
         }
-
+		
 		// case - invalid numbers for updatedBeforeTimeSpanFromUpdatedAfter
         try {
             GetJSONClient tested = new GetJSONClient();
@@ -372,11 +375,11 @@ public class GetJSONClientTest {
 					"http://totallyrandomdomain.org/documents?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}");
 			config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_DOCUMENTS, "response.items");
 			config.put(GetJSONClient.CFG_GET_DOCS_RES_FIELD_TOTALCOUNT, "response.total");
-
+			
 			Map<String,Object> valueForRootResFields = new HashMap<String,Object>(1);
 			valueForRootResFields.put("dev", "response.container_info.dev");
 			config.put(GetJSONClient.CFG_GET_ROOT_RES_FIELDS_MAPPING, valueForRootResFields);
-
+			
 			IRemoteSystemClient tested = createTestedInstance(config,
 					"{\"response\": { \"total\":20 , \"container_info\": { \"dev\":\"false\"},"
 					+ "\"items\":[{\"key\" : \"a\"},{\"key\" : \"b\"}]}}",
@@ -405,7 +408,7 @@ public class GetJSONClientTest {
 			tested.getChangedDocuments("space", 0, true, new Date(1000000000000L));
 			tested.getChangedDocuments("space", 0, true, new Date(1000000000000L));
 			Assert.assertTrue(System.currentTimeMillis() >= timeBeforeExecution+2000L);
-
+			
 			// now we'll see if delay is properly cleared if the time already passed during processing
 			try {
 	            Thread.sleep( 2000 );
@@ -416,7 +419,7 @@ public class GetJSONClientTest {
 			tested.getChangedDocuments("space", 0, true, new Date(1000000000000L));
 			Assert.assertTrue( System.currentTimeMillis()-timeBeforeExecution < 2000 );
 		}
-
+		
 		// case - test that minimal request delay parameter is correctly parsed and processed
 		{
 			Map<String, Object> config = new HashMap<String, Object>();

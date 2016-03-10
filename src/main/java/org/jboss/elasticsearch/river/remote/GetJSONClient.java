@@ -127,8 +127,8 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 
 		if(embedUrlApiKeyUsername != null){
 			try{
-				embedUrlApiKey = pwdLoader.loadPassword(embedUrlApiKeyUsername);
-				logger.warn("For Username: " + embedUrlApiKeyUsername +"we are using API Key: " + embedUrlApiKey);
+				embedUrlApiKey = pwdLoader.loadKey(embedUrlApiKeyUsername).get(embedUrlApiKeyUsername);
+				logger.warn("For Username: " + embedUrlApiKeyUsername +" we are using API Key: " + embedUrlApiKey);
 			}catch(IllegalArgumentException e){
 				logger.warn("River configuration field "+CFG_EMBED_URL_API_KEY+" is an invalid identifier: "+embedUrlApiKey);
 				embedUrlApiKey = null;
@@ -449,7 +449,7 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	    
 		url = url.replaceAll("\\{space\\}", URLEncoder.encode(spaceKey, "UTF-8"));
 		url = url.replaceAll("\\{updatedAfter\\}", updatedAfter != null ? URLEncoder.encode(DateTimeUtils.formatDateTime(updatedAfter, dateFormatToUse), "UTF-8") : "");
-		url = url.replaceAll("\\{updatedBefore\\}", updatedBeforeTimeSpan != null && updatedAfter!=null 
+		url = url.replaceAll("\\{updatedBefore\\}", updatedBeforeTimeSpan != null && updatedAfter!=null
 		        ? URLEncoder.encode(DateTimeUtils.formatDateTime(new Date(updatedAfter.getTime()+updatedBeforeTimeSpan), dateFormatToUse), "UTF-8") : "");
 		url = url.replaceAll("\\{startAtIndex\\}", startAt + "");
 		url = url.replaceAll("\\{indexingType\\}", fullUpdate ? "full" : "inc");

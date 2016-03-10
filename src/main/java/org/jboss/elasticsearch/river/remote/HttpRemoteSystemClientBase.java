@@ -7,7 +7,7 @@ package org.jboss.elasticsearch.river.remote;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -15,7 +15,6 @@ import org.apache.http.Consts;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
-import org.apache.http.NameValuePair;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
@@ -96,9 +95,12 @@ public abstract class HttpRemoteSystemClientBase implements IRemoteSystemClient 
 
 		String remoteUsername = Utils.trimToNull(XContentMapValues.nodeStringValue(config.get(CFG_USERNAME), null));
 		String remotePassword = XContentMapValues.nodeStringValue(config.get(CFG_PASSWORD), null);
+		HashMap <String,String> dan;
 		if (remoteUsername != null) {
-			if (remotePassword == null && pwdLoader != null)
-				remotePassword = pwdLoader.loadPassword(remoteUsername);
+			if (remotePassword == null && pwdLoader != null) {
+				remotePassword = (pwdLoader.loadKey(remoteUsername)).get("pwd");
+
+			}
 			if (remotePassword != null) {
 				try {
 					URL urlParsed = new URL(url);

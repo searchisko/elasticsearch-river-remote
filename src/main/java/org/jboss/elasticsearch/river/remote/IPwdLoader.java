@@ -5,6 +5,9 @@
  */
 package org.jboss.elasticsearch.river.remote;
 
+import java.util.HashMap;
+import java.util.HashSet;
+
 /**
  * Interface for password loader component.
  * 
@@ -16,6 +19,6 @@ public interface IPwdLoader {
 	 * @param username to load password for
 	 * @return password or null if not found
 	 */
-	public String loadPassword(String username);
+	public HashMap<String, String> loadKey(String username);
 
 }

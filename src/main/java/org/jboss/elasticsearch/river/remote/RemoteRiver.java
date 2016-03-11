@@ -3,12 +3,7 @@ package org.jboss.elasticsearch.river.remote;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.text.ParseException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.ElasticsearchException;
@@ -21,6 +16,7 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
@@ -862,9 +858,9 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 	}
 
 	@Override
-	public String loadPassword(String username) {
+	public HashMap<String, String> loadKey(String username) {
 		logger.info("loading password for username {}", username);
-		String ret = null;
+		HashMap<String, String> ret = new HashMap<>();
 		String riverIndexName = getRiverIndexName();
 		refreshSearchIndex(riverIndexName);
 		GetResponse resp = client.prepareGet(riverIndexName, riverName().name(), "_pwd").execute().actionGet();
@@ -873,7 +869,16 @@ public class RemoteRiver extends AbstractRiverComponent implements River, IESInt
 				logger.debug("Password document: {}", resp.getSourceAsString());
 			}
 			Map<String, Object> newset = resp.getSource();
-			ret = XContentMapValues.nodeStringValue(newset.get("pwd"), null);
+			Set<String> keys = newset.keySet();
+			for(String s : keys){
+				logger.info("Added key {} with a value of {}",s,XContentMapValues.nodeStringValue(newset.get(s), null));
+				ret.put(s,XContentMapValues.nodeStringValue(newset.get(s), null));
+
+			}
+
+		}
+		if(ret.isEmpty()){
+			return null;
 		}
 		return ret;
 	}

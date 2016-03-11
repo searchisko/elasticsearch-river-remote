@@ -787,7 +787,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 			try {
 				tested.client = prepareESClientForUnitTest();
 				indexCreate(tested.getRiverIndexName());
-				Assert.assertNull(tested.loadPassword(""));
+				Assert.assertNull(tested.loadKey(""));
 			} finally {
 				finalizeESClientForUnitTest();
 			}
@@ -800,7 +800,7 @@ public class RemoteRiverTest extends ESRealClientTestBase {
 				tested.client = prepareESClientForUnitTest();
 				tested.client.prepareIndex(tested.getRiverIndexName(), tested.riverName().getName(), "_pwd")
 						.setSource("{ \"pwd\" : \"passwd\"}").execute().actionGet();
-				Assert.assertEquals("passwd", tested.loadPassword(""));
+				Assert.assertEquals("passwd", tested.loadKey("").get("pwd"));
 			} finally {
 				finalizeESClientForUnitTest();
 			}

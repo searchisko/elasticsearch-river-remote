@@ -19,7 +19,6 @@ import org.elasticsearch.common.jackson.core.JsonParseException;
 import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.settings.SettingsException;
 import org.jboss.elasticsearch.river.remote.HttpRemoteSystemClientBase.HttpCallException;
-import org.jboss.elasticsearch.river.remote.HttpRemoteSystemClientBase.HttpMethodType;
 import org.jboss.elasticsearch.river.remote.exception.RemoteDocumentNotFoundException;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -142,18 +141,20 @@ public class GetJSONClientTest {
 		{
 			GetJSONClient tested = new GetJSONClient();
 			Map<String, Object> config = new HashMap<String, Object>();
+			HashMap<String,String> passwordTest = new HashMap<>();
+			passwordTest.put("pwd", "paaswd");
 			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
 			config.put(GetJSONClient.CFG_URL_GET_SPACES, "http://test.org/spaces");
 			config.put(GetJSONClient.CFG_USERNAME, "myuser");
 			IPwdLoader pwdLoaderMock = Mockito.mock(IPwdLoader.class);
-			Mockito.when(pwdLoaderMock.loadPassword("myuser")).thenReturn("paaswd");
+			Mockito.when(pwdLoaderMock.loadKey("myuser")).thenReturn(passwordTest);
 			tested.init(mockEsIntegrationComponent(), config, true, pwdLoaderMock);
 			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
 			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
 			Assert.assertNull(tested.getSpacesResField);
 			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headers.get("Accept"));
 			Assert.assertTrue(tested.isAuthConfigured);
-			Mockito.verify(pwdLoaderMock).loadPassword("myuser");
+			Mockito.verify(pwdLoaderMock).loadKey("myuser");
 		}
 
 		// case - basic config, authentication put pwd not defined
@@ -170,6 +171,26 @@ public class GetJSONClientTest {
 			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headers.get("Accept"));
 			Assert.assertFalse(tested.isAuthConfigured);
 		}
+
+		// case - basic config, api key in password file
+		{
+			GetJSONClient tested = new GetJSONClient();
+			Map<String, Object> config = new HashMap<String, Object>();
+			HashMap<String,String> passwordTest = new HashMap<>();
+			passwordTest.put("stackoverflow", "paaswd");
+			config.put(GetJSONClient.CFG_URL_GET_DOCUMENTS, "http://test.org/documents");
+			config.put(GetJSONClient.CFG_URL_GET_SPACES, "http://test.org/spaces");
+			config.put(GetJSONClient.CFG_EMBED_URL_API_KEY_USERNAME, "stackoverflow");
+			IPwdLoader pwdLoaderMock = Mockito.mock(IPwdLoader.class);
+			Mockito.when(pwdLoaderMock.loadKey("stackoverflow")).thenReturn(passwordTest);
+			tested.init(mockEsIntegrationComponent(), config, true, pwdLoaderMock);
+			Assert.assertEquals("http://test.org/documents", tested.urlGetDocuments);
+			Assert.assertEquals("http://test.org/spaces", tested.urlGetSpaces);
+			Assert.assertNull(tested.getSpacesResField);
+			Assert.assertEquals(GetJSONClient.HEADER_ACCEPT_DEFAULT, tested.headers.get("Accept"));
+			Mockito.verify(pwdLoaderMock).loadKey("stackoverflow");
+		}
+
 
 		// case - error when both detail UIRLa nd detail field are provided
 		try {
@@ -669,24 +690,24 @@ public class GetJSONClientTest {
 						GetJSONClient
 								.enhanceUrlGetDocuments(
 										"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&docUpdatedBefore={updatedBefore}&startAtIndex={startAtIndex}&it={indexingType}",
-										"myspace", new Date(123456l), DateTimeUtils.CUSTOM_MILLISEC_EPOCH_DATETIME_FORMAT, null, 300L, 0, true));
-		
+										"myspace", new Date(123456l), DateTimeUtils.CUSTOM_MILLISEC_EPOCH_DATETIME_FORMAT, null, 300L, 0, true, null));
+
 		// Testing if not providing updatedAfter date format doesn't break the call and uses the correct milisecond-based format as the default.
 		Assert
-        .assertEquals(
-                "http://test.org?docSpace=myspace&docUpdatedAfter=123456&startAtIndex=0&it=full",
-                GetJSONClient
-                        .enhanceUrlGetDocuments(
-                                "http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}",
-                                "myspace", new Date(123456l), null, null, null, 0, true));
-		
+				.assertEquals(
+						"http://test.org?docSpace=myspace&docUpdatedAfter=123456&startAtIndex=0&it=full",
+						GetJSONClient
+								.enhanceUrlGetDocuments(
+										"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}",
+										"myspace", new Date(123456l), null, null, null, 0, true, null));
+
 		Assert
-        .assertEquals(
-                "http://test.org?docSpace=myspace&docUpdatedAfter=20150404%26Fun&startAtIndex=0&it=full",
-                GetJSONClient
-                        .enhanceUrlGetDocuments(
-                                "http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}",
-                                "myspace", new Date(1428113546000L), "yyyyMMdd'&Fun'", null, null, 0, true));
+				.assertEquals(
+						"http://test.org?docSpace=myspace&docUpdatedAfter=20150404%26Fun&startAtIndex=0&it=full",
+						GetJSONClient
+								.enhanceUrlGetDocuments(
+										"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}",
+										"myspace", new Date(1428113546000L), "yyyyMMdd'&Fun'", null, null, 0, true, null));
 
 		Assert
 				.assertEquals(
@@ -694,15 +715,23 @@ public class GetJSONClientTest {
 						GetJSONClient
 								.enhanceUrlGetDocuments(
 										"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}",
-										"my&space", null, null, null, null, 125, false));
-		
+										"my&space", null, null, null, null, 125, false, null));
+
 		Assert
-        .assertEquals(
-                "http://test.org?docSpace=my%26space&docUpdatedAfter=1349108160000&startAtIndex=125&it=inc",
-                GetJSONClient
-                        .enhanceUrlGetDocuments(
-                                "http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}",
-                                "my&space", null, null, 1349108160000L , null, 125, false));
+				.assertEquals(
+						"http://test.org?docSpace=my%26space&docUpdatedAfter=1349108160000&startAtIndex=125&it=inc",
+						GetJSONClient
+								.enhanceUrlGetDocuments(
+										"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}",
+										"my&space", null, null, 1349108160000L, null, 125, false, null));
+
+		Assert
+				.assertEquals(
+						"http://test.org?docSpace=my%26space&docUpdatedAfter=1349108160000&startAtIndex=125&it=inc&apikey=password",
+						GetJSONClient
+								.enhanceUrlGetDocuments(
+										"http://test.org?docSpace={space}&docUpdatedAfter={updatedAfter}&startAtIndex={startAtIndex}&it={indexingType}&apikey={apiKey}",
+										"my&space", null, null, 1349108160000L, null, 125, false, "password"));
 
 	}
 

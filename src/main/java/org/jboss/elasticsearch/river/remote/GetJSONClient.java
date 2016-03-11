@@ -94,7 +94,11 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	protected String urlGetDocumentDetails;
 
 	protected String urlGetDocumentDetailsField;
-	
+
+	protected String embedUrlApiKey;
+
+	protected String embedUrlApiKeyUsername;
+
 	protected AtomicReference<Long> blockHttpCallsTill = new AtomicReference<Long>();
 
 	protected static final String HEADER_ACCEPT_DEFAULT = "application/json";
@@ -117,7 +121,20 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 		        minGetDocumentsDelay = null;
 		    }
 		}
-		
+
+		embedUrlApiKeyUsername = Utils.trimToNull(XContentMapValues.nodeStringValue(config.get(CFG_EMBED_URL_API_KEY_USERNAME),null));
+		embedUrlApiKey = Utils.trimToNull(XContentMapValues.nodeStringValue(config.get(CFG_EMBED_URL_API_KEY), null));
+
+		if(embedUrlApiKeyUsername != null){
+			try{
+				embedUrlApiKey = pwdLoader.loadKey(embedUrlApiKeyUsername).get(embedUrlApiKeyUsername);
+				logger.warn("For Username: " + embedUrlApiKeyUsername +" we are using API Key: " + embedUrlApiKey);
+			}catch(IllegalArgumentException e){
+				logger.warn("River configuration field "+CFG_EMBED_URL_API_KEY+" is an invalid identifier: "+embedUrlApiKey);
+				embedUrlApiKey = null;
+			}
+		}
+
 		forcedIndexingPauseField = Utils.trimToNull(XContentMapValues.nodeStringValue(config.get(CFG_FORCED_INDEXING_PAUSE_FIELD),null));
 		String forcedIndexingPauseFieldTimeUnitStr = Utils.trimToNull(
 		        XContentMapValues.nodeStringValue(config.get(CFG_FORCED_INDEXING_PAUSE_FIELD_TIME_UNIT),null));
@@ -317,8 +334,8 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	@Override
 	public ChangedDocumentsResults getChangedDocuments(String spaceKey, int startAt, boolean fullUpdate, Date updatedAfter)
 			throws Exception {
-		String url = enhanceUrlGetDocuments(urlGetDocuments, spaceKey, updatedAfter, updatedAfterFormat, updatedAfterInitialValue, updatedBeforeTimeSpanFromUpdatedAfter, startAt, fullUpdate);
-		
+		String url = enhanceUrlGetDocuments(urlGetDocuments, spaceKey, updatedAfter, updatedAfterFormat, updatedAfterInitialValue, updatedBeforeTimeSpanFromUpdatedAfter, startAt, fullUpdate, embedUrlApiKey);
+
 		if( blockHttpCallsTill.get()!=null ) {
 			
 			// IF THE THREAD PAUSE TIME HAPPENS TO BE IN THE PAST WE JUST CLEAR THE VALUE AND CONTINUE PROCESSING.
@@ -422,8 +439,8 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	}
 
 	protected static String enhanceUrlGetDocuments(String url, String spaceKey, Date updatedAfter, String updatedAfterFormat,
-	        Long updatedAfterInitialValue, Long updatedBeforeTimeSpan, int startAt, boolean fullUpdate) throws UnsupportedEncodingException {
-	    
+	        Long updatedAfterInitialValue, Long updatedBeforeTimeSpan, int startAt, boolean fullUpdate, String embedApiKeyCode) throws UnsupportedEncodingException {
+
 	    String dateFormatToUse = updatedAfterFormat!=null && updatedAfterFormat.length()!=0
 	            ? updatedAfterFormat
 	            : DateTimeUtils.CUSTOM_MILLISEC_EPOCH_DATETIME_FORMAT;
@@ -432,10 +449,12 @@ public class GetJSONClient extends HttpRemoteSystemClientBase {
 	    
 		url = url.replaceAll("\\{space\\}", URLEncoder.encode(spaceKey, "UTF-8"));
 		url = url.replaceAll("\\{updatedAfter\\}", updatedAfter != null ? URLEncoder.encode(DateTimeUtils.formatDateTime(updatedAfter, dateFormatToUse), "UTF-8") : "");
-		url = url.replaceAll("\\{updatedBefore\\}", updatedBeforeTimeSpan != null && updatedAfter!=null 
+		url = url.replaceAll("\\{updatedBefore\\}", updatedBeforeTimeSpan != null && updatedAfter!=null
 		        ? URLEncoder.encode(DateTimeUtils.formatDateTime(new Date(updatedAfter.getTime()+updatedBeforeTimeSpan), dateFormatToUse), "UTF-8") : "");
 		url = url.replaceAll("\\{startAtIndex\\}", startAt + "");
 		url = url.replaceAll("\\{indexingType\\}", fullUpdate ? "full" : "inc");
+		url = url.replaceAll("\\{apiKey\\}", embedApiKeyCode != null ? embedApiKeyCode : "");
+
 		return url;
 	}
 

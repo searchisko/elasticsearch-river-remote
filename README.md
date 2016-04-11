@@ -17,12 +17,14 @@ In order to install the plugin into Elasticsearch 1.3.x, simply run:
 `bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.5.4/elasticsearch-river-remote-1.5.4.zip -install elasticsearch-river-remote`.
 
 In order to install the plugin into Elasticsearch 1.4.x, simply run: 
-`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.6.6/elasticsearch-river-remote-1.6.7.zip -install elasticsearch-river-remote`.
+`bin/plugin -url https://repository.jboss.org/nexus/content/groups/public-jboss/org/jboss/elasticsearch/elasticsearch-river-remote/1.6.8/elasticsearch-river-remote-1.6.8.zip -install elasticsearch-river-remote`.
 
     --------------------------------------------------
     | Remote River | Elasticsearch    | Release date |
     --------------------------------------------------
     | master       | 1.4.0            |              |
+    --------------------------------------------------
+    | 1.6.8        | 1.4.0            | 04.06.2016   |
     --------------------------------------------------
     | 1.6.7        | 1.4.0            | 12.02.2016   |
     --------------------------------------------------
@@ -330,7 +332,7 @@ This is default remote system client implementation provided by river.
 Uses http/s GET requests to the target remote system and handles JSON response data. 
 Configuration parameters for this client type:
 
-* `remote/urlGetDocuments` is URL used to call *List Documents* operation from remote system. You may use three placeholders in this URL to be replaced by parameters required by indexing process as described above: `{space}`, `{startAtIndex}`, `{updatedAfter}`, `{indexingType}`
+* `remote/urlGetDocuments` is URL used to call *List Documents* operation from remote system. You may use four placeholders in this URL to be replaced by parameters required by indexing process as described above: `{space}`, `{startAtIndex}`, `{updatedAfter}`, `{indexingType}`, `{apiKey}`
 * `remote/getDocsResFieldDocuments` defines field in JSON data returned from `remote/urlGetDocuments` call, where array of documents is stored. If not defined then the array is expected directly in the root of returned data. Dot notation may be used for deeper nesting in the JSON structure.
 * `remote/getDocsResFieldTotalcount` defines field in JSON data returned from `remote/urlGetDocuments` call, where total number of documents matching passed search criteria is stored. Dot notation may be used for deeper nesting in the JSON structure. 
 * `remote/urlGetDocumentDetails` is URL used to call *Get Document Details* operation from remote system.
@@ -339,6 +341,7 @@ Configuration parameters for this client type:
   * `{space}` - identifier of space document is for 
 * `remote/urlGetDocumentDetailsField` allows to name field in item's data returned from *List documents* operation to get URL used to call *Get Document Details* operation from.
 * `remote/username` and `remote/pwd` are optional login credentials to access documents in remote system. HTTP BASIC authentication is supported. Alternatively you can store password into separate JSON document called `_pwd` stored in the rived index beside `_meta` document, into field called `pwd`, see example later.
+* `remote/embedUrlApiKeyUsername` and `remote/embedUrlApiKey` are optional credentials to embed an api key in the `remote/urlGetDocuments` field. Alternatively, you can store the api key in a separate JSON document called `_pwd` stored in the rived index beside `_meta` document. It is suggested that you use text that matches `remote/embedUrlApiKeyUsername` for the username, see example later.
 * `remote/timeout` time value, defines timeout for http/s request to the remote system. Optional, 5s is default if not provided.
 * `remote/urlGetSpaces` is URL used to call *List Spaces* operation from remote system. Necessary if `remote/spacesIndexed` is not provided.
 * `remote/getSpacesResField` defines field in JSON data returned from `remote/urlGetSpaces` call, where array of space keys is stored. If not defined then the array is expected directly in root of returned data. Dot notation may be used for deeper nesting in the JSON structure.
@@ -358,6 +361,9 @@ Password can be stored outside of river configuration by using:
 
 	curl -XPUT localhost:9200/_river/my_remote_river/_pwd -d '{"pwd" : "mypassword"}'
 
+The API key can be stored outside of river configuration by using (use `remote/embedUrlApiKeyUsername` as the key name below):
+
+	curl -XPUT localhost:9200/_river/my_remote_river/_pwd -d '{"embedUrlApiKeyUsername" : "apikey"}'
 
 ####Website indexing remote system API client
 This remote client allows you to index content of html website pages. 
